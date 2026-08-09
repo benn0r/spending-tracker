@@ -1,0 +1,45 @@
+{
+  "name": "spending-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "ios:build": "expo run:ios --device",
+    "ios:build:release": "expo run:ios --device --configuration Release",
+    "web": "expo start --web",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "expo lint . --max-warnings=0",
+    "build": "expo export --platform web --output-dir dist",
+    "test": "node --experimental-strip-types --test tests/unit/*.test.ts",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.8",
+    "@expo/vector-icons": "^15.1.1",
+    "expo": "~57.0.9",
+    "expo-status-bar": "57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.2",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.14",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "prettier": "^3.9.6",
+    "serve": "^14.2.5",
+    "tsx": "^4.20.6",
+    "typescript": "~6.0.3"
+  }
+}
