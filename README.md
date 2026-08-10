@@ -15,6 +15,11 @@ A calm, mobile-first Expo application for reviewing daily spending and quickly c
 - A prominent floating add button opens a native-style bottom drawer.
 - Transaction and split-transaction modes.
 - Server-provided account, category, and tag selections with validated normal and split submissions.
+- Server-managed category icons and colors throughout the picker and transaction list.
+- Bottom-tab navigation for Transactions, Wallets, Receipts, and Settings.
+- Native receipt camera capture, background upload and processing status, with extracted values prefilled into the transaction drawer.
+- Persistent default-account selection that prefills new transactions on the current device.
+- Persistent failed-transaction queue with visible server errors and individual retry actions.
 - Responsive Expo app for Android, iOS, and web.
 
 ## Development

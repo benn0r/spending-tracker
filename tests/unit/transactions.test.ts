@@ -3,7 +3,9 @@ import { describe, it } from 'node:test';
 import {
   createPayload,
   emptyDraft,
+  formatDateHeader,
   formatCurrency,
+  formatTransactionDate,
   isDraftValid,
   summarize,
 } from '../../src/transactions.ts';
@@ -12,6 +14,20 @@ describe('transaction helpers', () => {
   it('formats expenses and income', () => {
     assert.equal(formatCurrency(-12.5), '− CHF 12.50');
     assert.equal(formatCurrency(4250), "+ CHF 4'250.00");
+  });
+  it('formats transaction dates with the device locale and relative day headers', () => {
+    const now = new Date(2026, 7, 10, 12);
+    assert.equal(formatDateHeader('2026-08-10', now), 'Today');
+    assert.equal(formatDateHeader('2026-08-09', now), 'Yesterday');
+    assert.equal(
+      formatDateHeader('1992-10-13', now),
+      new Intl.DateTimeFormat(undefined, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(new Date('1992-10-13T12:00:00')),
+    );
+    assert.equal(formatTransactionDate('invalid'), 'invalid');
   });
   it('summarizes API transactions', () => {
     const base = {

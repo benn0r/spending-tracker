@@ -5,11 +5,35 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "web": { "bundler": "metro" },
-    "ios": { "supportsTablet": true, "bundleIdentifier": "app.spendingtracker.mobile" },
+    "web": {
+      "bundler": "metro"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.spendingtracker.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow Spending Tracker to scan receipts with your camera.",
+        "NSPhotoLibraryUsageDescription": "Allow Spending Tracker to attach receipt photos.",
+        "NSPhotoLibraryAddUsageDescription": "Allow Spending Tracker to save captured receipt photos."
+      }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Spending Tracker to scan receipts with your camera.",
+          "photosPermission": "Allow Spending Tracker to attach receipt photos."
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-notifications",
+      "./plugins/with-local-badge-only"
+    ],
     "android": {
       "package": "app.spendingtracker.mobile",
-      "adaptiveIcon": { "backgroundColor": "#F4F0E8" }
+      "adaptiveIcon": {
+        "backgroundColor": "#F4F0E8"
+      }
     }
   }
 }

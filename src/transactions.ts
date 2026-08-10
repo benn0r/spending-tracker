@@ -3,6 +3,7 @@ import type { ApiTransaction, DraftTransaction, EntryMode, TransactionPayload } 
 export const emptyDraft: DraftTransaction = {
   account: '',
   category: '',
+  date: '',
   amount: '',
   tags: [],
   comment: '',
@@ -49,7 +50,7 @@ export function createPayload(
   if (!isDraftValid(draft, mode)) throw new Error('Complete all required transaction fields.');
   const common = {
     account: draft.account,
-    date: date.toISOString().slice(0, 10),
+    date: draft.date || date.toISOString().slice(0, 10),
     amount: -numberValue(draft.amount),
     notes: draft.comment.trim() || undefined,
   };
@@ -73,9 +74,23 @@ export function createPayload(
 export function formatTransactionDate(date: string): string {
   const value = new Date(`${date}T12:00:00`);
   if (Number.isNaN(value.getTime())) return date;
-  return new Intl.DateTimeFormat('en-CH', {
-    day: 'numeric',
-    month: 'short',
+  return new Intl.DateTimeFormat(undefined, {
+    day: '2-digit',
+    month: '2-digit',
     year: 'numeric',
   }).format(value);
+}
+
+export function formatDateHeader(date: string, now = new Date()): string {
+  const localValue = (value: Date) =>
+    [
+      value.getFullYear(),
+      String(value.getMonth() + 1).padStart(2, '0'),
+      String(value.getDate()).padStart(2, '0'),
+    ].join('-');
+  if (date === localValue(now)) return 'Today';
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date === localValue(yesterday)) return 'Yesterday';
+  return formatTransactionDate(date);
 }

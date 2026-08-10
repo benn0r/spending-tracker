@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
 
 const references = {
-  accounts: [{ id: 'account-1', name: 'Everyday' }],
+  accounts: [
+    { id: 'account-1', name: 'Everyday' },
+    { id: 'account-2', name: 'Savings' },
+  ],
   categories: [
-    { id: 'food-id', name: 'Groceries' },
-    { id: 'home-id', name: 'Home' },
+    { id: 'food-id', name: 'Groceries', icon: 'basket', color: '#B87545' },
+    { id: 'home-id', name: 'Home', icon: 'home', color: '#77409A' },
   ],
   tags: [{ id: 'weekly-id', name: 'Weekly' }],
 };
@@ -22,11 +25,21 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/references', (route) =>
     route.fulfill({ contentType: 'application/json', body: JSON.stringify(references) }),
   );
+  await page.route('**/api/receipts**', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify([]) }),
+  );
 });
 
 test('loads API transactions and submits a new expense', async ({ page }) => {
   let items = [transaction];
   let submitted: Record<string, unknown> | undefined;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayValue = [
+    yesterday.getFullYear(),
+    String(yesterday.getMonth() + 1).padStart(2, '0'),
+    String(yesterday.getDate()).padStart(2, '0'),
+  ].join('-');
   await page.route('**/api/transactions**', async (route) => {
     if (route.request().method() === 'POST') {
       submitted = route.request().postDataJSON();
@@ -46,25 +59,266 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
     });
   });
   await page.goto('/');
+  await expect(page.getByText('Good morning')).toHaveCount(0);
+  await expect(page.getByLabel('Refresh transactions')).toHaveCount(0);
   await expect(page.getByText('Green Grocer')).toBeVisible();
   await page.getByRole('button', { name: 'Add transaction' }).click();
+  await expect(page.getByTestId('category-sheet')).toBeVisible();
+  await page.getByRole('radio', { name: 'Groceries' }).click();
+  await expect(page.getByLabel('Amount')).toBeFocused();
   await page.getByRole('radio', { name: 'Everyday' }).click();
   await page.getByLabel('Amount').fill('28.90');
-  await page.getByRole('radio', { name: 'Groceries' }).click();
+  await page.getByRole('radio', { name: 'Yesterday' }).click();
+  await expect(page.getByLabel('Date')).toHaveValue(yesterdayValue);
   await page.getByRole('checkbox', { name: 'Weekly' }).click();
   await page.getByLabel('Comment').fill('Book shop');
   await page.getByRole('button', { name: 'Save expense' }).click();
+  await expect(page.getByTestId('entry-sheet')).toBeHidden();
   await expect
     .poll(() => submitted)
     .toEqual({
       account: 'account-1',
       category: 'food-id',
       amount: -28.9,
-      date: expect.any(String),
+      date: yesterdayValue,
       notes: 'Book shop',
       tags: ['weekly-id'],
     });
   await expect(page.getByText('− CHF 28.90')).toBeVisible();
+});
+
+test('loads 20 transactions initially and fetches the next page on scroll', async ({ page }) => {
+  const items = Array.from({ length: 55 }, (_, index) => ({
+    ...transaction,
+    id: `transaction-${index}`,
+    payee: `Merchant ${index}`,
+  }));
+  const requests: string[] = [];
+  await page.route('**/api/transactions**', (route) => {
+    const url = new URL(route.request().url());
+    requests.push(url.search);
+    const requestedPage = Number(url.searchParams.get('page'));
+    const pageSize = Number(url.searchParams.get('pageSize'));
+    const start = (requestedPage - 1) * pageSize;
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        transactions: items.slice(start, start + pageSize),
+        total: items.length,
+        page: requestedPage,
+        pageSize,
+      }),
+    });
+  });
+
+  await page.goto('/');
+  await expect(page.getByText('20 loaded')).toBeVisible();
+  expect(requests[0]).toBe('?page=1&pageSize=20');
+
+  await page.evaluate(() => {
+    const scroller = [...document.querySelectorAll<HTMLElement>('*')].find(
+      (element) =>
+        element.scrollHeight > element.clientHeight &&
+        ['auto', 'scroll'].includes(getComputedStyle(element).overflowY),
+    );
+    if (!scroller) throw new Error('Transaction scroller not found');
+    scroller.scrollTop = scroller.scrollHeight;
+    scroller.dispatchEvent(new Event('scroll', { bubbles: true }));
+  });
+  await expect.poll(() => requests).toContain('?page=2&pageSize=20');
+  await expect(page.getByText('Merchant 39')).toBeVisible();
+});
+
+test('swipes transactions and receipts left to delete them', async ({ page }) => {
+  let transactionDeleted = false;
+  let receiptDeleted = false;
+  await page.unroute('**/api/receipts**');
+  await page.route('**/api/transactions**', (route) => {
+    if (route.request().method() === 'DELETE') {
+      transactionDeleted = true;
+      return route.fulfill({ status: 204 });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 50 }),
+    });
+  });
+  await page.route('**/api/receipts**', (route) => {
+    if (route.request().method() === 'DELETE') {
+      receiptDeleted = true;
+      return route.fulfill({ status: 204 });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 8,
+          filename: 'market.jpg',
+          account: 'account-1',
+          mimeType: 'image/jpeg',
+          status: 'failed',
+          suggestion: null,
+          error: 'Unreadable',
+          submitted: false,
+          actualId: null,
+          createdAt: '2026-08-09',
+          processedAt: null,
+          submittedAt: null,
+        },
+      ]),
+    });
+  });
+
+  await page.goto('/');
+  const transactionRow = page.getByTestId('transaction-transaction-1');
+  const transactionBox = await transactionRow.boundingBox();
+  if (!transactionBox) throw new Error('Transaction row has no bounds');
+  await page.mouse.move(transactionBox.x + transactionBox.width - 15, transactionBox.y + 25);
+  await page.mouse.down();
+  await page.mouse.move(transactionBox.x + transactionBox.width - 110, transactionBox.y + 25, {
+    steps: 10,
+  });
+  await page.mouse.up();
+  await page.touchscreen.tap(10, 10);
+  await page.waitForTimeout(300);
+  await page.mouse.move(transactionBox.x + transactionBox.width - 15, transactionBox.y + 25);
+  await page.mouse.down();
+  await page.mouse.move(transactionBox.x + transactionBox.width - 110, transactionBox.y + 25, {
+    steps: 10,
+  });
+  await page.mouse.up();
+  await page.getByRole('button', { name: 'Delete Green Grocer', exact: true }).click();
+  await expect(page.getByText('Delete Green Grocer?')).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel delete' }).click();
+  await expect(transactionRow).toBeVisible();
+  await page.getByRole('button', { name: 'Delete Green Grocer', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm delete Green Grocer' }).click();
+  await expect(transactionRow).toHaveCount(0);
+  expect(transactionDeleted).toBe(true);
+
+  await page.getByRole('tab', { name: 'Receipts' }).click();
+  const receiptRow = page.getByTestId('receipt-8');
+  const receiptBox = await receiptRow.boundingBox();
+  if (!receiptBox) throw new Error('Receipt row has no bounds');
+  await page.mouse.move(receiptBox.x + receiptBox.width - 15, receiptBox.y + 25);
+  await page.mouse.down();
+  await page.mouse.move(receiptBox.x + receiptBox.width - 110, receiptBox.y + 25, { steps: 10 });
+  await page.mouse.up();
+  await page.getByRole('button', { name: 'Delete market.jpg', exact: true }).click();
+  await page.getByRole('button', { name: 'Confirm delete market.jpg' }).click();
+  await expect(receiptRow).toHaveCount(0);
+  expect(receiptDeleted).toBe(true);
+});
+
+test('selects a wallet and shows only that wallet’s transactions', async ({ page }) => {
+  const savingsTransaction = {
+    ...transaction,
+    id: 'savings-transaction',
+    account: 'Savings',
+    payee: 'Savings interest',
+    amount: 12,
+  };
+  await page.route('**/api/transactions**', (route) => {
+    const url = new URL(route.request().url());
+    const account = url.searchParams.get('account');
+    const transactions = account === 'account-2' ? [savingsTransaction] : [transaction];
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions, total: 1, page: 1, pageSize: 50 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('tab', { name: 'Wallets' }).click();
+  await expect(page.getByText('Green Grocer')).toBeVisible();
+  await page.getByRole('button', { name: 'Select wallet' }).click();
+  await page.getByRole('radio', { name: 'Savings' }).click();
+
+  await expect(page.getByText('Savings interest')).toBeVisible();
+  await expect(page.getByText('Green Grocer')).toHaveCount(0);
+});
+
+test('opens a processed receipt as a prefilled transaction', async ({ page }) => {
+  let submitted: Record<string, unknown> | undefined;
+  let receiptSubmitted = false;
+  await page.unroute('**/api/receipts**');
+  await page.route('**/api/receipts**', (route) => {
+    if (route.request().method() === 'POST' && route.request().url().endsWith('/submit')) {
+      submitted = route.request().postDataJSON();
+      receiptSubmitted = true;
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'receipt-transaction', status: 'created' }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 7,
+          filename: 'receipt.jpg',
+          account: 'account-1',
+          mimeType: 'image/jpeg',
+          status: 'processed',
+          suggestion: {
+            merchant: 'Corner Market',
+            date: '2026-08-08',
+            amount: 18.75,
+            currency: 'CHF',
+            category: 'food-id',
+            notes: 'Weekly groceries',
+            tags: ['weekly-id'],
+            items: [],
+            splits: [],
+            confidence: 0.96,
+          },
+          error: null,
+          submitted: receiptSubmitted,
+          actualId: null,
+          createdAt: '2026-08-09',
+          processedAt: '2026-08-09',
+          submittedAt: null,
+        },
+      ]),
+    });
+  });
+  await page.route('**/api/transactions**', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 50 }),
+    }),
+  );
+
+  await page.goto('/');
+  await expect(page.getByTestId('receipt-tab-badge')).toHaveText('1');
+  await page.getByRole('tab', { name: 'Receipts' }).click();
+  await expect(page.getByRole('button', { name: 'Scan receipt' })).toBeVisible();
+  await page.getByRole('button', { name: 'View Corner Market' }).click();
+  await expect(page.getByTestId('receipt-preview')).toBeVisible();
+  await expect(page.getByLabel('Receipt photo receipt.jpg')).toBeVisible();
+  await page.getByRole('button', { name: 'Close receipt photo' }).click();
+  await expect(page.getByTestId('receipt-preview')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Add Corner Market' }).click();
+
+  await expect(page.getByTestId('entry-sheet')).toBeVisible();
+  await expect(page.getByLabel('Amount')).toHaveValue('18.75');
+  await expect(page.getByLabel('Date')).toHaveValue('2026-08-08');
+  await expect(page.getByLabel('Comment')).toHaveValue('Corner Market · Weekly groceries');
+  await expect(page.getByRole('button', { name: 'Select category' })).toContainText('Groceries');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+  await expect(page.getByTestId('receipt-tab-badge')).toHaveCount(0);
+
+  await expect
+    .poll(() => submitted)
+    .toEqual({
+      account: 'account-1',
+      category: 'food-id',
+      date: '2026-08-08',
+      amount: -18.75,
+      notes: 'Corner Market · Weekly groceries',
+      tags: ['weekly-id'],
+    });
 });
 
 test('submits a balanced split transaction', async ({ page }) => {
@@ -85,12 +339,17 @@ test('submits a balanced split transaction', async ({ page }) => {
   });
   await page.goto('/');
   await page.getByRole('button', { name: 'Add transaction' }).click();
+  await page
+    .getByRole('button', { name: 'Close category picker' })
+    .click({ position: { x: 8, y: 8 } });
+  await expect(page.getByLabel('Amount')).toBeFocused();
   await page.getByRole('tab', { name: 'Split transaction' }).click();
   await page.getByRole('radio', { name: 'Everyday' }).click();
-  await page.getByLabel('Amount').fill('20');
-  const categoryChoices = page.getByRole('radio', { name: 'Groceries' });
-  await categoryChoices.nth(0).click();
-  await categoryChoices.nth(1).click();
+  await page.getByLabel('Amount', { exact: true }).fill('20');
+  await page.getByRole('button', { name: 'Select category for Split 1' }).click();
+  await page.getByRole('radio', { name: 'Groceries' }).last().click();
+  await page.getByRole('button', { name: 'Select category for Split 2' }).click();
+  await page.getByRole('radio', { name: 'Groceries' }).last().click();
   const amounts = page.getByLabel('Split amount');
   await amounts.nth(0).fill('12');
   await amounts.nth(1).fill('8');
@@ -107,4 +366,145 @@ test('submits a balanced split transaction', async ({ page }) => {
         ],
       }),
     );
+});
+
+test('navigates tabs and persists the default account', async ({ page }) => {
+  await page.route('**/api/transactions**', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 200 }),
+    }),
+  );
+  await page.goto('/');
+
+  await page.getByRole('tab', { name: 'Receipts' }).click();
+  await expect(page.getByText('No receipts yet')).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('button', { name: 'Select default account' }).click();
+  await page.getByRole('radio', { name: 'Everyday' }).click();
+  await expect(page.getByRole('button', { name: 'Select default account' })).toContainText(
+    'Everyday',
+  );
+
+  await page.reload();
+  await page.getByRole('tab', { name: 'Settings' }).click();
+  await expect(page.getByRole('button', { name: 'Select default account' })).toContainText(
+    'Everyday',
+  );
+});
+
+test('queues a failed transaction and retries it later', async ({ page }) => {
+  let attempts = 0;
+  let items = [transaction];
+  await page.route('**/api/transactions**', async (route) => {
+    if (route.request().method() === 'POST') {
+      attempts += 1;
+      if (attempts === 1) {
+        return route.fulfill({
+          status: 502,
+          headers: {
+            'x-request-id': 'debug-request-123',
+            'access-control-expose-headers': 'x-request-id',
+          },
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: 'Budget server unavailable',
+            detail: 'Actual rejected the transaction',
+          }),
+        });
+      }
+      items = [{ ...transaction, id: 'retried-1', amount: -18, payee: '—' }, ...items];
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'retried-1', status: 'created' }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: items, total: items.length, page: 1, pageSize: 200 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await page.getByRole('radio', { name: 'Groceries' }).click();
+  await page.getByRole('radio', { name: 'Everyday' }).click();
+  await page.getByLabel('Amount').fill('18');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await expect(page.getByTestId('entry-sheet')).toBeHidden();
+  await expect(page.getByText('Waiting to sync')).toBeVisible();
+  await expect(page.getByText('Budget server unavailable')).toBeVisible();
+  await expect(page.getByText(/HTTP 502/)).toBeVisible();
+  await expect(page.getByText(/Actual rejected the transaction/)).toBeVisible();
+  await expect(page.getByText(/Request ID: debug-request-123/)).toBeVisible();
+  await page.getByRole('button', { name: 'Retry Groceries' }).click();
+  await expect(page.getByTestId('transaction-queue')).toBeHidden();
+  await expect(page.getByText('− CHF 18.00')).toBeVisible();
+});
+
+test('shows server diagnostics when a transaction is rejected', async ({ page }) => {
+  await page.route('**/api/transactions**', async (route) => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        status: 422,
+        headers: {
+          'x-request-id': 'rejected-request-456',
+          'access-control-expose-headers': 'x-request-id',
+        },
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: 'Transaction rejected',
+          detail: 'The selected category is not available in this budget',
+        }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 200 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await page.getByRole('radio', { name: 'Groceries' }).click();
+  await page.getByRole('radio', { name: 'Everyday' }).click();
+  await page.getByLabel('Amount').fill('18');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await expect(page.getByTestId('entry-sheet')).toBeVisible();
+  await expect(page.getByText(/HTTP 422/)).toBeVisible();
+  await expect(page.getByText(/selected category is not available/)).toBeVisible();
+  await expect(page.getByText(/Request ID: rejected-request-456/)).toBeVisible();
+});
+
+test('dismisses a transaction that was already submitted despite a sync error', async ({
+  page,
+}) => {
+  await page.route('**/api/transactions**', async (route) => {
+    if (route.request().method() === 'POST') {
+      return route.fulfill({
+        status: 502,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Could not add transaction to Actual Budget' }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 200 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await page.getByRole('radio', { name: 'Groceries' }).click();
+  await page.getByRole('radio', { name: 'Everyday' }).click();
+  await page.getByLabel('Amount').fill('17.50');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await expect(page.getByTestId('transaction-queue')).toBeVisible();
+  await page.getByRole('button', { name: 'Remove Groceries from queue' }).click();
+  await expect(page.getByTestId('transaction-queue')).toBeHidden();
 });
