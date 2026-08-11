@@ -480,6 +480,7 @@ function ChoiceField({
                 key={option.id}
                 accessibilityRole={multiple ? 'checkbox' : 'radio'}
                 accessibilityState={{ checked: active }}
+                aria-checked={active}
                 onPress={() => toggleOption(option)}
                 style={[styles.choice, active && styles.activeChoice]}
               >
@@ -563,6 +564,7 @@ function ChoiceField({
                       key={item.id}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: active }}
+                      aria-checked={active}
                       onPress={selectTag}
                       style={[styles.tagSearchOption, active && styles.activeTagSearchOption]}
                     >
@@ -677,6 +679,7 @@ function CategoryPickerField({
                   <Pressable
                     accessibilityRole="radio"
                     accessibilityState={{ checked: active }}
+                    aria-checked={active}
                     onPress={() => {
                       onChange(item.id);
                       onDismiss();
@@ -900,6 +903,7 @@ function AccountDropdown({
                     key={option.id}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: active }}
+                    aria-checked={active}
                     onPress={() => {
                       onChange(option.id);
                       setOpen(false);
