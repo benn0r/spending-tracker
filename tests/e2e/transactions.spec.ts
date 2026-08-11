@@ -33,7 +33,13 @@ test.beforeEach(async ({ page }) => {
 test('loads API transactions and submits a new expense', async ({ page }) => {
   let items = [transaction];
   let submitted: Record<string, unknown> | undefined;
-  const yesterday = new Date();
+  const today = new Date();
+  const todayValue = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    String(today.getDate()).padStart(2, '0'),
+  ].join('-');
+  const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayValue = [
     yesterday.getFullYear(),
@@ -68,9 +74,12 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
   await expect(page.getByLabel('Amount')).toBeFocused();
   await page.getByRole('radio', { name: 'Everyday' }).click();
   await page.getByLabel('Amount').fill('28.90');
-  await page.getByRole('radio', { name: 'Yesterday' }).click();
+  await expect(page.getByLabel('Date')).toHaveValue(todayValue);
+  await page.getByLabel('Date').fill(yesterdayValue);
   await expect(page.getByLabel('Date')).toHaveValue(yesterdayValue);
-  await page.getByRole('checkbox', { name: 'Weekly' }).click();
+  const weeklyTag = page.getByTestId('entry-sheet').getByRole('checkbox', { name: 'Weekly' });
+  await weeklyTag.click();
+  await expect(weeklyTag).toBeChecked();
   await page.getByLabel('Comment').fill('Book shop');
   await page.getByRole('button', { name: 'Save expense' }).click();
   await expect(page.getByTestId('entry-sheet')).toBeHidden();

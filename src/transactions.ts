@@ -1,5 +1,35 @@
 import type { ApiTransaction, DraftTransaction, EntryMode, TransactionPayload } from './types';
 
+export const transactionCacheSize = 20;
+
+export function limitTransactionCache(transactions: ApiTransaction[]): ApiTransaction[] {
+  return transactions.slice(0, transactionCacheSize);
+}
+
+export function parseTransactionCache(value: string | null): ApiTransaction[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return limitTransactionCache(
+      parsed.filter(
+        (item): item is ApiTransaction =>
+          typeof item === 'object' &&
+          item !== null &&
+          typeof (item as ApiTransaction).id === 'string' &&
+          typeof (item as ApiTransaction).date === 'string' &&
+          typeof (item as ApiTransaction).amount === 'number' &&
+          typeof (item as ApiTransaction).account === 'string' &&
+          typeof (item as ApiTransaction).category === 'string' &&
+          typeof (item as ApiTransaction).payee === 'string' &&
+          typeof (item as ApiTransaction).isSplit === 'boolean',
+      ),
+    );
+  } catch {
+    return [];
+  }
+}
+
 export const emptyDraft: DraftTransaction = {
   account: '',
   category: '',

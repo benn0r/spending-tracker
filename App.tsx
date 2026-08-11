@@ -51,8 +51,9 @@ import {
   emptyDraft,
   formatCurrency,
   formatDateHeader,
-  formatTransactionDate,
   isDraftValid,
+  limitTransactionCache,
+  parseTransactionCache,
   summarize,
 } from './src/transactions';
 import { colors } from './src/theme';
@@ -70,6 +71,24 @@ import type {
 const emptyReferences: References = { accounts: [], categories: [], tags: [] };
 const defaultAccountStorageKey = 'spending-tracker.default-account';
 const transactionQueueStorageKey = 'spending-tracker.transaction-queue';
+const transactionCacheStorageKey = 'spending-tracker.transactions-v1';
+const referenceCacheStorageKey = 'spending-tracker.references-v1';
+
+function parseReferenceCache(value: string | null): References | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value) as Partial<References>;
+    if (
+      !Array.isArray(parsed.accounts) ||
+      !Array.isArray(parsed.categories) ||
+      !Array.isArray(parsed.tags)
+    )
+      return null;
+    return parsed as References;
+  } catch {
+    return null;
+  }
+}
 type AppTab = 'transactions' | 'wallets' | 'receipts' | 'settings';
 type QueuedTransaction = {
   id: string;
@@ -424,39 +443,146 @@ function ChoiceField({
   multiple?: boolean;
 }) {
   const selected = Array.isArray(value) ? value : [value];
+  const [tagSearchOpen, setTagSearchOpen] = useState(false);
+  const [tagQuery, setTagQuery] = useState('');
+  const [pendingTags, setPendingTags] = useState<string[]>([]);
+  const choiceScrollRef = useRef<ScrollView>(null);
+  const orderedOptions = [
+    ...options.filter(({ id }) => selected.includes(id)),
+    ...options.filter(({ id }) => !selected.includes(id)),
+  ];
+  const filteredOptions = options.filter(({ name }) =>
+    name.toLocaleLowerCase().includes(tagQuery.trim().toLocaleLowerCase()),
+  );
+  const toggleOption = (option: Reference) => {
+    const active = selected.includes(option.id);
+    if (multiple)
+      onChange(
+        (active ? selected.filter((id) => id !== option.id) : [...selected, option.id]) as never,
+      );
+    else onChange(option.id as never);
+  };
   return (
     <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.choiceRow}
-      >
-        {options.map((option) => {
-          const active = selected.includes(option.id);
-          return (
+      <View style={styles.choiceControl}>
+        <ScrollView
+          ref={choiceScrollRef}
+          accessibilityLabel={label}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.choiceScroller}
+          contentContainerStyle={styles.choiceRow}
+        >
+          {orderedOptions.map((option) => {
+            const active = selected.includes(option.id);
+            return (
+              <Pressable
+                key={option.id}
+                accessibilityRole={multiple ? 'checkbox' : 'radio'}
+                accessibilityState={{ checked: active }}
+                onPress={() => toggleOption(option)}
+                style={[styles.choice, active && styles.activeChoice]}
+              >
+                <Text style={[styles.choiceText, active && styles.activeChoiceText]}>
+                  {option.name}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        {multiple ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Search tags"
+            onPress={() => {
+              setTagQuery('');
+              setPendingTags(selected);
+              setTagSearchOpen(true);
+            }}
+            style={styles.tagSearchButton}
+          >
+            <Ionicons name="search" size={19} color={colors.accent} />
+          </Pressable>
+        ) : null}
+      </View>
+      {multiple ? (
+        <Modal
+          visible={tagSearchOpen}
+          transparent
+          animationType={Platform.OS === 'web' ? 'none' : 'slide'}
+          onRequestClose={() => setTagSearchOpen(false)}
+        >
+          <View style={styles.nestedModalRoot}>
             <Pressable
-              key={option.id}
-              accessibilityRole={multiple ? 'checkbox' : 'radio'}
-              accessibilityState={{ checked: active }}
-              onPress={() => {
-                if (multiple)
-                  onChange(
-                    (active
-                      ? selected.filter((id) => id !== option.id)
-                      : [...selected, option.id]) as never,
+              accessibilityLabel="Close tag search"
+              onPress={() => setTagSearchOpen(false)}
+              style={styles.nestedScrim}
+            />
+            <View style={styles.tagSearchSheet} testID="tag-search-sheet">
+              <View style={styles.handle} />
+              <View style={styles.tagSearchHeader}>
+                <Text style={styles.categorySheetTitle}>Choose tags</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Done selecting tags"
+                  onPress={() => {
+                    onChange(pendingTags as never);
+                    setTagSearchOpen(false);
+                    setTimeout(() => choiceScrollRef.current?.scrollTo({ x: 0, animated: true }));
+                  }}
+                  style={styles.dateDoneButton}
+                >
+                  <Text style={styles.dateDoneText}>Done</Text>
+                </Pressable>
+              </View>
+              <View style={styles.tagSearchField}>
+                <Ionicons name="search" size={20} color={colors.muted} />
+                <TextInput
+                  accessibilityLabel="Search tags"
+                  value={tagQuery}
+                  onChangeText={setTagQuery}
+                  placeholder="Search tags"
+                  placeholderTextColor="#A7A99F"
+                  style={styles.input}
+                />
+              </View>
+              <ScrollView
+                contentContainerStyle={styles.tagSearchList}
+                keyboardShouldPersistTaps="always"
+              >
+                {filteredOptions.map((item) => {
+                  const active = pendingTags.includes(item.id);
+                  const selectTag = () => {
+                    const next = active
+                      ? pendingTags.filter((id) => id !== item.id)
+                      : [...pendingTags, item.id];
+                    setPendingTags(next);
+                  };
+                  return (
+                    <Pressable
+                      key={item.id}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: active }}
+                      onPress={selectTag}
+                      style={[styles.tagSearchOption, active && styles.activeTagSearchOption]}
+                    >
+                      <View style={[styles.tagCheckbox, active && styles.activeTagCheckbox]}>
+                        {active ? (
+                          <Ionicons name="checkmark" size={15} color={colors.white} />
+                        ) : null}
+                      </View>
+                      <Text style={styles.tagSearchOptionText}>{item.name}</Text>
+                    </Pressable>
                   );
-                else onChange(option.id as never);
-              }}
-              style={[styles.choice, active && styles.activeChoice]}
-            >
-              <Text style={[styles.choiceText, active && styles.activeChoiceText]}>
-                {option.name}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+                })}
+                {!filteredOptions.length ? (
+                  <Text style={styles.emptyText}>No matching tags.</Text>
+                ) : null}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      ) : null}
     </View>
   );
 }
@@ -492,7 +618,6 @@ function CategoryPickerField({
   const selected = options.find(({ id }) => id === value);
   return (
     <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>Category</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
@@ -606,7 +731,6 @@ function TextField({
 }) {
   return (
     <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>{label}</Text>
       <View style={[styles.field, multiline && styles.multilineField]}>
         <Ionicons name={icon} size={20} color={colors.muted} />
         <TextInput
@@ -648,9 +772,6 @@ function DatePickerField({
 }) {
   const [open, setOpen] = useState(false);
   const today = localDateString(new Date());
-  const yesterdayValue = new Date();
-  yesterdayValue.setDate(yesterdayValue.getDate() - 1);
-  const yesterday = localDateString(yesterdayValue);
   const selected = value || today;
   const chooseDate = (_event: DateTimePickerEvent, date?: Date) => {
     if (Platform.OS !== 'ios') setOpen(false);
@@ -658,27 +779,7 @@ function DatePickerField({
   };
   return (
     <View style={styles.fieldGroup}>
-      <Text style={styles.fieldLabel}>Date</Text>
-      <View style={styles.dateShortcuts}>
-        {[
-          { label: 'Today', date: today },
-          { label: 'Yesterday', date: yesterday },
-        ].map((option) => {
-          const active = selected === option.date;
-          return (
-            <Pressable
-              key={option.label}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: active }}
-              onPress={() => onChange(option.date)}
-              style={[styles.dateShortcut, active && styles.activeDateShortcut]}
-            >
-              <Text style={[styles.dateShortcutText, active && styles.activeDateShortcutText]}>
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View style={[styles.dateShortcuts, styles.fieldControl]}>
         {Platform.OS === 'web' ? (
           <View style={[styles.dateCalendarButton, styles.webDateInput]}>
             <Ionicons name="calendar-outline" size={18} color={colors.accent} />
@@ -697,7 +798,7 @@ function DatePickerField({
             style={styles.dateCalendarButton}
           >
             <Ionicons name="calendar-outline" size={18} color={colors.accent} />
-            <Text style={styles.dateCalendarText}>{formatTransactionDate(selected)}</Text>
+            <Text style={styles.dateCalendarText}>{formatDateHeader(selected)}</Text>
           </Pressable>
         )}
       </View>
@@ -1309,6 +1410,7 @@ function EntrySheet({
   const [error, setError] = useState('');
   const [categoryPicker, setCategoryPicker] = useState<'main' | `split-${number}` | null>(null);
   const amountInputRef = useRef<TextInput>(null);
+  const wasVisible = useRef(false);
   const update = <K extends keyof DraftTransaction>(key: K, value: DraftTransaction[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
   const updateSplit = (
@@ -1350,18 +1452,22 @@ function EntrySheet({
       setSaving(false);
     }
   };
+  useEffect(() => {
+    if (visible && !wasVisible.current) {
+      setDraft(
+        initialDraft ?? {
+          ...emptyDraft,
+          account: defaultAccount,
+          date: localDateString(new Date()),
+        },
+      );
+      setMode(initialMode);
+      setCategoryPicker(initialDraft?.category ? null : 'main');
+    }
+    wasVisible.current = visible;
+  }, [defaultAccount, initialDraft, initialMode, visible]);
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={close}
-      onShow={() => {
-        setDraft(initialDraft ?? { ...emptyDraft, account: defaultAccount });
-        setMode(initialMode);
-        setCategoryPicker(initialDraft?.category ? null : 'main');
-      }}
-    >
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
       <KeyboardAvoidingView
         style={styles.modalRoot}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -1374,44 +1480,52 @@ function EntrySheet({
         <View style={styles.sheet} testID="entry-sheet">
           <View style={styles.handle} />
           <View style={styles.sheetHeading}>
-            <View>
+            <View style={styles.sheetTitleGroup}>
+              <View style={styles.sheetTitleIcon}>
+                <Ionicons name="card-outline" size={20} color={colors.accent} />
+              </View>
               <Text style={styles.sheetTitle}>New expense</Text>
-              <Text style={styles.sheetSubtitle}>Saved directly to your budget.</Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close"
-              onPress={close}
-              style={styles.closeButton}
-            >
-              <Ionicons name="close" size={22} color={colors.ink} />
-            </Pressable>
-          </View>
-          <View accessibilityRole="tablist" style={styles.segmented}>
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected: mode === 'transaction' }}
-              onPress={() => setMode('transaction')}
-              style={[styles.segment, mode === 'transaction' && styles.activeSegment]}
-            >
-              <Text
-                style={[styles.segmentText, mode === 'transaction' && styles.activeSegmentText]}
+            <View style={styles.sheetHeadingActions}>
+              <View accessibilityRole="tablist" style={styles.modeToggle}>
+                <Pressable
+                  accessibilityRole="tab"
+                  accessibilityLabel="Transaction"
+                  accessibilityState={{ selected: mode === 'transaction' }}
+                  onPress={() => setMode('transaction')}
+                  style={[styles.modeButton, mode === 'transaction' && styles.activeModeButton]}
+                >
+                  <Ionicons
+                    name="receipt-outline"
+                    size={18}
+                    color={mode === 'transaction' ? colors.white : colors.muted}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="tab"
+                  accessibilityLabel="Split transaction"
+                  accessibilityState={{ selected: mode === 'split' }}
+                  onPress={() => setMode('split')}
+                  style={[styles.modeButton, mode === 'split' && styles.activeModeButton]}
+                >
+                  <Ionicons
+                    name="git-branch-outline"
+                    size={18}
+                    color={mode === 'split' ? colors.white : colors.muted}
+                  />
+                </Pressable>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                onPress={close}
+                style={styles.closeButton}
               >
-                Transaction
-              </Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="tab"
-              accessibilityState={{ selected: mode === 'split' }}
-              onPress={() => setMode('split')}
-              style={[styles.segment, mode === 'split' && styles.activeSegment]}
-            >
-              <Text style={[styles.segmentText, mode === 'split' && styles.activeSegmentText]}>
-                Split transaction
-              </Text>
-            </Pressable>
+                <Ionicons name="close" size={21} color={colors.ink} />
+              </Pressable>
+            </View>
           </View>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.form}>
+          <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={styles.form}>
             <ChoiceField
               label="Account"
               value={draft.account}
@@ -1440,7 +1554,7 @@ function EntrySheet({
                   onDismiss={closeCategoryAndFocusAmount}
                 />
                 <ChoiceField
-                  label="Tags (optional)"
+                  label="Tags"
                   value={draft.tags}
                   options={references.tags}
                   multiple
@@ -1471,7 +1585,7 @@ function EntrySheet({
                       keyboardType="decimal-pad"
                     />
                     <ChoiceField
-                      label="Tags (optional)"
+                      label="Tags"
                       value={split.tags}
                       options={references.tags}
                       multiple
@@ -1543,6 +1657,12 @@ export default function App() {
   const [error, setError] = useState('');
   const transactionLoadGeneration = useRef(0);
   const loadingMoreRef = useRef(false);
+  const persistTransactionCache = useCallback((items: ApiTransaction[]) => {
+    void AsyncStorage.setItem(
+      transactionCacheStorageKey,
+      JSON.stringify(limitTransactionCache(items)),
+    );
+  }, []);
   const refreshReceipts = useCallback(async () => {
     try {
       setReceipts(await loadReceipts());
@@ -1580,9 +1700,11 @@ export default function App() {
     try {
       const result = await loadDashboard();
       setTransactions(result.page.transactions);
+      persistTransactionCache(result.page.transactions);
       setTransactionPage(result.page.page);
       setTransactionTotal(result.page.total);
       setReferences(result.references);
+      void AsyncStorage.setItem(referenceCacheStorageKey, JSON.stringify(result.references));
       setDefaultAccount((current) => {
         if (current && !result.references.accounts.some(({ id }) => id === current)) {
           void AsyncStorage.removeItem(defaultAccountStorageKey);
@@ -1597,7 +1719,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [persistTransactionCache]);
   const loadMoreTransactions = useCallback(async () => {
     if (loading || loadingMoreRef.current || transactions.length >= transactionTotal) return;
     const generation = transactionLoadGeneration.current;
@@ -1620,8 +1742,27 @@ export default function App() {
     }
   }, [loading, transactionPage, transactionTotal, transactions.length]);
   useEffect(() => {
-    const initialLoad = setTimeout(() => void refresh(), 0);
-    return () => clearTimeout(initialLoad);
+    let cancelled = false;
+    const hydrateThenRefresh = async () => {
+      const [cachedTransactionsValue, cachedReferencesValue] = await Promise.all([
+        AsyncStorage.getItem(transactionCacheStorageKey).catch(() => null),
+        AsyncStorage.getItem(referenceCacheStorageKey).catch(() => null),
+      ]);
+      const cached = parseTransactionCache(cachedTransactionsValue);
+      const cachedReferences = parseReferenceCache(cachedReferencesValue);
+      if (cancelled) return;
+      if (cached.length) {
+        setTransactions(cached);
+        setTransactionPage(1);
+        setTransactionTotal(cached.length);
+      }
+      if (cachedReferences) setReferences(cachedReferences);
+      void refresh();
+    };
+    void hydrateThenRefresh();
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
   useEffect(() => {
     const initialLoad = setTimeout(() => void refreshReceipts().catch(() => undefined), 0);
@@ -1700,19 +1841,23 @@ export default function App() {
     account?: string,
     category?: string,
   ) =>
-    setTransactions((current) => [
-      {
-        id,
-        date: payload.date,
-        amount: payload.amount,
-        account: account ?? 'Unknown account',
-        category: category ?? 'Uncategorized',
-        payee: '—',
-        notes: payload.notes,
-        isSplit: mode === 'split',
-      },
-      ...current.filter((transaction) => transaction.id !== id),
-    ]);
+    setTransactions((current) => {
+      const next = [
+        {
+          id,
+          date: payload.date,
+          amount: payload.amount,
+          account: account ?? 'Unknown account',
+          category: category ?? 'Uncategorized',
+          payee: '—',
+          notes: payload.notes,
+          isSplit: mode === 'split',
+        },
+        ...current.filter((transaction) => transaction.id !== id),
+      ];
+      persistTransactionCache(next);
+      return next;
+    });
   const retryQueuedTransaction = async (item: QueuedTransaction) => {
     setRetryingTransaction(item.id);
     try {
@@ -1750,7 +1895,11 @@ export default function App() {
     });
   };
   const removeTransaction = (item: ApiTransaction) => {
-    setTransactions((current) => current.filter(({ id }) => id !== item.id));
+    setTransactions((current) => {
+      const next = current.filter(({ id }) => id !== item.id);
+      persistTransactionCache(next);
+      return next;
+    });
     setTransactionTotal((current) => Math.max(0, current - 1));
     void deleteTransaction(item.id).catch((cause) => {
       setError(cause instanceof Error ? cause.message : 'Could not delete transaction.');
@@ -1787,6 +1936,7 @@ export default function App() {
                   ) : (
                     <FlatList
                       data={transactions}
+                      removeClippedSubviews={false}
                       keyExtractor={(item) => item.id}
                       renderItem={({ item, index }) => (
                         <View>
@@ -1858,7 +2008,7 @@ export default function App() {
                       ItemSeparatorComponent={() => <View style={styles.separator} />}
                     />
                   )}
-                  {!loading && !error ? (
+                  {!loading || transactions.length > 0 ? (
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Add transaction"
@@ -2206,8 +2356,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 18,
   },
-  sheetTitle: { color: colors.ink, fontSize: 24, fontWeight: '700' },
-  sheetSubtitle: { color: colors.muted, fontSize: 13, marginTop: 4 },
+  sheetTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sheetTitleIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    backgroundColor: '#F0E6F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sheetTitle: { color: colors.ink, fontSize: 22, fontWeight: '800', letterSpacing: -0.4 },
+  sheetHeadingActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   closeButton: {
     width: 39,
     height: 39,
@@ -2216,52 +2375,108 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segmented: {
+  modeToggle: {
     backgroundColor: colors.canvas,
-    borderRadius: 13,
-    padding: 4,
+    borderRadius: 12,
+    padding: 3,
     flexDirection: 'row',
-    marginBottom: 18,
+    gap: 2,
   },
-  segment: {
-    flex: 1,
-    minHeight: 42,
+  modeButton: {
+    width: 38,
+    height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
+    borderRadius: 9,
   },
-  activeSegment: {
-    backgroundColor: colors.white,
-    shadowColor: '#403A32',
-    shadowOpacity: 0.08,
-    shadowRadius: 5,
-    elevation: 2,
+  activeModeButton: { backgroundColor: colors.accent },
+  form: { paddingBottom: 12 },
+  fieldGroup: {
+    marginBottom: 14,
   },
-  segmentText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
-  activeSegmentText: { color: colors.ink, fontWeight: '700' },
-  form: { paddingBottom: 8 },
-  fieldGroup: { marginBottom: 14 },
-  fieldLabel: { color: colors.ink, fontSize: 12, fontWeight: '700', marginBottom: 7 },
-  choiceRow: { gap: 8, paddingRight: 8 },
+  fieldControl: { width: '100%' },
+  choiceControl: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 9 },
+  choiceScroller: { flex: 1 },
+  choiceRow: { gap: 9, paddingRight: 10 },
   choice: {
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.white,
-    paddingHorizontal: 13,
-    minHeight: 39,
+    paddingHorizontal: 15,
+    minHeight: 40,
     justifyContent: 'center',
     borderRadius: 20,
   },
   activeChoice: { borderColor: colors.accent, backgroundColor: '#F0E6F4' },
-  choiceText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  choiceText: { color: colors.muted, fontSize: 14, fontWeight: '600' },
   activeChoiceText: { color: colors.accentDark },
+  tagSearchButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagSearchSheet: {
+    height: '68%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 18,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 18,
+  },
+  tagSearchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  tagSearchField: {
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.canvas,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  tagSearchList: { gap: 10, paddingTop: 16, paddingBottom: 24 },
+  tagSearchOption: {
+    minHeight: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  activeTagSearchOption: { borderColor: colors.accent, backgroundColor: '#FAF5FC' },
+  tagCheckbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeTagCheckbox: { borderColor: colors.accent, backgroundColor: colors.accent },
+  tagSearchOptionText: { color: colors.ink, fontSize: 14, fontWeight: '700' },
   categoryField: {
-    height: 54,
+    width: '100%',
+    height: 50,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 14,
     backgroundColor: colors.white,
-    paddingHorizontal: 13,
+    paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -2269,9 +2484,9 @@ const styles = StyleSheet.create({
   categoryFieldPressed: { backgroundColor: '#FAF8FB' },
   categoryFieldSelection: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   categoryFieldIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F2EEF4',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2350,13 +2565,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
   },
-  accountOptions: { gap: 9, paddingTop: 18, paddingBottom: 8 },
+  accountOptions: { gap: 11, paddingTop: 20, paddingBottom: 10 },
   accountOption: {
-    minHeight: 58,
+    minHeight: 62,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
-    paddingHorizontal: 13,
+    paddingHorizontal: 15,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
@@ -2373,53 +2588,41 @@ const styles = StyleSheet.create({
   accountOptionText: { flex: 1, color: colors.ink, fontSize: 14, fontWeight: '600' },
   activeAccountOptionText: { color: colors.accentDark, fontWeight: '700' },
   field: {
-    height: 49,
+    width: '100%',
+    height: 50,
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 13,
     backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 13,
-    gap: 9,
+    paddingHorizontal: 15,
+    gap: 11,
   },
-  multilineField: { height: 70, alignItems: 'flex-start', paddingTop: 13 },
-  input: { flex: 1, color: colors.ink, fontSize: 14, outlineStyle: 'none' } as never,
-  multilineInput: { minHeight: 44, textAlignVertical: 'top' },
-  dateShortcuts: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  dateShortcut: {
-    minHeight: 42,
-    paddingHorizontal: 14,
-    borderRadius: 13,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeDateShortcut: { borderColor: colors.accent, backgroundColor: '#F0E6F4' },
-  dateShortcutText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  activeDateShortcutText: { color: colors.accentDark },
+  multilineField: { height: 80, alignItems: 'flex-start', paddingTop: 15 },
+  input: { flex: 1, color: colors.ink, fontSize: 15, outlineStyle: 'none' } as never,
+  multilineInput: { minHeight: 50, textAlignVertical: 'top' },
+  dateShortcuts: { width: '100%' },
   dateCalendarButton: {
-    minHeight: 42,
-    flex: 1,
+    minHeight: 48,
+    width: '100%',
     minWidth: 0,
-    paddingHorizontal: 12,
+    paddingHorizontal: 13,
     borderRadius: 13,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
+    justifyContent: 'flex-start',
+    gap: 9,
   },
-  dateCalendarText: { color: colors.ink, fontSize: 12, fontWeight: '700' },
+  dateCalendarText: { color: colors.ink, fontSize: 14, fontWeight: '700' },
   webDateInput: { justifyContent: 'flex-start' },
   webDateTextInput: {
     flex: 1,
     color: colors.ink,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
     outlineStyle: 'none',
   } as never,
@@ -2452,11 +2655,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 16,
-    padding: 13,
-    marginBottom: 13,
+    padding: 15,
+    marginBottom: 16,
     backgroundColor: '#FAF8FB',
   },
-  splitTitle: { color: colors.ink, fontWeight: '700', marginBottom: 12 },
+  splitTitle: { color: colors.ink, fontWeight: '700', marginBottom: 14 },
   errorText: {
     color: colors.accentDark,
     fontSize: 12,

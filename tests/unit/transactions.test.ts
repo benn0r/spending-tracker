@@ -7,6 +7,8 @@ import {
   formatCurrency,
   formatTransactionDate,
   isDraftValid,
+  limitTransactionCache,
+  parseTransactionCache,
   summarize,
 } from '../../src/transactions.ts';
 
@@ -45,6 +47,23 @@ describe('transaction helpers', () => {
       ]),
       { income: 100, spent: 35, balance: 65 },
     );
+  });
+  it('keeps and restores only the latest 20 valid cached transactions', () => {
+    const transactions = Array.from({ length: 24 }, (_, index) => ({
+      id: String(index),
+      date: '2026-08-11',
+      amount: -(index + 1),
+      account: 'Everyday',
+      category: 'Groceries',
+      payee: 'Market',
+      isSplit: false,
+    }));
+    assert.equal(limitTransactionCache(transactions).length, 20);
+    assert.deepEqual(
+      parseTransactionCache(JSON.stringify(transactions)),
+      transactions.slice(0, 20),
+    );
+    assert.deepEqual(parseTransactionCache('{broken'), []);
   });
   it('validates normal and split drafts', () => {
     const normal = { ...emptyDraft, account: 'account-1', category: 'food', amount: '12,50' };
