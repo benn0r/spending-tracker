@@ -330,6 +330,111 @@ test('opens a processed receipt as a prefilled transaction', async ({ page }) =>
     });
 });
 
+test('corrects an unbalanced processed receipt before submitting it', async ({ page }) => {
+  let submitted: Record<string, unknown> | undefined;
+  let receiptSubmitted = false;
+  await page.unroute('**/api/receipts**');
+  await page.route('**/api/receipts**', (route) => {
+    if (route.request().method() === 'POST' && route.request().url().endsWith('/submit')) {
+      submitted = route.request().postDataJSON();
+      receiptSubmitted = true;
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'corrected-receipt-transaction', status: 'created' }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify([
+        {
+          id: 9,
+          filename: 'imperfect-receipt.jpg',
+          account: 'account-1',
+          mimeType: 'image/jpeg',
+          status: 'processed',
+          suggestion: {
+            merchant: 'Split Cafe',
+            date: '2026-08-06',
+            amount: 30,
+            currency: 'CHF',
+            category: 'food-id',
+            notes: 'Receipt total differs from detected lines',
+            tags: [],
+            items: [],
+            splits: [
+              {
+                category: 'food-id',
+                amount: 18,
+                notes: 'Lunch',
+                tags: ['weekly-id'],
+              },
+              { category: 'home-id', amount: 7, notes: 'Supplies', tags: [] },
+            ],
+            confidence: 0.71,
+          },
+          error: null,
+          submitted: receiptSubmitted,
+          actualId: null,
+          createdAt: '2026-08-06',
+          processedAt: '2026-08-06',
+          submittedAt: null,
+        },
+      ]),
+    });
+  });
+  await page.route('**/api/transactions**', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 20 }),
+    }),
+  );
+
+  await page.goto('/');
+  await page.getByRole('tab', { name: 'Receipts' }).click();
+  const addReceipt = page.getByRole('button', { name: 'Add Split Cafe' });
+  await expect(addReceipt).toBeVisible();
+  await addReceipt.click();
+
+  const entrySheet = page.getByTestId('entry-sheet');
+  await expect(entrySheet).toBeVisible();
+  await expect(entrySheet.getByText('Split 1', { exact: true })).toBeVisible();
+  await expect(entrySheet.getByText('Split 2', { exact: true })).toBeVisible();
+  await expect(entrySheet.getByRole('radio', { name: 'Everyday' })).toBeChecked();
+  await expect(entrySheet.getByLabel('Amount', { exact: true })).toHaveValue('30');
+  await expect(
+    entrySheet.getByRole('button', { name: 'Select category for Split 1' }),
+  ).toContainText('Groceries');
+  await expect(
+    entrySheet.getByRole('button', { name: 'Select category for Split 2' }),
+  ).toContainText('Home');
+  const splitAmounts = entrySheet.getByLabel('Split amount');
+  await expect(splitAmounts.nth(0)).toHaveValue('18');
+  await expect(splitAmounts.nth(1)).toHaveValue('7');
+
+  const save = entrySheet.getByRole('button', { name: 'Save expense' });
+  await expect(save).toBeDisabled();
+  await expect.poll(() => submitted).toBeUndefined();
+
+  await splitAmounts.nth(1).fill('12');
+  await expect(save).toBeEnabled();
+  await save.click();
+
+  await expect(entrySheet).toBeHidden();
+  await expect
+    .poll(() => submitted)
+    .toEqual({
+      account: 'account-1',
+      date: '2026-08-06',
+      amount: -30,
+      notes: 'Split Cafe · Receipt total differs from detected lines',
+      splits: [
+        { category: 'food-id', amount: -18, tags: ['weekly-id'] },
+        { category: 'home-id', amount: -12 },
+      ],
+    });
+});
+
 test('submits a balanced split transaction', async ({ page }) => {
   let submitted: Record<string, unknown> | undefined;
   await page.route('**/api/transactions**', async (route) => {
@@ -452,6 +557,175 @@ test('queues a failed transaction and retries it later', async ({ page }) => {
   await page.getByRole('button', { name: 'Retry Groceries' }).click();
   await expect(page.getByTestId('transaction-queue')).toBeHidden();
   await expect(page.getByText('− CHF 18.00')).toBeVisible();
+});
+
+test('restores a queued transaction after reload and retries the exact payload', async ({
+  page,
+}) => {
+  const submittedPayloads: Record<string, unknown>[] = [];
+  let items = [transaction];
+  await page.route('**/api/transactions**', async (route) => {
+    if (route.request().method() === 'POST') {
+      const payload = route.request().postDataJSON() as Record<string, unknown>;
+      submittedPayloads.push(payload);
+      if (submittedPayloads.length === 1) {
+        return route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Temporarily offline' }),
+        });
+      }
+      items = [
+        {
+          ...transaction,
+          id: 'retried-after-reload',
+          date: payload.date as string,
+          amount: payload.amount as number,
+          payee: '—',
+        },
+        ...items,
+      ];
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'retried-after-reload', status: 'created' }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: items, total: items.length, page: 1, pageSize: 20 }),
+    });
+  });
+
+  const expectedPayload = {
+    account: 'account-1',
+    category: 'food-id',
+    date: '2026-08-07',
+    amount: -31.25,
+    notes: 'Persist this expense',
+    tags: ['weekly-id'],
+  };
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await page.getByTestId('category-sheet').getByRole('radio', { name: 'Groceries' }).click();
+  await page.getByTestId('entry-sheet').getByRole('radio', { name: 'Everyday' }).click();
+  await page.getByLabel('Amount').fill('31.25');
+  await page.getByLabel('Date').fill('2026-08-07');
+  await page.getByTestId('entry-sheet').getByRole('checkbox', { name: 'Weekly' }).click();
+  await page.getByLabel('Comment').fill('Persist this expense');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await expect(page.getByTestId('transaction-queue')).toBeVisible();
+  await expect.poll(() => submittedPayloads).toEqual([expectedPayload]);
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const stored = localStorage.getItem('spending-tracker.transaction-queue');
+        return stored ? JSON.parse(stored).length : 0;
+      }),
+    )
+    .toBe(1);
+
+  await page.reload();
+  await expect(page.getByTestId('transaction-queue')).toBeVisible();
+  await page.getByRole('button', { name: 'Retry Groceries' }).click();
+
+  await expect.poll(() => submittedPayloads).toEqual([expectedPayload, expectedPayload]);
+  await expect(page.getByTestId('transaction-queue')).toBeHidden();
+  await expect(page.getByTestId('transaction-retried-after-reload')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const stored = localStorage.getItem('spending-tracker.transaction-queue');
+        return stored ? JSON.parse(stored).length : 0;
+      }),
+    )
+    .toBe(0);
+});
+
+test('uses cached dashboard data while offline and replaces it after retry', async ({ page }) => {
+  const cachedReferences = {
+    accounts: [{ id: 'cached-account', name: 'Cached Wallet' }],
+    categories: [{ id: 'cached-category', name: 'Cached Food' }],
+    tags: [{ id: 'cached-tag', name: 'Cached Tag' }],
+  };
+  const cachedTransaction = {
+    ...transaction,
+    id: 'cached-transaction',
+    account: 'Cached Wallet',
+    category: 'Cached Food',
+    payee: 'Cached Market',
+  };
+  const liveTransaction = {
+    ...transaction,
+    id: 'live-transaction',
+    category: 'Home',
+    payee: 'Live Merchant',
+  };
+  let online = false;
+
+  await page.addInitScript(
+    ({ cachedItems, cachedRefs }) => {
+      localStorage.setItem('spending-tracker.transactions-v1', JSON.stringify(cachedItems));
+      localStorage.setItem('spending-tracker.references-v1', JSON.stringify(cachedRefs));
+    },
+    { cachedItems: [cachedTransaction], cachedRefs: cachedReferences },
+  );
+  await page.unroute('**/api/references');
+  await page.route('**/api/references', (route) =>
+    online
+      ? route.fulfill({ contentType: 'application/json', body: JSON.stringify(references) })
+      : route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Dashboard temporarily unavailable' }),
+        }),
+  );
+  await page.route('**/api/transactions**', (route) =>
+    online
+      ? route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({
+            transactions: [liveTransaction],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+          }),
+        })
+      : route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Dashboard temporarily unavailable' }),
+        }),
+  );
+
+  await page.goto('/');
+  await expect(page.getByText('Cached Market')).toBeVisible();
+  const retry = page.getByText(/Tap to retry\./);
+  await expect(retry).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await expect(
+    page.getByTestId('category-sheet').getByRole('radio', { name: 'Cached Food' }),
+  ).toBeVisible();
+  await page.getByTestId('category-sheet').getByRole('radio', { name: 'Cached Food' }).click();
+  await page.getByTestId('entry-sheet').getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByTestId('entry-sheet')).toBeHidden();
+
+  online = true;
+  await retry.click();
+  await expect(page.getByText('Live Merchant')).toBeVisible();
+  await expect(page.getByText('Cached Market')).toHaveCount(0);
+  await expect(page.getByText(/Tap to retry\./)).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await expect(
+    page.getByTestId('category-sheet').getByRole('radio', { name: 'Home' }),
+  ).toBeVisible();
+  await expect(
+    page.getByTestId('category-sheet').getByRole('radio', { name: 'Cached Food' }),
+  ).toHaveCount(0);
 });
 
 test('shows server diagnostics when a transaction is rejected', async ({ page }) => {

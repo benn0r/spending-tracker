@@ -3,10 +3,12 @@
     "name": "Spending Tracker",
     "slug": "spending-tracker",
     "version": "1.0.0",
+    "icon": "./assets/app-icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/app-icon.png"
     },
     "ios": {
       "supportsTablet": true,
@@ -32,6 +34,7 @@
     "android": {
       "package": "app.spendingtracker.mobile",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#F4F0E8"
       }
     }

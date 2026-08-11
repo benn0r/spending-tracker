@@ -82,7 +82,7 @@ export function createPayload(
     account: draft.account,
     date: draft.date || date.toISOString().slice(0, 10),
     amount: -numberValue(draft.amount),
-    notes: draft.comment.trim() || undefined,
+    ...(draft.comment.trim() ? { notes: draft.comment.trim() } : {}),
   };
   if (mode === 'split') {
     return {
@@ -90,14 +90,14 @@ export function createPayload(
       splits: draft.splits.map((split) => ({
         category: split.category,
         amount: -numberValue(split.amount),
-        tags: split.tags.length ? split.tags : undefined,
+        ...(split.tags.length ? { tags: split.tags } : {}),
       })),
     };
   }
   return {
     ...common,
     category: draft.category,
-    tags: draft.tags.length ? draft.tags : undefined,
+    ...(draft.tags.length ? { tags: draft.tags } : {}),
   };
 }
 

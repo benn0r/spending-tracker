@@ -16,6 +16,7 @@
     "lint": "expo lint . --max-warnings=0",
     "build": "expo export --platform web --output-dir dist",
     "test": "node --experimental-strip-types --test tests/unit/*.test.ts",
+    "test:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include='src/**/*.ts' --test-coverage-lines=95 --test-coverage-branches=85 --test-coverage-functions=95 --test tests/unit/*.test.ts",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },
