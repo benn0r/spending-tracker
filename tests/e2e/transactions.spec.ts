@@ -138,6 +138,130 @@ test('loads 20 transactions initially and fetches the next page on scroll', asyn
   await expect(page.getByText('Merchant 39')).toBeVisible();
 });
 
+test('refreshes transactions and scrolls to the top when its active tab is tapped', async ({
+  page,
+}) => {
+  const items = Array.from({ length: 40 }, (_, index) => ({
+    ...transaction,
+    id: `tab-refresh-transaction-${index}`,
+    payee: `Tab refresh merchant ${index}`,
+  }));
+  let firstPageRequests = 0;
+  await page.route('**/api/transactions**', (route) => {
+    const url = new URL(route.request().url());
+    const requestedPage = Number(url.searchParams.get('page'));
+    if (!url.searchParams.has('account') && requestedPage === 1) firstPageRequests += 1;
+    const pageSize = Number(url.searchParams.get('pageSize'));
+    const start = (requestedPage - 1) * pageSize;
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        transactions: items.slice(start, start + pageSize),
+        total: items.length,
+        page: requestedPage,
+        pageSize,
+      }),
+    });
+  });
+
+  await page.goto('/');
+  await expect(page.getByText('Tab refresh merchant 19')).toBeVisible();
+  await expect.poll(() => firstPageRequests).toBe(1);
+
+  const list = page.getByTestId('transactions-list');
+  await list.evaluate((element) => {
+    const candidates = [element, ...element.querySelectorAll<HTMLElement>('*')];
+    const scroller = candidates.find(
+      (candidate) =>
+        candidate.scrollHeight > candidate.clientHeight &&
+        ['auto', 'scroll'].includes(getComputedStyle(candidate).overflowY),
+    );
+    if (!scroller) throw new Error('Transaction scroller not found');
+    scroller.scrollTop = scroller.scrollHeight;
+    scroller.dispatchEvent(new Event('scroll', { bubbles: true }));
+  });
+  await expect
+    .poll(() =>
+      list.evaluate((element) => {
+        const candidates = [element, ...element.querySelectorAll<HTMLElement>('*')];
+        return (
+          candidates.find(
+            (candidate) =>
+              candidate.scrollHeight > candidate.clientHeight &&
+              ['auto', 'scroll'].includes(getComputedStyle(candidate).overflowY),
+          )?.scrollTop ?? 0
+        );
+      }),
+    )
+    .toBeGreaterThan(0);
+
+  await page.getByRole('tab', { name: 'Transactions' }).click();
+
+  await expect.poll(() => firstPageRequests).toBe(2);
+  await expect
+    .poll(() =>
+      list.evaluate((element) => {
+        const candidates = [element, ...element.querySelectorAll<HTMLElement>('*')];
+        return (
+          candidates.find(
+            (candidate) =>
+              candidate.scrollHeight > candidate.clientHeight &&
+              ['auto', 'scroll'].includes(getComputedStyle(candidate).overflowY),
+          )?.scrollTop ?? 0
+        );
+      }),
+    )
+    .toBe(0);
+});
+
+test('opens wallets without an initial loading indicator while its data is delayed', async ({
+  page,
+}) => {
+  const walletTransaction = {
+    ...transaction,
+    id: 'delayed-wallet-transaction',
+    payee: 'Delayed wallet merchant',
+  };
+  let walletRequestStarted = false;
+  let releaseWalletResponse: () => void = () => undefined;
+  const walletResponseReady = new Promise<void>((resolve) => {
+    releaseWalletResponse = resolve;
+  });
+  await page.route('**/api/transactions**', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.has('account')) {
+      walletRequestStarted = true;
+      await walletResponseReady;
+      return route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          transactions: [walletTransaction],
+          total: 1,
+          page: 1,
+          pageSize: 20,
+        }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 20 }),
+    });
+  });
+
+  await page.goto('/');
+  await expect(page.getByText('Green Grocer')).toBeVisible();
+  await page.getByRole('tab', { name: 'Wallets' }).click();
+  await expect.poll(() => walletRequestStarted).toBe(true);
+
+  await expect(page.getByRole('button', { name: 'Select wallet' })).toBeVisible();
+  await expect(page.getByText('0 loaded')).toBeVisible();
+  await expect(page.getByRole('progressbar')).toHaveCount(0);
+
+  releaseWalletResponse();
+  await expect(page.getByText('Delayed wallet merchant')).toBeVisible();
+  await expect(page.getByText('1 loaded')).toBeVisible();
+});
+
 test('swipes transactions and receipts left to delete them', async ({ page }) => {
   let transactionDeleted = false;
   let receiptDeleted = false;

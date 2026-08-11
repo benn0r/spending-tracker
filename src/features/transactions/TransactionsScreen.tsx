@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useEffect, useRef } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
 import type { QueuedTransaction } from '../../app-model';
@@ -18,6 +19,7 @@ type TransactionsScreenProps = {
   loading: boolean;
   loadingMore: boolean;
   error: string;
+  activationRequest: number;
   onRefresh: () => Promise<void>;
   onLoadMore: () => Promise<void>;
   onDelete: (transaction: ApiTransaction) => void;
@@ -34,6 +36,7 @@ export function TransactionsScreen({
   loading,
   loadingMore,
   error,
+  activationRequest,
   onRefresh,
   onLoadMore,
   onDelete,
@@ -41,6 +44,14 @@ export function TransactionsScreen({
   onDiscardQueued,
   onAdd,
 }: TransactionsScreenProps) {
+  const listRef = useRef<FlatList<ApiTransaction>>(null);
+
+  useEffect(() => {
+    if (activationRequest === 0) return;
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    void onRefresh();
+  }, [activationRequest, onRefresh]);
+
   if (loading && !transactions.length) {
     return (
       <View style={styles.state}>
@@ -71,6 +82,7 @@ export function TransactionsScreen({
   return (
     <>
       <FlatList
+        ref={listRef}
         testID="transactions-list"
         data={transactions}
         removeClippedSubviews={false}

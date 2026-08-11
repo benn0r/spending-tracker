@@ -26,6 +26,7 @@ import type { DraftTransaction, EntryMode } from './src/types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('transactions');
+  const [transactionsActivationRequest, setTransactionsActivationRequest] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [receiptEntry, setReceiptEntry] = useState<{
     id: number;
@@ -111,6 +112,7 @@ export default function App() {
                   loading={loading}
                   loadingMore={loadingMore}
                   error={error}
+                  activationRequest={transactionsActivationRequest}
                   onRefresh={refresh}
                   onLoadMore={loadMoreTransactions}
                   onDelete={removeTransaction}
@@ -149,7 +151,12 @@ export default function App() {
             <BottomNavigation
               active={activeTab}
               receiptCount={receiptCount}
-              onChange={setActiveTab}
+              onChange={(tab) => {
+                setActiveTab(tab);
+                if (tab === 'transactions') {
+                  setTransactionsActivationRequest((current) => current + 1);
+                }
+              }}
             />
           </View>
           <EntrySheet

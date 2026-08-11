@@ -21,38 +21,48 @@ export function WalletsScreen({
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const loadingMoreRef = useRef(false);
   const generation = useRef(0);
   const selectedWallet = wallet || accounts[0]?.id || '';
 
-  const refresh = useCallback(async () => {
-    if (!selectedWallet) {
-      setItems([]);
-      setTotal(0);
-      return;
-    }
-    generation.current += 1;
-    const requestGeneration = generation.current;
-    setLoading(true);
-    setError('');
-    try {
-      const result = await loadTransactionPage(1, 20, selectedWallet);
-      if (requestGeneration !== generation.current) return;
-      setItems(result.transactions);
-      setPage(result.page);
-      setTotal(result.total);
-    } catch (cause) {
-      if (requestGeneration === generation.current)
-        setError(cause instanceof Error ? cause.message : 'Could not load wallet transactions.');
-    } finally {
-      if (requestGeneration === generation.current) setLoading(false);
-    }
-  }, [selectedWallet]);
+  const refresh = useCallback(
+    async (showIndicator = true) => {
+      generation.current += 1;
+      const requestGeneration = generation.current;
+      if (!selectedWallet) {
+        setItems([]);
+        setTotal(0);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+      setLoading(true);
+      setRefreshing(showIndicator);
+      setError('');
+      try {
+        const result = await loadTransactionPage(1, 20, selectedWallet);
+        if (requestGeneration !== generation.current) return;
+        setItems(result.transactions);
+        setPage(result.page);
+        setTotal(result.total);
+      } catch (cause) {
+        if (requestGeneration === generation.current)
+          setError(cause instanceof Error ? cause.message : 'Could not load wallet transactions.');
+      } finally {
+        if (requestGeneration === generation.current) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [selectedWallet],
+  );
 
   useEffect(() => {
-    const initialLoad = setTimeout(() => void refresh(), 0);
+    const initialLoad = setTimeout(() => void refresh(false), 0);
     return () => clearTimeout(initialLoad);
   }, [refresh]);
 
@@ -77,6 +87,7 @@ export function WalletsScreen({
 
   return (
     <FlatList
+      testID="wallets-list"
       data={items}
       keyExtractor={({ id }) => id}
       renderItem={({ item, index }) => (
@@ -120,9 +131,7 @@ export function WalletsScreen({
         </View>
       }
       ListEmptyComponent={
-        loading ? (
-          <ActivityIndicator color={colors.accent} style={styles.loadingMore} />
-        ) : (
+        loading ? null : (
           <Text style={styles.emptyText}>
             {accounts.length ? 'No transactions in this wallet.' : 'No wallets are enabled.'}
           </Text>
@@ -133,8 +142,8 @@ export function WalletsScreen({
       }
       refreshControl={
         <RefreshControl
-          refreshing={loading}
-          onRefresh={() => void refresh()}
+          refreshing={refreshing}
+          onRefresh={() => void refresh(true)}
           tintColor={colors.accent}
           colors={[colors.accent]}
           progressBackgroundColor={colors.white}
