@@ -147,10 +147,21 @@ test('refreshes transactions and scrolls to the top when its active tab is tappe
     payee: `Tab refresh merchant ${index}`,
   }));
   let firstPageRequests = 0;
-  await page.route('**/api/transactions**', (route) => {
+  let refreshRequestStarted = false;
+  let releaseRefreshResponse: () => void = () => undefined;
+  const refreshResponseReady = new Promise<void>((resolve) => {
+    releaseRefreshResponse = resolve;
+  });
+  await page.route('**/api/transactions**', async (route) => {
     const url = new URL(route.request().url());
     const requestedPage = Number(url.searchParams.get('page'));
-    if (!url.searchParams.has('account') && requestedPage === 1) firstPageRequests += 1;
+    if (!url.searchParams.has('account') && requestedPage === 1) {
+      firstPageRequests += 1;
+      if (firstPageRequests === 2) {
+        refreshRequestStarted = true;
+        await refreshResponseReady;
+      }
+    }
     const pageSize = Number(url.searchParams.get('pageSize'));
     const start = (requestedPage - 1) * pageSize;
     return route.fulfill({
@@ -196,6 +207,12 @@ test('refreshes transactions and scrolls to the top when its active tab is tappe
     .toBeGreaterThan(0);
 
   await page.getByRole('tab', { name: 'Transactions' }).click();
+
+  await expect.poll(() => refreshRequestStarted).toBe(true);
+  await expect(page.getByRole('progressbar')).toHaveCount(0);
+  await expect(page.getByText('Tab refresh merchant 19')).toBeVisible();
+
+  releaseRefreshResponse();
 
   await expect.poll(() => firstPageRequests).toBe(2);
   await expect

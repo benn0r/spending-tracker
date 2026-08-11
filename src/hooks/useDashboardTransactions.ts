@@ -20,6 +20,7 @@ export type DashboardTransactionsController = {
   loadingMore: boolean;
   error: string;
   refresh: () => Promise<void>;
+  refreshSilently: () => Promise<void>;
   loadMoreTransactions: () => Promise<void>;
   addConfirmedTransaction: (
     id: string,
@@ -43,6 +44,7 @@ export function useDashboardTransactions(
   const [error, setError] = useState('');
   const transactionLoadGeneration = useRef(0);
   const loadingMoreRef = useRef(false);
+  const refreshingRef = useRef(false);
 
   const persistTransactionCache = useCallback((items: ApiTransaction[]) => {
     void AsyncStorage.setItem(
@@ -51,30 +53,52 @@ export function useDashboardTransactions(
     );
   }, []);
 
-  const refresh = useCallback(async () => {
-    transactionLoadGeneration.current += 1;
-    setLoading(true);
-    setError('');
-    try {
-      const result = await loadDashboard();
-      setTransactions(result.page.transactions);
-      persistTransactionCache(result.page.transactions);
-      setTransactionPage(result.page.page);
-      setTransactionTotal(result.page.total);
-      setReferences(result.references);
-      void AsyncStorage.setItem(referenceCacheStorageKey, JSON.stringify(result.references));
-      onReferencesLoaded(result.references);
-    } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : 'Could not connect to Spending Tracker Server.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [onReferencesLoaded, persistTransactionCache]);
+  const refreshDashboard = useCallback(
+    async (showLoading: boolean) => {
+      transactionLoadGeneration.current += 1;
+      const requestGeneration = transactionLoadGeneration.current;
+      refreshingRef.current = true;
+      if (showLoading) setLoading(true);
+      setError('');
+      try {
+        const result = await loadDashboard();
+        if (requestGeneration !== transactionLoadGeneration.current) return;
+        setTransactions(result.page.transactions);
+        persistTransactionCache(result.page.transactions);
+        setTransactionPage(result.page.page);
+        setTransactionTotal(result.page.total);
+        setReferences(result.references);
+        void AsyncStorage.setItem(referenceCacheStorageKey, JSON.stringify(result.references));
+        onReferencesLoaded(result.references);
+      } catch (cause) {
+        if (requestGeneration === transactionLoadGeneration.current) {
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : 'Could not connect to Spending Tracker Server.',
+          );
+        }
+      } finally {
+        if (requestGeneration === transactionLoadGeneration.current) {
+          refreshingRef.current = false;
+          setLoading(false);
+        }
+      }
+    },
+    [onReferencesLoaded, persistTransactionCache],
+  );
+
+  const refresh = useCallback(() => refreshDashboard(true), [refreshDashboard]);
+  const refreshSilently = useCallback(() => refreshDashboard(false), [refreshDashboard]);
 
   const loadMoreTransactions = useCallback(async () => {
-    if (loading || loadingMoreRef.current || transactions.length >= transactionTotal) return;
+    if (
+      loading ||
+      refreshingRef.current ||
+      loadingMoreRef.current ||
+      transactions.length >= transactionTotal
+    )
+      return;
     const generation = transactionLoadGeneration.current;
     loadingMoreRef.current = true;
     setLoadingMore(true);
@@ -162,6 +186,7 @@ export function useDashboardTransactions(
     loadingMore,
     error,
     refresh,
+    refreshSilently,
     loadMoreTransactions,
     addConfirmedTransaction,
     removeTransaction,

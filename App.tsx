@@ -42,6 +42,7 @@ export default function App() {
     loadingMore,
     error,
     refresh,
+    refreshSilently,
     loadMoreTransactions,
     addConfirmedTransaction,
     removeTransaction,
@@ -114,6 +115,7 @@ export default function App() {
                   error={error}
                   activationRequest={transactionsActivationRequest}
                   onRefresh={refresh}
+                  onActivationRefresh={refreshSilently}
                   onLoadMore={loadMoreTransactions}
                   onDelete={removeTransaction}
                   onRetryQueued={(item) => void retryQueuedTransaction(item)}

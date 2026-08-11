@@ -21,6 +21,7 @@ type TransactionsScreenProps = {
   error: string;
   activationRequest: number;
   onRefresh: () => Promise<void>;
+  onActivationRefresh: () => Promise<void>;
   onLoadMore: () => Promise<void>;
   onDelete: (transaction: ApiTransaction) => void;
   onRetryQueued: (transaction: QueuedTransaction) => void;
@@ -38,6 +39,7 @@ export function TransactionsScreen({
   error,
   activationRequest,
   onRefresh,
+  onActivationRefresh,
   onLoadMore,
   onDelete,
   onRetryQueued,
@@ -48,9 +50,13 @@ export function TransactionsScreen({
 
   useEffect(() => {
     if (activationRequest === 0) return;
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
-    void onRefresh();
-  }, [activationRequest, onRefresh]);
+    const scrollToTop = () => listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    scrollToTop();
+    void onActivationRefresh().finally(() => {
+      scrollToTop();
+      requestAnimationFrame(scrollToTop);
+    });
+  }, [activationRequest, onActivationRefresh]);
 
   if (loading && !transactions.length) {
     return (
