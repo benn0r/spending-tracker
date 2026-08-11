@@ -45,7 +45,7 @@ npm run test:e2e
 
 ## Pipeline
 
-The Gitea pipeline runs formatting, lint, and type checks first, builds the Expo web application once, then runs unit and browser tests in parallel. Successful main-branch and tag builds publish a small nginx container image. The browser-test container is pinned to the same Playwright version as the project. Configure `CONTAINER_REGISTRY`, `EXPO_PUBLIC_SPENDING_TRACKER_API_URL`, and `EXPO_PUBLIC_SPENDING_TRACKER_API_KEY` as Gitea variables and `REGISTRY_USERNAME` plus `REGISTRY_PASSWORD` as secrets; no npm cache is used. Expo public variables are embedded in the application bundle and must not be treated as confidential.
+Like the Fashion Canvas app, the Gitea pipeline performs uncached installs in separate quality, web-build, unit-test, and browser-E2E jobs. Unit and browser tests run in parallel after the build gate, and the browser job creates its own served web export. The pipeline does not build or publish a container image.
 
 ## License
 
