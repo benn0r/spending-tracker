@@ -1,8 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { receiptFileSource, uploadReceipt } from '../../api';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import { loadReceiptFile, receiptFileSource, uploadReceipt } from '../../api';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
@@ -41,6 +50,31 @@ export function ReceiptsScreen({
   const [previewReceipt, setPreviewReceipt] = useState<ApiReceipt | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(false);
+  const [webPreviewUri, setWebPreviewUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !previewReceipt || !previewReceipt.mimeType.startsWith('image/'))
+      return;
+
+    let active = true;
+    let objectUrl: string | null = null;
+    void loadReceiptFile(previewReceipt.id)
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        if (active) setWebPreviewUri(objectUrl);
+        else URL.revokeObjectURL(objectUrl);
+      })
+      .catch(() => {
+        if (!active) return;
+        setPreviewLoading(false);
+        setPreviewError(true);
+      });
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [previewReceipt]);
 
   const scanReceipt = async () => {
     const account = defaultAccount || accounts[0]?.id;
@@ -136,7 +170,8 @@ export function ReceiptsScreen({
                       accessibilityRole="button"
                       accessibilityLabel={`View ${receipt.suggestion?.merchant || receipt.filename}`}
                       onPress={() => {
-                        setPreviewLoading(true);
+                        setWebPreviewUri(null);
+                        setPreviewLoading(receipt.mimeType.startsWith('image/'));
                         setPreviewError(false);
                         setPreviewReceipt(receipt);
                       }}
@@ -193,7 +228,8 @@ export function ReceiptsScreen({
                 <Ionicons name="close" size={24} color={colors.ink} />
               </Pressable>
             </View>
-            {previewReceipt?.mimeType.startsWith('image/') ? (
+            {previewReceipt?.mimeType.startsWith('image/') &&
+            (Platform.OS !== 'web' || webPreviewUri) ? (
               <Image
                 accessibilityLabel={`Receipt photo ${previewReceipt.filename}`}
                 onError={() => {
@@ -202,17 +238,21 @@ export function ReceiptsScreen({
                 }}
                 onLoad={() => setPreviewLoading(false)}
                 resizeMode="contain"
-                source={receiptFileSource(previewReceipt.id)}
+                source={
+                  Platform.OS === 'web'
+                    ? { uri: webPreviewUri ?? '' }
+                    : receiptFileSource(previewReceipt.id)
+                }
                 style={styles.receiptPreviewImage}
               />
-            ) : (
+            ) : previewReceipt && !previewReceipt.mimeType.startsWith('image/') ? (
               <View style={styles.receiptPreviewUnavailable}>
                 <Ionicons name="document-outline" size={38} color={colors.accent} />
                 <Text style={styles.emptyScreenText}>
                   Photo preview is unavailable for this file.
                 </Text>
               </View>
-            )}
+            ) : null}
             {previewLoading ? (
               <View style={styles.receiptPreviewStatus}>
                 <ActivityIndicator color={colors.white} />

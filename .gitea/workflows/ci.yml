@@ -1,4 +1,9 @@
-name: Build and test
+name: Build, test, and publish
+
+permissions:
+  contents: read
+  packages: write
+
 on:
   push:
     branches: [main]
@@ -30,6 +35,10 @@ jobs:
         with: { node-version: 24 }
       - run: npm ci
       - run: npm run build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: dist
 
   test:
     needs: build
@@ -52,3 +61,28 @@ jobs:
         with: { node-version: 24 }
       - run: npm ci
       - run: npm run test:e2e
+
+  publish-image:
+    if: gitea.event_name == 'push' && gitea.ref == 'refs/heads/main'
+    needs: [test, test-e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist
+      - name: Build and publish image
+        env:
+          GITEA_URL: ${{ gitea.server_url }}
+          GITEA_REPOSITORY: ${{ gitea.repository }}
+          GITEA_ACTOR: ${{ gitea.actor }}
+          GITEA_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          COMMIT_SHA: ${{ gitea.sha }}
+        run: |
+          registry="${GITEA_URL#https://}"
+          registry="${registry#http://}"
+          echo "$GITEA_TOKEN" | docker login "$registry" --username "$GITEA_ACTOR" --password-stdin
+          docker build --tag "$registry/$GITEA_REPOSITORY:$COMMIT_SHA" --tag "$registry/$GITEA_REPOSITORY:main" .
+          docker push "$registry/$GITEA_REPOSITORY:$COMMIT_SHA"
+          docker push "$registry/$GITEA_REPOSITORY:main"

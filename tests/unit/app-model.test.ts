@@ -6,6 +6,7 @@ import {
   createConfirmedTransaction,
   enqueueQueuedTransaction,
   formatLocalDate,
+  isReceiptActionable,
   isLocalDate,
   mergeTransactionPages,
   parseLocalDate,
@@ -160,8 +161,26 @@ describe('strict local dates', () => {
     }
   });
 
+  it('validates civil dates independently of timezone transitions', () => {
+    const originalTimezone = process.env.TZ;
+    try {
+      process.env.TZ = 'Pacific/Apia';
+      assert.equal(isLocalDate('2011-12-30'), true);
+      assert.ok(parseLocalDate('2011-12-30'));
+    } finally {
+      if (originalTimezone === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTimezone;
+    }
+  });
+
   it('rejects an invalid Date when formatting', () => {
     assert.throws(() => formatLocalDate(new Date(Number.NaN)), RangeError);
+    const beforeSupportedRange = new Date(0);
+    beforeSupportedRange.setFullYear(-1);
+    const afterSupportedRange = new Date(0);
+    afterSupportedRange.setFullYear(10_000);
+    assert.throws(() => formatLocalDate(beforeSupportedRange), /between 0000 and 9999/);
+    assert.throws(() => formatLocalDate(afterSupportedRange), /between 0000 and 9999/);
   });
 });
 
@@ -221,6 +240,117 @@ describe('queued transaction cache and reducers', () => {
       ),
       [queuedTransaction, stale],
     );
+  });
+
+  it('rejects every malformed queued payload boundary', () => {
+    const validSplitPayload = {
+      account: 'account-1',
+      date: '2026-08-11',
+      amount: -18.5,
+      splits: [
+        { category: 'food-id', amount: -10 },
+        { category: 'home-id', amount: -8.5 },
+      ],
+    };
+    const cases: [string, unknown][] = [
+      ['non-object item', null],
+      ['blank outer account', { ...queuedTransaction, account: ' ' }],
+      ['blank outer category', { ...queuedTransaction, category: '' }],
+      ['non-string error', { ...queuedTransaction, error: 500 }],
+      ['unsupported mode', { ...queuedTransaction, mode: 'transfer' }],
+      ['non-object payload', { ...queuedTransaction, payload: null }],
+      [
+        'blank payload account',
+        { ...queuedTransaction, payload: { ...transactionPayload, account: ' ' } },
+      ],
+      [
+        'invalid payload date',
+        { ...queuedTransaction, payload: { ...transactionPayload, date: '2026-02-31' } },
+      ],
+      [
+        'zero payload amount',
+        { ...queuedTransaction, payload: { ...transactionPayload, amount: 0 } },
+      ],
+      [
+        'positive payload amount',
+        { ...queuedTransaction, payload: { ...transactionPayload, amount: 1 } },
+      ],
+      [
+        'non-number payload amount',
+        { ...queuedTransaction, payload: { ...transactionPayload, amount: '-1' } },
+      ],
+      ['non-string notes', { ...queuedTransaction, payload: { ...transactionPayload, notes: 1 } }],
+      [
+        'non-array tags',
+        { ...queuedTransaction, payload: { ...transactionPayload, tags: 'weekly-id' } },
+      ],
+      ['blank tag', { ...queuedTransaction, payload: { ...transactionPayload, tags: [''] } }],
+      [
+        'missing transaction category',
+        { ...queuedTransaction, payload: { ...transactionPayload, category: undefined } },
+      ],
+      [
+        'transaction with splits',
+        { ...queuedTransaction, payload: { ...transactionPayload, splits: [] } },
+      ],
+      [
+        'split with top-level category',
+        {
+          ...queuedTransaction,
+          mode: 'split',
+          payload: { ...validSplitPayload, category: 'food-id' },
+        },
+      ],
+      [
+        'split with fewer than two parts',
+        { ...queuedTransaction, mode: 'split', payload: { ...validSplitPayload, splits: [] } },
+      ],
+      [
+        'non-object split',
+        {
+          ...queuedTransaction,
+          mode: 'split',
+          payload: { ...validSplitPayload, splits: [null, validSplitPayload.splits[1]] },
+        },
+      ],
+      [
+        'blank split category',
+        {
+          ...queuedTransaction,
+          mode: 'split',
+          payload: {
+            ...validSplitPayload,
+            splits: [{ ...validSplitPayload.splits[0], category: '' }, validSplitPayload.splits[1]],
+          },
+        },
+      ],
+      [
+        'zero split amount',
+        {
+          ...queuedTransaction,
+          mode: 'split',
+          payload: {
+            ...validSplitPayload,
+            splits: [{ ...validSplitPayload.splits[0], amount: 0 }, validSplitPayload.splits[1]],
+          },
+        },
+      ],
+      [
+        'invalid split tags',
+        {
+          ...queuedTransaction,
+          mode: 'split',
+          payload: {
+            ...validSplitPayload,
+            splits: [{ ...validSplitPayload.splits[0], tags: [''] }, validSplitPayload.splits[1]],
+          },
+        },
+      ],
+    ];
+
+    for (const [label, candidate] of cases) {
+      assert.deepEqual(parseTransactionQueue(JSON.stringify([candidate])), [], label);
+    }
   });
 
   it('enqueues deterministic collision-safe IDs without mutating the current queue', () => {
@@ -376,6 +506,22 @@ describe('receipt preparation', () => {
 });
 
 describe('receipt badge policy', () => {
+  it('classifies each receipt status and submission state independently', () => {
+    const cases: [ApiReceipt['status'], boolean, boolean][] = [
+      ['queued', false, true],
+      ['queued', true, true],
+      ['processing', false, true],
+      ['processing', true, true],
+      ['processed', false, true],
+      ['processed', true, false],
+      ['failed', false, false],
+      ['failed', true, false],
+    ];
+    for (const [status, submitted, expected] of cases) {
+      assert.equal(isReceiptActionable(receipt({ status, submitted })), expected);
+    }
+  });
+
   it('counts queued, processing, and unsubmitted processed receipts only', () => {
     const receipts = [
       receipt({ id: 1, status: 'queued', submitted: false }),

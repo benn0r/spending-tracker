@@ -20,7 +20,7 @@ export function useDefaultAccount(): UseDefaultAccountResult {
       .then((stored) => {
         if (cancelled || !stored) return;
         if (enabledAccountIds.current && !enabledAccountIds.current.has(stored)) {
-          void AsyncStorage.removeItem(defaultAccountStorageKey);
+          void AsyncStorage.removeItem(defaultAccountStorageKey).catch(() => undefined);
           return;
         }
         setDefaultAccount(stored);
@@ -33,14 +33,14 @@ export function useDefaultAccount(): UseDefaultAccountResult {
 
   const chooseDefaultAccount = useCallback((account: string) => {
     setDefaultAccount(account);
-    void AsyncStorage.setItem(defaultAccountStorageKey, account);
+    void AsyncStorage.setItem(defaultAccountStorageKey, account).catch(() => undefined);
   }, []);
 
   const validateDefaultAccount = useCallback((references: References) => {
     enabledAccountIds.current = new Set(references.accounts.map(({ id }) => id));
     setDefaultAccount((current) => {
       if (current && !enabledAccountIds.current?.has(current)) {
-        void AsyncStorage.removeItem(defaultAccountStorageKey);
+        void AsyncStorage.removeItem(defaultAccountStorageKey).catch(() => undefined);
         return '';
       }
       return current;

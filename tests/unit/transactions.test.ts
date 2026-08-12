@@ -149,6 +149,41 @@ describe('transaction helpers', () => {
     );
   });
 
+  it('accepts blank or strict local dates and rejects malformed or impossible dates', () => {
+    const normal = { ...emptyDraft, account: 'account-1', category: 'food', amount: '12.50' };
+    for (const date of ['', '0000-01-01', '2024-02-29', '9999-12-31']) {
+      assert.equal(isDraftValid({ ...normal, date }, 'transaction'), true, date || 'blank date');
+    }
+    for (const date of [
+      '2023-02-29',
+      '2026-02-30',
+      '2026-04-31',
+      '2026-00-10',
+      '2026-13-01',
+      '2026-01-00',
+      '2026-01-32',
+      '26-01-01',
+      '2026-1-01',
+      '2026-01-1',
+      '2026/01/01',
+      ' 2026-01-01',
+      '2026-01-01 ',
+      '   ',
+    ]) {
+      assert.equal(isDraftValid({ ...normal, date }, 'transaction'), false, date);
+    }
+
+    const split = {
+      ...normal,
+      date: '2026-02-29',
+      splits: [
+        { category: 'food', amount: '7.50', tags: [] },
+        { category: 'home', amount: '5', tags: [] },
+      ],
+    };
+    assert.equal(isDraftValid(split, 'split'), false);
+  });
+
   it('creates server payloads with IDs and negative expense amounts', () => {
     const draft = {
       ...emptyDraft,
@@ -192,7 +227,7 @@ describe('transaction helpers', () => {
     });
   });
 
-  it('uses the supplied default date and omits blank notes and tags', () => {
+  it('uses the supplied local default date and omits blank notes and tags', () => {
     const draft = {
       ...emptyDraft,
       account: 'account-1',
@@ -200,13 +235,40 @@ describe('transaction helpers', () => {
       amount: '8',
       comment: '   ',
     };
-    const payload = createPayload(draft, 'transaction', new Date('2026-01-02T23:00:00Z'));
+    const defaultDate = new Date(2026, 0, 2, 0, 1);
+    defaultDate.toISOString = () => '2026-01-01T23:01:00.000Z';
+    const payload = createPayload(draft, 'transaction', defaultDate);
     assert.deepEqual(JSON.parse(JSON.stringify(payload)), {
       account: 'account-1',
       category: 'food-id',
       date: '2026-01-02',
       amount: -8,
     });
+  });
+
+  it('preserves a strict supplied draft date without consulting the fallback date', () => {
+    const draft = {
+      ...emptyDraft,
+      account: 'account-1',
+      category: 'food-id',
+      date: '2024-02-29',
+      amount: '8',
+    };
+    assert.equal(createPayload(draft, 'transaction', new Date(Number.NaN)).date, '2024-02-29');
+  });
+
+  it('rejects an invalid nonempty date before creating a payload', () => {
+    const draft = {
+      ...emptyDraft,
+      account: 'account-1',
+      category: 'food-id',
+      date: '2026-02-29',
+      amount: '8',
+    };
+    assert.throws(
+      () => createPayload(draft, 'transaction'),
+      /Complete all required transaction fields/,
+    );
   });
 
   it('throws instead of creating a payload from an invalid draft', () => {

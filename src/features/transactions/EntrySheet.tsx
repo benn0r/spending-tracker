@@ -245,6 +245,7 @@ export function EntrySheet({
             </Pressable>
             <Pressable
               accessibilityRole="button"
+              accessibilityLabel="Save expense"
               accessibilityState={{ disabled: !isDraftValid(draft, mode) || saving }}
               disabled={!isDraftValid(draft, mode) || saving}
               onPress={save}

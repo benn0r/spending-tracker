@@ -1,4 +1,5 @@
 import { emptyDraft } from './transactions.ts';
+import { isLocalDate } from './dates.ts';
 import type {
   ApiReceipt,
   ApiTransaction,
@@ -16,6 +17,8 @@ export const defaultAccountStorageKey = 'spending-tracker.default-account';
 export const transactionQueueStorageKey = 'spending-tracker.transaction-queue';
 export const transactionCacheStorageKey = 'spending-tracker.transactions-v1';
 export const referenceCacheStorageKey = 'spending-tracker.references-v1';
+
+export { formatLocalDate, isLocalDate, parseLocalDate } from './dates.ts';
 
 export type QueuedTransaction = {
   id: string;
@@ -112,34 +115,6 @@ export function parseReferenceCache(value: string | null): References | null {
   } catch {
     return null;
   }
-}
-
-export function formatLocalDate(date: Date): string {
-  if (Number.isNaN(date.getTime())) throw new RangeError('Cannot format an invalid date.');
-  const year = date.getFullYear();
-  if (year < 0 || year > 9999) throw new RangeError('Date year must be between 0000 and 9999.');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${String(year).padStart(4, '0')}-${month}-${day}`;
-}
-
-export function parseLocalDate(value: string): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(0);
-  date.setFullYear(year, month - 1, day);
-  date.setHours(12, 0, 0, 0);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-    return null;
-  }
-  return date;
-}
-
-export function isLocalDate(value: string): boolean {
-  return parseLocalDate(value) !== null;
 }
 
 type OptionalStringList =

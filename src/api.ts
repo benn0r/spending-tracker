@@ -1,4 +1,4 @@
-import { File } from 'expo-file-system';
+import { File as ExpoFile } from 'expo-file-system';
 
 import type { ApiReceipt, References, TransactionPage, TransactionPayload } from './types';
 
@@ -37,15 +37,7 @@ export function describeSubmissionError(cause: unknown): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    headers: {
-      Accept: 'application/json',
-      ...(typeof init?.body === 'string' ? { 'Content-Type': 'application/json' } : {}),
-      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
-      ...init?.headers,
-    },
-  });
+  const response = await fetchResponse(path, init);
   const responseText = await response.text();
   let body: unknown = null;
   try {
@@ -53,7 +45,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     body = responseText;
   }
+  return body as T;
+}
+
+async function fetchResponse(
+  path: string,
+  init?: RequestInit,
+  accept = 'application/json',
+): Promise<Response> {
+  const response = await fetch(`${apiUrl}${path}`, {
+    ...init,
+    headers: {
+      Accept: accept,
+      ...(typeof init?.body === 'string' ? { 'Content-Type': 'application/json' } : {}),
+      ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+      ...init?.headers,
+    },
+  });
   if (!response.ok) {
+    const responseText = await response.text();
+    let body: unknown = null;
+    try {
+      body = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      body = responseText;
+    }
     const method = init?.method ?? 'GET';
     const requestId = response.headers.get('x-request-id') ?? undefined;
     const detail = responseDetail(body) ?? (typeof body === 'string' ? body.trim() : null);
@@ -67,7 +83,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       .join('\n');
     throw new ApiError(diagnostic, response.status, method, path, requestId);
   }
-  return body as T;
+  return response;
 }
 
 export async function loadDashboard(): Promise<{ references: References; page: TransactionPage }> {
@@ -112,12 +128,22 @@ export function receiptFileSource(id: number): { uri: string; headers?: Record<s
   };
 }
 
+export async function loadReceiptFile(id: number): Promise<Blob> {
+  const response = await fetchResponse(`/api/receipts/${id}/file`, undefined, '*/*');
+  return response.blob();
+}
+
 export async function uploadReceipt(
-  asset: { uri: string; fileName?: string | null; mimeType?: string | null },
+  asset: {
+    uri: string;
+    fileName?: string | null;
+    mimeType?: string | null;
+    file?: globalThis.File;
+  },
   account: string,
 ): Promise<{ id: number; status: 'queued' }> {
   const form = new FormData();
-  const receipt = new File(asset.uri);
+  const receipt = asset.file ?? new ExpoFile(asset.uri);
   form.append('account', account);
   form.append('receipt', receipt, asset.fileName ?? receipt.name);
   return request('/api/receipts', { method: 'POST', body: form });

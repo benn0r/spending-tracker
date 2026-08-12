@@ -10,6 +10,10 @@ export default defineConfig({
   },
   webServer: {
     command: 'npm run build && npx serve -s dist -l 4173',
+    env: {
+      EXPO_PUBLIC_SPENDING_TRACKER_API_KEY: 'e2e-api-key',
+      EXPO_PUBLIC_SPENDING_TRACKER_API_URL: 'http://127.0.0.1:4173',
+    },
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
     timeout: 120_000,

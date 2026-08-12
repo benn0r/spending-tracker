@@ -1,3 +1,4 @@
+import { formatLocalDate, isLocalDate } from './dates.ts';
 import type { ApiTransaction, DraftTransaction, EntryMode, TransactionPayload } from './types';
 
 export const transactionCacheSize = 20;
@@ -60,7 +61,13 @@ export function summarize(transactions: ApiTransaction[]) {
 
 export function isDraftValid(draft: DraftTransaction, mode: EntryMode): boolean {
   const amount = numberValue(draft.amount);
-  if (!draft.account || !Number.isFinite(amount) || amount <= 0) return false;
+  if (
+    !draft.account ||
+    !Number.isFinite(amount) ||
+    amount <= 0 ||
+    (draft.date.length > 0 && !isLocalDate(draft.date))
+  )
+    return false;
   if (mode === 'transaction') return Boolean(draft.category);
   if (draft.splits.length < 2) return false;
   const splitAmounts = draft.splits.map((split) => numberValue(split.amount));
@@ -80,7 +87,7 @@ export function createPayload(
   if (!isDraftValid(draft, mode)) throw new Error('Complete all required transaction fields.');
   const common = {
     account: draft.account,
-    date: draft.date || date.toISOString().slice(0, 10),
+    date: draft.date || formatLocalDate(date),
     amount: -numberValue(draft.amount),
     ...(draft.comment.trim() ? { notes: draft.comment.trim() } : {}),
   };

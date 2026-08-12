@@ -45,7 +45,7 @@ npm run test:e2e
 
 ## Pipeline
 
-Like the Fashion Canvas app, the Gitea pipeline performs uncached installs in separate quality, web-build, unit-test, and browser-E2E jobs. Unit and browser tests run in parallel after the build gate, and the browser job creates its own served web export. The pipeline does not build or publish a container image.
+Like the Fashion Canvas app, the Gitea pipeline performs uncached installs in separate quality, web-build, unit-test, and browser-E2E jobs. Unit and browser tests run in parallel after the build gate, and the browser job creates its own served web export. After both test jobs pass on a main-branch push, the pipeline packages the gated web build and publishes commit and `main` image tags to the Gitea container registry.
 
 ## License
 

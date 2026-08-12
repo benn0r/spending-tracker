@@ -1,0 +1,163 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+
+import { EntrySheet } from '../../src/features/transactions/EntrySheet';
+import type { References } from '../../src/types';
+
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+
+const references: References = {
+  accounts: [
+    { id: 'everyday', name: 'Everyday' },
+    { id: 'savings', name: 'Savings' },
+  ],
+  categories: [
+    { id: 'groceries', name: 'Groceries' },
+    { id: 'home', name: 'Home' },
+  ],
+  tags: [
+    { id: 'weekly', name: 'Weekly' },
+    { id: 'shared', name: 'Shared' },
+  ],
+};
+
+describe('EntrySheet', () => {
+  it('prefills the default account and submits a complete normal expense', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    render(
+      <EntrySheet
+        visible
+        references={references}
+        defaultAccount="savings"
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
+    fireEvent.changeText(screen.getByLabelText('Amount'), '12,50');
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Weekly' }));
+    fireEvent.changeText(screen.getByLabelText('Comment'), '  Market visit  ');
+    fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        account: 'savings',
+        category: 'groceries',
+        amount: '12,50',
+        tags: ['weekly'],
+        comment: '  Market visit  ',
+      }),
+      'transaction',
+    );
+  });
+
+  it('keeps save disabled for unbalanced splits', () => {
+    render(
+      <EntrySheet
+        visible
+        references={references}
+        defaultAccount="everyday"
+        onClose={jest.fn()}
+        onSave={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
+    fireEvent.changeText(screen.getByLabelText('Amount'), '20');
+    fireEvent.press(screen.getByRole('tab', { name: 'Split transaction' }));
+    const categoryButtons = screen.getAllByRole('button', { name: /Select category for Split/ });
+    fireEvent.press(categoryButtons[0]!);
+    fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
+    fireEvent.press(categoryButtons[1]!);
+    fireEvent.press(screen.getByRole('radio', { name: 'Home' }));
+    const splitAmounts = screen.getAllByLabelText('Split amount');
+    fireEvent.changeText(splitAmounts[0]!, '12');
+    fireEvent.changeText(splitAmounts[1]!, '7');
+    expect(screen.getByRole('button', { name: 'Save expense' })).toBeDisabled();
+    fireEvent.changeText(splitAmounts[1]!, '8');
+    expect(screen.getByRole('button', { name: 'Save expense' })).toBeEnabled();
+  });
+
+  it('commits searched tags only when Done is pressed', () => {
+    render(
+      <EntrySheet
+        visible
+        references={references}
+        defaultAccount="everyday"
+        onClose={jest.fn()}
+        onSave={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Search tags' }));
+    const tagSearch = screen.getByTestId('tag-search-sheet');
+    fireEvent.changeText(within(tagSearch).getByLabelText('Search tags'), 'sha');
+    expect(within(tagSearch).getByRole('checkbox', { name: 'Shared' })).toBeVisible();
+    expect(within(tagSearch).queryByRole('checkbox', { name: 'Weekly' })).toBeNull();
+    fireEvent.press(within(tagSearch).getByRole('checkbox', { name: 'Shared' }));
+    fireEvent.press(within(tagSearch).getByRole('button', { name: 'Done selecting tags' }));
+    expect(screen.getByRole('checkbox', { name: 'Shared' })).toBeChecked();
+  });
+
+  it.each([
+    ['Close', 'button'],
+    ['Close transaction form', 'none'],
+  ] as const)('resets a draft after dismissal through %s', async (label, role) => {
+    const onClose = jest.fn();
+    const { rerender } = render(
+      <EntrySheet
+        visible
+        references={references}
+        defaultAccount="everyday"
+        onClose={onClose}
+        onSave={jest.fn()}
+      />,
+    );
+    fireEvent.changeText(screen.getByLabelText('Amount'), '33');
+    const close =
+      role === 'button'
+        ? screen.getByRole('button', { name: label })
+        : screen.getByLabelText(label);
+    fireEvent.press(close);
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <EntrySheet
+        visible={false}
+        references={references}
+        defaultAccount="everyday"
+        onClose={onClose}
+        onSave={jest.fn()}
+      />,
+    );
+    rerender(
+      <EntrySheet
+        visible
+        references={references}
+        defaultAccount="everyday"
+        onClose={onClose}
+        onSave={jest.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByLabelText('Amount')).toHaveDisplayValue(''));
+  });
+
+  it('keeps the form open and displays submission diagnostics', async () => {
+    render(
+      <EntrySheet
+        visible
+        references={references}
+        defaultAccount="everyday"
+        onClose={jest.fn()}
+        onSave={jest.fn().mockRejectedValue(new Error('Server rejected the expense'))}
+      />,
+    );
+    fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
+    fireEvent.changeText(screen.getByLabelText('Amount'), '10');
+    fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
+    expect(await screen.findByText('Server rejected the expense')).toBeVisible();
+    expect(screen.getByTestId('entry-sheet')).toBeVisible();
+  });
+});

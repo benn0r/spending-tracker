@@ -47,9 +47,11 @@ export function useTransactionQueue({
   useEffect(() => {
     if (!hydrated) return;
     if (items.length) {
-      void AsyncStorage.setItem(transactionQueueStorageKey, JSON.stringify(items));
+      void AsyncStorage.setItem(transactionQueueStorageKey, JSON.stringify(items)).catch(
+        () => undefined,
+      );
     } else {
-      void AsyncStorage.removeItem(transactionQueueStorageKey);
+      void AsyncStorage.removeItem(transactionQueueStorageKey).catch(() => undefined);
     }
   }, [hydrated, items]);
 

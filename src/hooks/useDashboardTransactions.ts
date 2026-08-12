@@ -50,7 +50,7 @@ export function useDashboardTransactions(
     void AsyncStorage.setItem(
       transactionCacheStorageKey,
       JSON.stringify(limitTransactionCache(items)),
-    );
+    ).catch(() => undefined);
   }, []);
 
   const refreshDashboard = useCallback(
@@ -68,7 +68,10 @@ export function useDashboardTransactions(
         setTransactionPage(result.page.page);
         setTransactionTotal(result.page.total);
         setReferences(result.references);
-        void AsyncStorage.setItem(referenceCacheStorageKey, JSON.stringify(result.references));
+        void AsyncStorage.setItem(
+          referenceCacheStorageKey,
+          JSON.stringify(result.references),
+        ).catch(() => undefined);
         onReferencesLoaded(result.references);
       } catch (cause) {
         if (requestGeneration === transactionLoadGeneration.current) {
