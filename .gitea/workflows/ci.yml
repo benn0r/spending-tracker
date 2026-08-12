@@ -178,14 +178,42 @@ jobs:
             echo "Gradle build failed; retrying (attempt $attempt of 3)."
             sleep 10
           done
+      - name: Build signed Android App Bundle
+        working-directory: android
+        run: |
+          attempt=1
+          until ./gradlew :app:bundleRelease \
+            --no-daemon --stacktrace \
+            --max-workers=1 \
+            -Dorg.gradle.jvmargs="-Xmx512m -XX:MaxMetaspaceSize=768m" \
+            -Dorg.gradle.parallel=false \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a; do
+            if [ "$attempt" -ge 3 ]; then
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "Android App Bundle build failed; retrying (attempt $attempt of 3)."
+            sleep 10
+          done
       - name: Verify APK signature
         run: |
           apksigner=$(find "$ANDROID_HOME/build-tools" -mindepth 2 -maxdepth 2 -name apksigner -type f | sort -V | tail -1)
           test -n "$apksigner"
           "$apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
+      - name: Verify Android App Bundle signature
+        run: >-
+          jarsigner -verify -verbose -certs
+          android/app/build/outputs/bundle/release/app-release.aab
       - name: Upload signed APK
         uses: ChristopherHX/gitea-upload-artifact@v4
         with:
           name: spending-tracker-android-${{ env.ANDROID_RELEASE_ID }}
           path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
+      - name: Upload signed Android App Bundle
+        uses: ChristopherHX/gitea-upload-artifact@v4
+        with:
+          name: spending-tracker-android-store-${{ env.ANDROID_RELEASE_ID }}
+          path: android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 30

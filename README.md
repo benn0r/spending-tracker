@@ -43,11 +43,11 @@ npm test
 npm run test:e2e
 ```
 
-## Android APK
+## Android releases
 
-The Gitea pipeline builds a signed release APK with Gradle after the unit and browser E2E jobs pass on `main` or a semantic `v*` tag. The artifact is named `spending-tracker-android-<commit-or-tag>` and remains available from the workflow run for 30 days.
+The Gitea pipeline builds a signed release APK and Android App Bundle with Gradle after the unit and browser E2E jobs pass on `main` or a semantic `v*` tag. The installable APK is named `spending-tracker-android-<commit-or-tag>`, while the Play Store `.aab` is named `spending-tracker-android-store-<commit-or-tag>`. Both remain available from the workflow run for 30 days.
 
-Configure `EXPO_PUBLIC_SPENDING_TRACKER_API_URL` and, when bearer authentication is required, `EXPO_PUBLIC_SPENDING_TRACKER_API_KEY` as Gitea Actions variables. Expo embeds both public values in the APK, so use a dedicated client key and rotate it when needed.
+Configure `EXPO_PUBLIC_SPENDING_TRACKER_API_URL` and, when bearer authentication is required, `EXPO_PUBLIC_SPENDING_TRACKER_API_KEY` as Gitea Actions variables. Expo embeds both public values in the APK and App Bundle, so use a dedicated client key and rotate it when needed.
 
 Use an existing Android release keystore or create an app-specific one with `keytool -genkeypair`. Back it up securely, then add these Gitea Actions secrets without committing the keystore or credentials:
 
@@ -60,7 +60,7 @@ On macOS, encode the keystore as one line with `base64 -i keystore.jks | tr -d '
 
 ## Pipeline
 
-Like the Fashion Canvas app, the Gitea pipeline performs uncached installs in separate quality, web-build, unit-test, browser-E2E, and signed Android APK jobs. Unit and browser tests run in parallel after the build gate; the APK runs only after both pass. The app pipeline does not publish a container image.
+Like the Fashion Canvas app, the Gitea pipeline performs uncached installs in separate quality, web-build, unit-test, browser-E2E, and signed Android release jobs. Unit and browser tests run in parallel after the build gate; the APK and Play Store bundle run only after both pass. The app pipeline does not publish a container image.
 
 ## License
 
