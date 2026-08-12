@@ -5,6 +5,10 @@ coverage/
 playwright-report/
 test-results/
 .env
+credentials.json
+*.jks
+*.keystore
+!android/app/debug.keystore
+*.log
 .DS_Store
-android/
 ios/

@@ -1,8 +1,4 @@
-name: Build, test, and publish
-
-permissions:
-  contents: read
-  packages: write
+name: Build and test
 
 on:
   push:
@@ -35,10 +31,6 @@ jobs:
         with: { node-version: 24 }
       - run: npm ci
       - run: npm run build
-      - uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: dist
 
   test:
     needs: build
@@ -62,27 +54,138 @@ jobs:
       - run: npm ci
       - run: npm run test:e2e
 
-  publish-image:
-    if: gitea.event_name == 'push' && gitea.ref == 'refs/heads/main'
+  build-android-apk:
     needs: [test, test-e2e]
+    if: ${{ gitea.event_name == 'push' && (gitea.ref == 'refs/heads/main' || startsWith(gitea.ref, 'refs/tags/v')) }}
     runs-on: ubuntu-latest
+    container:
+      image: reactnativecommunity/react-native-android:v20.1
+    env:
+      CI: 'true'
+      NODE_ENV: production
+      EXPO_PUBLIC_SPENDING_TRACKER_API_URL: ${{ vars.EXPO_PUBLIC_SPENDING_TRACKER_API_URL }}
+      EXPO_PUBLIC_SPENDING_TRACKER_API_KEY: ${{ vars.EXPO_PUBLIC_SPENDING_TRACKER_API_KEY }}
+      ANDROID_VERSION_CODE: ${{ gitea.run_number }}
+      ANDROID_KEYSTORE_FILE: release.keystore
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
-        with:
-          name: dist
-          path: dist
-      - name: Build and publish image
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: npm ci
+      - name: Configure Android release version
         env:
-          GITEA_URL: ${{ gitea.server_url }}
-          GITEA_REPOSITORY: ${{ gitea.repository }}
-          GITEA_ACTOR: ${{ gitea.actor }}
-          GITEA_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
-          COMMIT_SHA: ${{ gitea.sha }}
+          RELEASE_REF: ${{ gitea.ref }}
+          RELEASE_REF_NAME: ${{ gitea.ref_name }}
+          RELEASE_SHA: ${{ gitea.sha }}
         run: |
-          registry="${GITEA_URL#https://}"
-          registry="${registry#http://}"
-          echo "$GITEA_TOKEN" | docker login "$registry" --username "$GITEA_ACTOR" --password-stdin
-          docker build --tag "$registry/$GITEA_REPOSITORY:$COMMIT_SHA" --tag "$registry/$GITEA_REPOSITORY:main" .
-          docker push "$registry/$GITEA_REPOSITORY:$COMMIT_SHA"
-          docker push "$registry/$GITEA_REPOSITORY:main"
+          if printf '%s\n' "$RELEASE_REF" | grep -q '^refs/tags/v'; then
+            if ! printf '%s\n' "$RELEASE_REF_NAME" |
+              grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'; then
+              echo "Release tags must use semantic versioning, for example v1.2.3."
+              exit 1
+            fi
+            version_name=${RELEASE_REF_NAME#v}
+            release_id=$RELEASE_REF_NAME
+          else
+            version_name=1.0.0
+            release_id=$RELEASE_SHA
+          fi
+
+          printf 'ANDROID_VERSION_NAME=%s\n' "$version_name" >> "$GITHUB_ENV"
+          printf 'ANDROID_RELEASE_ID=%s\n' "$release_id" >> "$GITHUB_ENV"
+          echo "Building Android version $version_name (code $ANDROID_VERSION_CODE)."
+      - name: Validate Android build configuration
+        run: |
+          test -n "$EXPO_PUBLIC_SPENDING_TRACKER_API_URL"
+          test -n "$ANDROID_VERSION_NAME"
+          test -n "$ANDROID_VERSION_CODE"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+      - name: Restore Expo Android keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+          chmod 600 android/app/release.keystore
+      - name: Install Android build dependencies
+        run: |
+          attempt=1
+          until "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            'build-tools;35.0.0' 'cmake;3.22.1'; do
+            if [ "$attempt" -ge 3 ]; then
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "Android SDK install failed; retrying (attempt $attempt of 3)."
+            sleep 10
+          done
+      - name: Warm Gradle configuration
+        working-directory: android
+        run: |
+          attempt=1
+          until ./gradlew help \
+            --no-daemon --stacktrace \
+            --max-workers=1 \
+            -Dorg.gradle.jvmargs="-Xmx512m -XX:MaxMetaspaceSize=512m" \
+            -Dorg.gradle.parallel=false \
+            -Pkotlin.compiler.execution.strategy=in-process; do
+            if [ "$attempt" -ge 3 ]; then
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "Gradle warm-up failed; retrying (attempt $attempt of 3)."
+            sleep 10
+          done
+      - name: Bundle Android JavaScript
+        working-directory: android
+        env:
+          NODE_OPTIONS: --max-old-space-size=384
+        run: |
+          attempt=1
+          until ./gradlew :app:createBundleReleaseJsAndAssets \
+            --no-daemon --stacktrace \
+            --max-workers=1 \
+            -Dorg.gradle.jvmargs="-Xmx512m -XX:MaxMetaspaceSize=512m" \
+            -Dorg.gradle.parallel=false \
+            -Pkotlin.compiler.execution.strategy=in-process; do
+            if [ "$attempt" -ge 3 ]; then
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "Android bundle failed; retrying (attempt $attempt of 3)."
+            sleep 10
+          done
+      - name: Build signed release APK locally
+        working-directory: android
+        run: |
+          attempt=1
+          until ./gradlew :app:assembleRelease \
+            --no-daemon --stacktrace \
+            --max-workers=1 \
+            -Dorg.gradle.jvmargs="-Xmx512m -XX:MaxMetaspaceSize=768m" \
+            -Dorg.gradle.parallel=false \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a; do
+            if [ "$attempt" -ge 3 ]; then
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "Gradle build failed; retrying (attempt $attempt of 3)."
+            sleep 10
+          done
+      - name: Verify APK signature
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -mindepth 2 -maxdepth 2 -name apksigner -type f | sort -V | tail -1)
+          test -n "$apksigner"
+          "$apksigner" verify --verbose android/app/build/outputs/apk/release/app-release.apk
+      - name: Upload signed APK
+        uses: ChristopherHX/gitea-upload-artifact@v4
+        with:
+          name: spending-tracker-android-${{ env.ANDROID_RELEASE_ID }}
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30

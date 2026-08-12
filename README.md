@@ -43,9 +43,24 @@ npm test
 npm run test:e2e
 ```
 
+## Android APK
+
+The Gitea pipeline builds a signed release APK with Gradle after the unit and browser E2E jobs pass on `main` or a semantic `v*` tag. The artifact is named `spending-tracker-android-<commit-or-tag>` and remains available from the workflow run for 30 days.
+
+Configure `EXPO_PUBLIC_SPENDING_TRACKER_API_URL` and, when bearer authentication is required, `EXPO_PUBLIC_SPENDING_TRACKER_API_KEY` as Gitea Actions variables. Expo embeds both public values in the APK, so use a dedicated client key and rotate it when needed.
+
+Use an existing Android release keystore or create an app-specific one with `keytool -genkeypair`. Back it up securely, then add these Gitea Actions secrets without committing the keystore or credentials:
+
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+On macOS, encode the keystore as one line with `base64 -i keystore.jks | tr -d '\n'`.
+
 ## Pipeline
 
-Like the Fashion Canvas app, the Gitea pipeline performs uncached installs in separate quality, web-build, unit-test, and browser-E2E jobs. Unit and browser tests run in parallel after the build gate, and the browser job creates its own served web export. After both test jobs pass on a main-branch push, the pipeline packages the gated web build and publishes commit and `main` image tags to the Gitea container registry.
+Like the Fashion Canvas app, the Gitea pipeline performs uncached installs in separate quality, web-build, unit-test, browser-E2E, and signed Android APK jobs. Unit and browser tests run in parallel after the build gate; the APK runs only after both pass. The app pipeline does not publish a container image.
 
 ## License
 

@@ -24,7 +24,8 @@
         "expo-image-picker",
         {
           "cameraPermission": "Allow Spending Tracker to scan receipts with your camera.",
-          "photosPermission": "Allow Spending Tracker to attach receipt photos."
+          "photosPermission": "Allow Spending Tracker to attach receipt photos.",
+          "microphonePermission": false
         }
       ],
       "@react-native-community/datetimepicker",
@@ -33,6 +34,12 @@
     ],
     "android": {
       "package": "app.spendingtracker.mobile",
+      "versionCode": 1,
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#F4F0E8"
