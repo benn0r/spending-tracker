@@ -37,7 +37,7 @@ export function TransactionRow({
     >
       <View style={styles.transactionRow} testID={`transaction-${item.id}`}>
         <View style={[styles.transactionIcon, { backgroundColor: iconBackground }]}>
-          <Ionicons name={icon} size={21} color={iconColor} />
+          <Ionicons name={icon} size={19} color={iconColor} />
         </View>
         <View style={styles.transactionCopy}>
           <Text style={styles.merchant}>{title}</Text>

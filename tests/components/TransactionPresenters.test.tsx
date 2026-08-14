@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import type { QueuedTransaction } from '../../src/app-model';
 import { SummaryCard } from '../../src/features/transactions/SummaryCard';
+import { DateSectionHeader } from '../../src/features/transactions/DateSectionHeader';
 import { TransactionQueue } from '../../src/features/transactions/TransactionQueue';
 import { TransactionRow } from '../../src/features/transactions/TransactionRow';
 import type { ApiTransaction } from '../../src/types';
@@ -91,12 +92,26 @@ const queuedTravel: QueuedTransaction = {
 };
 
 describe('transaction presentation', () => {
-  it('summarizes income, spending, and available balance', () => {
-    render(<SummaryCard transactions={[transaction({ amount: 100 }), transaction()]} />);
+  it('shows a signed daily total in the full-width date header', () => {
+    render(<DateSectionHeader date="2026-08-12" total={-37.5} />);
 
-    expect(screen.getByText('CHF 74.50')).toBeVisible();
-    expect(screen.getByText('CHF 100')).toBeVisible();
-    expect(screen.getByText('CHF 25.5')).toBeVisible();
+    expect(screen.getByText('− CHF 37.50')).toBeVisible();
+  });
+
+  it('summarizes income, spending, and available balance', () => {
+    render(
+      <SummaryCard
+        cashFlow={{
+          currency: 'CHF',
+          currentMonth: '2026-08',
+          months: [{ month: '2026-08', income: 100, expenses: 25.5, net: 74.5 }],
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/74\.50/)).toBeVisible();
+    expect(screen.getByText(/100\.00/)).toBeVisible();
+    expect(screen.getByText(/25\.50/)).toBeVisible();
   });
 
   it('renders server category visuals, fallbacks, signed amounts, and deletion', () => {

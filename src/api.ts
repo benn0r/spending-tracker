@@ -1,6 +1,12 @@
 import { File as ExpoFile } from 'expo-file-system';
 
-import type { ApiReceipt, References, TransactionPage, TransactionPayload } from './types';
+import type {
+  ApiReceipt,
+  CashFlow,
+  References,
+  TransactionPage,
+  TransactionPayload,
+} from './types';
 
 let apiUrl =
   process.env.EXPO_PUBLIC_SPENDING_TRACKER_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
@@ -136,12 +142,17 @@ async function fetchResponse(
   return response;
 }
 
-export async function loadDashboard(): Promise<{ references: References; page: TransactionPage }> {
-  const [references, page] = await Promise.all([
+export async function loadDashboard(): Promise<{
+  references: References;
+  page: TransactionPage;
+  cashFlow: CashFlow;
+}> {
+  const [references, page, cashFlow] = await Promise.all([
     request<References>('/api/references'),
     loadTransactionPage(1),
+    request<CashFlow>('/api/cash-flow'),
   ]);
-  return { references, page };
+  return { references, page, cashFlow };
 }
 
 export function loadTransactionPage(

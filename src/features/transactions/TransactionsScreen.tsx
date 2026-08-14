@@ -1,18 +1,20 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
 import type { QueuedTransaction } from '../../app-model';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
-import { formatDateHeader } from '../../transactions';
-import type { ApiTransaction, CategoryReference } from '../../types';
+import { transactionDayTotals } from '../../transactions';
+import type { ApiTransaction, CashFlow, CategoryReference } from '../../types';
 import { SummaryCard } from './SummaryCard';
+import { DateSectionHeader } from './DateSectionHeader';
 import { TransactionQueue } from './TransactionQueue';
 import { TransactionRow } from './TransactionRow';
 
 type TransactionsScreenProps = {
   transactions: ApiTransaction[];
+  cashFlow: CashFlow | null;
   categories: CategoryReference[];
   queuedTransactions: QueuedTransaction[];
   retryingTransaction: string | null;
@@ -31,6 +33,7 @@ type TransactionsScreenProps = {
 
 export function TransactionsScreen({
   transactions,
+  cashFlow,
   categories,
   queuedTransactions,
   retryingTransaction,
@@ -47,6 +50,7 @@ export function TransactionsScreen({
   onAdd,
 }: TransactionsScreenProps) {
   const listRef = useRef<FlatList<ApiTransaction>>(null);
+  const dayTotals = useMemo(() => transactionDayTotals(transactions), [transactions]);
 
   useEffect(() => {
     if (activationRequest === 0) return;
@@ -96,14 +100,14 @@ export function TransactionsScreen({
         renderItem={({ item, index }) => (
           <View>
             {index === 0 || transactions[index - 1]?.date !== item.date ? (
-              <Text style={styles.dateSectionHeader}>{formatDateHeader(item.date)}</Text>
+              <DateSectionHeader date={item.date} total={dayTotals[item.date] ?? 0} />
             ) : null}
             <TransactionRow item={item} categories={categories} onDelete={onDelete} />
           </View>
         )}
         ListHeaderComponent={
           <>
-            <SummaryCard transactions={transactions} />
+            <SummaryCard cashFlow={cashFlow} />
             {error ? (
               <Pressable
                 accessibilityRole="button"

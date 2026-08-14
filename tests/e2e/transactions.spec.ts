@@ -22,6 +22,12 @@ const transaction = {
 };
 
 test.beforeEach(async ({ page }) => {
+  await page.route('**/api/cash-flow', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ currency: 'CHF', currentMonth: '2026-08', months: [] }),
+    }),
+  );
   await page.route('**/api/references', (route) =>
     route.fulfill({ contentType: 'application/json', body: JSON.stringify(references) }),
   );

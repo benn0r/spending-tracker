@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-native';
 import { deleteTransaction, loadTransactionPage } from '../../api';
 import { mergeTransactionPages } from '../../app-model';
 import { AccountDropdown } from '../../components/AccountDropdown';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
-import { formatDateHeader } from '../../transactions';
+import { transactionDayTotals } from '../../transactions';
 import type { ApiTransaction, CategoryReference, Reference } from '../../types';
 import { TransactionRow } from '../transactions/TransactionRow';
+import { DateSectionHeader } from '../transactions/DateSectionHeader';
 
 export function WalletsScreen({
   accounts,
@@ -28,6 +29,7 @@ export function WalletsScreen({
   const generation = useRef(0);
   const selectedWallet = wallet || accounts[0]?.id || '';
   const selectedWalletName = accounts.find(({ id }) => id === selectedWallet)?.name;
+  const dayTotals = useMemo(() => transactionDayTotals(items), [items]);
 
   const refresh = useCallback(
     async (showIndicator = true) => {
@@ -94,7 +96,7 @@ export function WalletsScreen({
       renderItem={({ item, index }) => (
         <View>
           {index === 0 || items[index - 1]?.date !== item.date ? (
-            <Text style={styles.dateSectionHeader}>{formatDateHeader(item.date)}</Text>
+            <DateSectionHeader date={item.date} total={dayTotals[item.date] ?? 0} />
           ) : null}
           <TransactionRow
             item={item}

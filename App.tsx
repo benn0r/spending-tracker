@@ -98,6 +98,7 @@ function ConfiguredApp({
   const {
     transactions,
     references,
+    cashFlow,
     loading,
     loadingMore,
     error,
@@ -167,6 +168,7 @@ function ConfiguredApp({
               {activeTab === 'transactions' ? (
                 <TransactionsScreen
                   transactions={transactions}
+                  cashFlow={cashFlow}
                   categories={references.categories}
                   queuedTransactions={queuedTransactions}
                   retryingTransaction={retryingTransaction}

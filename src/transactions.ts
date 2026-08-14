@@ -59,6 +59,13 @@ export function summarize(transactions: ApiTransaction[]) {
   return { income, spent, balance: income - spent };
 }
 
+export function transactionDayTotals(transactions: ApiTransaction[]): Record<string, number> {
+  return transactions.reduce<Record<string, number>>((totals, transaction) => {
+    totals[transaction.date] = (totals[transaction.date] ?? 0) + transaction.amount;
+    return totals;
+  }, {});
+}
+
 export function isDraftValid(draft: DraftTransaction, mode: EntryMode): boolean {
   const amount = numberValue(draft.amount);
   if (
@@ -108,17 +115,21 @@ export function createPayload(
   };
 }
 
-export function formatTransactionDate(date: string): string {
+export function deviceLocale(): string {
+  return Intl.DateTimeFormat().resolvedOptions().locale;
+}
+
+export function formatTransactionDate(date: string, locale = deviceLocale()): string {
   const value = new Date(`${date}T12:00:00`);
   if (Number.isNaN(value.getTime())) return date;
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   }).format(value);
 }
 
-export function formatDateHeader(date: string, now = new Date()): string {
+export function formatDateHeader(date: string, now = new Date(), locale = deviceLocale()): string {
   const localValue = (value: Date) =>
     [
       value.getFullYear(),
@@ -129,5 +140,11 @@ export function formatDateHeader(date: string, now = new Date()): string {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   if (date === localValue(yesterday)) return 'Yesterday';
-  return formatTransactionDate(date);
+  const value = new Date(`${date}T12:00:00`);
+  if (Number.isNaN(value.getTime())) return date;
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'long',
+    ...(value.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' as const }),
+  }).format(value);
 }

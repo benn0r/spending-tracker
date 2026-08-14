@@ -52,7 +52,8 @@ describe('API client', () => {
   it('loads dashboard endpoints and encodes paginated account filters', async () => {
     fetchMock
       .mockResolvedValueOnce(response({ accounts: [], categories: [], tags: [] }))
-      .mockResolvedValueOnce(response({ transactions: [], total: 0, page: 1, pageSize: 20 }));
+      .mockResolvedValueOnce(response({ transactions: [], total: 0, page: 1, pageSize: 20 }))
+      .mockResolvedValueOnce(response({ currency: 'CHF', currentMonth: '2026-08', months: [] }));
     await api.loadDashboard();
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
@@ -64,6 +65,11 @@ describe('API client', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://api.example.test/api/transactions?page=1&pageSize=20',
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      'https://api.example.test/api/cash-flow',
       expect.any(Object),
     );
 

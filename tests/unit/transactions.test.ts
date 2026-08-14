@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   createPayload,
+  deviceLocale,
   emptyDraft,
   formatDateHeader,
   formatCurrency,
@@ -10,6 +11,7 @@ import {
   limitTransactionCache,
   parseTransactionCache,
   summarize,
+  transactionDayTotals,
 } from '../../src/transactions.ts';
 
 describe('transaction helpers', () => {
@@ -22,15 +24,24 @@ describe('transaction helpers', () => {
     const now = new Date(2026, 7, 10, 12);
     assert.equal(formatDateHeader('2026-08-10', now), 'Today');
     assert.equal(formatDateHeader('2026-08-09', now), 'Yesterday');
+    assert.equal(formatDateHeader('2026-08-08', now, 'en-US'), 'August 8');
     assert.equal(
       formatDateHeader('1992-10-13', now),
-      new Intl.DateTimeFormat(undefined, {
+      new Intl.DateTimeFormat(deviceLocale(), {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date('1992-10-13T12:00:00')),
+    );
+    assert.equal(formatTransactionDate('invalid'), 'invalid');
+    assert.equal(
+      formatTransactionDate('1992-10-13', 'de-CH'),
+      new Intl.DateTimeFormat('de-CH', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
       }).format(new Date('1992-10-13T12:00:00')),
     );
-    assert.equal(formatTransactionDate('invalid'), 'invalid');
   });
 
   it('recognizes yesterday across a year boundary', () => {
@@ -56,6 +67,25 @@ describe('transaction helpers', () => {
       { income: 100, spent: 35, balance: 65 },
     );
     assert.deepEqual(summarize([]), { income: 0, spent: 0, balance: 0 });
+  });
+
+  it('totals transactions by day for section headers', () => {
+    const transaction = {
+      id: '1',
+      date: '2026-08-09',
+      account: 'Main',
+      category: 'Food',
+      payee: 'Market',
+      isSplit: false,
+    };
+    assert.deepEqual(
+      transactionDayTotals([
+        { ...transaction, amount: -35 },
+        { ...transaction, id: '2', amount: 100 },
+        { ...transaction, id: '3', date: '2026-08-08', amount: -12 },
+      ]),
+      { '2026-08-09': 65, '2026-08-08': -12 },
+    );
   });
 
   it('keeps and restores only the latest 20 valid cached transactions', () => {

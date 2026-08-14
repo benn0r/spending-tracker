@@ -1,6 +1,12 @@
 import type { Locator, Page, Route } from '@playwright/test';
 
-import type { ApiReceipt, ApiTransaction, References, TransactionPage } from '../../src/types';
+import type {
+  ApiReceipt,
+  ApiTransaction,
+  CashFlow,
+  References,
+  TransactionPage,
+} from '../../src/types';
 
 export const fantasyReferences: References = {
   accounts: [
@@ -24,6 +30,19 @@ export const fantasyReferences: References = {
   tags: [
     { id: 'weekly-quest', name: 'Weekly Quest' },
     { id: 'guild-shared', name: 'Guild Shared' },
+  ],
+};
+
+export const fantasyCashFlow: CashFlow = {
+  currency: 'CHF',
+  currentMonth: '2026-08',
+  months: [
+    { month: '2026-03', income: 5200, expenses: 4100, net: 1100 },
+    { month: '2026-04', income: 5400, expenses: 4300, net: 1100 },
+    { month: '2026-05', income: 5600, expenses: 4450, net: 1150 },
+    { month: '2026-06', income: 5500, expenses: 4700, net: 800 },
+    { month: '2026-07', income: 5700, expenses: 4500, net: 1200 },
+    { month: '2026-08', income: 4900, expenses: 3200, net: 1700 },
   ],
 };
 
@@ -109,17 +128,20 @@ export async function setupFantasyApi(
   page: Page,
   options: {
     references?: References;
+    cashFlow?: CashFlow;
     transactions?: DynamicList<ApiTransaction>;
     receipts?: DynamicList<ApiReceipt>;
   } = {},
 ): Promise<void> {
   const references = options.references ?? fantasyReferences;
+  const cashFlow = options.cashFlow ?? fantasyCashFlow;
   const transactions = options.transactions ?? [makeFantasyTransaction()];
   const receipts = options.receipts ?? [];
   const resolveList = <T>(value: DynamicList<T>): T[] =>
     typeof value === 'function' ? value() : value;
 
   await routeApi(page, 'GET', '/api/references', (route) => fulfillJson(route, references));
+  await routeApi(page, 'GET', '/api/cash-flow', (route) => fulfillJson(route, cashFlow));
   await routeApi(page, 'GET', '/api/transactions', (route) => {
     const url = new URL(route.request().url());
     const requestedPage = Math.max(1, Number(url.searchParams.get('page')) || 1);

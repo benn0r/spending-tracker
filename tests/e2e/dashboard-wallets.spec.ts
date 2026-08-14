@@ -84,7 +84,7 @@ test('shows an empty dashboard without treating it as an error', async ({ page }
 
   await expect(page.getByText('No transactions yet.', { exact: true })).toBeVisible();
   await expect(page.getByText('0 loaded', { exact: true })).toBeVisible();
-  await expect(page.getByText('CHF 0.00', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('cash-flow-summary')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add transaction' })).toBeVisible();
   await expect(page.getByText('Couldn’t load your budget', { exact: true })).toHaveCount(0);
 });
@@ -258,6 +258,9 @@ test('ignores a stale wallet response after a rapid wallet switch', async ({ pag
   });
 
   await routeApi(page, 'GET', '/api/references', (route) => fulfillJson(route, fantasyReferences));
+  await routeApi(page, 'GET', '/api/cash-flow', (route) =>
+    fulfillJson(route, { currency: 'CHF', currentMonth: '2026-08', months: [] }),
+  );
   await routeApi(page, 'GET', '/api/receipts', (route) => fulfillJson(route, []));
   await routeApi(page, 'GET', '/api/transactions', async (route) => {
     const account = new URL(route.request().url()).searchParams.get('account');

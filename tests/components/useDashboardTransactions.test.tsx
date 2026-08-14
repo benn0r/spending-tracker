@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useDashboardTransactions } from '../../src/hooks/useDashboardTransactions';
-import type { ApiTransaction, References, TransactionPage } from '../../src/types';
+import type { ApiTransaction, CashFlow, References, TransactionPage } from '../../src/types';
 
 const mockLoadDashboard = jest.fn();
 const mockLoadTransactionPage = jest.fn();
@@ -18,6 +18,11 @@ const references: References = {
   accounts: [{ id: 'moonlight-wallet', name: 'Moonlight Wallet' }],
   categories: [{ id: 'enchanted-groceries', name: 'Enchanted Groceries' }],
   tags: [],
+};
+const cashFlow: CashFlow = {
+  currency: 'CHF',
+  currentMonth: '2026-08',
+  months: [{ month: '2026-08', income: 100, expenses: 25, net: 75 }],
 };
 
 function transaction(id: string, payee = id): ApiTransaction {
@@ -47,8 +52,11 @@ describe('useDashboardTransactions', () => {
     const live = transaction('live', 'Live Star Market');
     await AsyncStorage.setItem('spending-tracker.transactions-v1', JSON.stringify([cached]));
     await AsyncStorage.setItem('spending-tracker.references-v1', JSON.stringify(references));
-    let resolveDashboard: (value: { references: References; page: TransactionPage }) => void = () =>
-      undefined;
+    let resolveDashboard: (value: {
+      references: References;
+      page: TransactionPage;
+      cashFlow: CashFlow;
+    }) => void = () => undefined;
     mockLoadDashboard.mockReturnValue(
       new Promise((resolve) => {
         resolveDashboard = resolve;
@@ -61,7 +69,7 @@ describe('useDashboardTransactions', () => {
     expect(result.current.references).toEqual(references);
     expect(result.current.loading).toBe(true);
 
-    await act(async () => resolveDashboard({ references, page: page([live]) }));
+    await act(async () => resolveDashboard({ references, page: page([live]), cashFlow }));
     await waitFor(() => expect(result.current.transactions).toEqual([live]));
     expect(result.current.loading).toBe(false);
     expect(onReferencesLoaded).toHaveBeenCalledWith(references);
@@ -75,7 +83,7 @@ describe('useDashboardTransactions', () => {
     const first = transaction('first');
     const second = transaction('second');
     const third = transaction('third');
-    mockLoadDashboard.mockResolvedValue({ references, page: page([first, second], 3) });
+    mockLoadDashboard.mockResolvedValue({ references, page: page([first, second], 3), cashFlow });
     const onReferencesLoaded = jest.fn();
     let resolveNextPage: (value: TransactionPage) => void = () => undefined;
     mockLoadTransactionPage.mockReturnValue(
@@ -107,7 +115,7 @@ describe('useDashboardTransactions', () => {
 
   it('prepends confirmations and restores an optimistic deletion after API failure', async () => {
     const existing = transaction('existing', 'Existing Moon Market');
-    mockLoadDashboard.mockResolvedValue({ references, page: page([existing]) });
+    mockLoadDashboard.mockResolvedValue({ references, page: page([existing]), cashFlow });
     mockDeleteTransaction.mockRejectedValue(new Error('Delete failed'));
     const onReferencesLoaded = jest.fn();
     const { result } = renderHook(() => useDashboardTransactions(onReferencesLoaded));

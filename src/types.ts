@@ -25,6 +25,19 @@ export type TransactionPage = {
   pageSize: number;
 };
 
+export type CashFlowMonth = {
+  month: string;
+  income: number;
+  expenses: number;
+  net: number;
+};
+
+export type CashFlow = {
+  currency: string;
+  currentMonth: string;
+  months: CashFlowMonth[];
+};
+
 export type References = {
   accounts: Reference[];
   categories: CategoryReference[];

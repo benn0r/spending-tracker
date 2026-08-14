@@ -11,11 +11,12 @@ import {
   transactionCacheStorageKey,
 } from '../app-model';
 import { limitTransactionCache, parseTransactionCache } from '../transactions';
-import type { ApiTransaction, EntryMode, References, TransactionPayload } from '../types';
+import type { ApiTransaction, CashFlow, EntryMode, References, TransactionPayload } from '../types';
 
 export type DashboardTransactionsController = {
   transactions: ApiTransaction[];
   references: References;
+  cashFlow: CashFlow | null;
   loading: boolean;
   loadingMore: boolean;
   error: string;
@@ -37,6 +38,7 @@ export function useDashboardTransactions(
 ): DashboardTransactionsController {
   const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
   const [references, setReferences] = useState(emptyReferences);
+  const [cashFlow, setCashFlow] = useState<CashFlow | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [transactionPage, setTransactionPage] = useState(1);
@@ -68,6 +70,7 @@ export function useDashboardTransactions(
         setTransactionPage(result.page.page);
         setTransactionTotal(result.page.total);
         setReferences(result.references);
+        setCashFlow(result.cashFlow);
         void AsyncStorage.setItem(
           referenceCacheStorageKey,
           JSON.stringify(result.references),
@@ -185,6 +188,7 @@ export function useDashboardTransactions(
   return {
     transactions,
     references,
+    cashFlow,
     loading,
     loadingMore,
     error,
