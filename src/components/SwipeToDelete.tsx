@@ -35,6 +35,7 @@ export function SwipeToDelete({
   children,
   label,
   bordered = false,
+  rounded = true,
   revealSpacing = 0,
   onDelete,
 }: {
@@ -42,6 +43,7 @@ export function SwipeToDelete({
   children: ReactNode;
   label: string;
   bordered?: boolean;
+  rounded?: boolean;
   revealSpacing?: number;
   onDelete: () => void;
 }) {
@@ -113,6 +115,7 @@ export function SwipeToDelete({
     <View
       style={[
         styles.swipeContainer,
+        !rounded && styles.squareSwipeContainer,
         bordered && styles.borderedSwipeContainer,
         isOpen && styles.openSwipeContainer,
       ]}

@@ -18,41 +18,45 @@ export function SettingsScreen({
   onEditConnection: () => void;
 }) {
   return (
-    <ScrollView style={styles.secondaryScreen} contentContainerStyle={styles.settingsContent}>
-      <Text style={styles.secondaryEyebrow}>PREFERENCES</Text>
-      <Text style={styles.secondaryTitle}>Settings</Text>
-      <Text style={styles.settingsIntro}>
-        Personalize how new transactions are prepared on this device.
-      </Text>
-      <View style={styles.settingsSection}>
-        <AccountDropdown
-          value={defaultAccount}
-          options={accounts}
-          onChange={onChangeDefaultAccount}
-        />
+    <View style={styles.secondaryFixedScreen}>
+      <View style={styles.secondaryHeader}>
+        <Text style={styles.secondaryEyebrow}>PREFERENCES</Text>
+        <Text style={styles.secondaryTitle}>Settings</Text>
       </View>
-      <View style={styles.settingsSection}>
-        <Text style={styles.settingsLabel}>Server connection</Text>
-        <Pressable
-          accessibilityLabel="Edit server connection"
-          accessibilityRole="button"
-          onPress={onEditConnection}
-          style={styles.settingsConnection}
-        >
-          <View style={styles.settingsSelectCopy}>
-            <View style={styles.settingsSelectIcon}>
-              <Ionicons name="server-outline" size={20} color="#77409A" />
+      <ScrollView contentContainerStyle={styles.settingsContent}>
+        <Text style={styles.settingsIntro}>
+          Personalize how new transactions are prepared on this device.
+        </Text>
+        <View style={styles.settingsSection}>
+          <AccountDropdown
+            value={defaultAccount}
+            options={accounts}
+            onChange={onChangeDefaultAccount}
+          />
+        </View>
+        <View style={styles.settingsSection}>
+          <Text style={styles.settingsLabel}>Server connection</Text>
+          <Pressable
+            accessibilityLabel="Edit server connection"
+            accessibilityRole="button"
+            onPress={onEditConnection}
+            style={styles.settingsConnection}
+          >
+            <View style={styles.settingsSelectCopy}>
+              <View style={styles.settingsSelectIcon}>
+                <Ionicons name="server-outline" size={20} color="#77409A" />
+              </View>
+              <View style={styles.settingsConnectionCopy}>
+                <Text numberOfLines={1} style={styles.settingsSelectValue}>
+                  {serverUrl}
+                </Text>
+                <Text style={styles.settingsSelectHint}>API token saved on this device</Text>
+              </View>
             </View>
-            <View style={styles.settingsConnectionCopy}>
-              <Text numberOfLines={1} style={styles.settingsSelectValue}>
-                {serverUrl}
-              </Text>
-              <Text style={styles.settingsSelectHint}>API token saved on this device</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#746B78" />
-        </Pressable>
-      </View>
-    </ScrollView>
+            <Ionicons name="chevron-forward" size={20} color="#746B78" />
+          </Pressable>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

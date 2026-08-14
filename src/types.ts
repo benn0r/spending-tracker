@@ -15,6 +15,7 @@ export type ApiTransaction = {
   category: string;
   payee: string;
   notes?: string;
+  tags?: string[];
   isSplit: boolean;
 };
 

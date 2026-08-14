@@ -89,80 +89,86 @@ export function WalletsScreen({
   }, [items.length, loading, page, selectedWallet, selectedWalletName, total]);
 
   return (
-    <FlatList
-      testID="wallets-list"
-      data={items}
-      keyExtractor={({ id }) => id}
-      renderItem={({ item, index }) => (
-        <View>
-          {index === 0 || items[index - 1]?.date !== item.date ? (
-            <DateSectionHeader date={item.date} total={dayTotals[item.date] ?? 0} />
-          ) : null}
-          <TransactionRow
-            item={item}
-            categories={categories}
-            onDelete={(transaction) => {
-              setItems((current) => current.filter(({ id }) => id !== transaction.id));
-              setTotal((current) => Math.max(0, current - 1));
-              void deleteTransaction(transaction.id).catch(() => void refresh());
-            }}
-          />
-        </View>
-      )}
-      contentContainerStyle={styles.walletContent}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
-      ListHeaderComponent={
-        <View>
-          <Text style={styles.secondaryEyebrow}>ACCOUNTS</Text>
-          <Text style={styles.secondaryTitle}>Wallets</Text>
-          <Text style={styles.settingsIntro}>Choose a wallet to see its transactions.</Text>
-          <View style={styles.settingsSection}>
-            <AccountDropdown
-              value={selectedWallet}
-              options={accounts}
-              onChange={setWallet}
-              label="Wallet"
-              hint="Only transactions from this wallet are shown"
-              accessibilityLabel="Select wallet"
+    <View style={styles.secondaryFixedScreen}>
+      <View style={styles.secondaryHeader}>
+        <Text style={styles.secondaryEyebrow}>ACCOUNTS</Text>
+        <Text style={styles.secondaryTitle}>Wallets</Text>
+      </View>
+      <FlatList
+        testID="wallets-list"
+        data={items}
+        keyExtractor={({ id }) => id}
+        renderItem={({ item, index }) => (
+          <View>
+            {index === 0 || items[index - 1]?.date !== item.date ? (
+              <DateSectionHeader date={item.date} total={dayTotals[item.date] ?? 0} />
+            ) : null}
+            <TransactionRow
+              item={item}
+              categories={categories}
+              onDelete={(transaction) => {
+                setItems((current) => current.filter(({ id }) => id !== transaction.id));
+                setTotal((current) => Math.max(0, current - 1));
+                void deleteTransaction(transaction.id).catch(() => void refresh());
+              }}
             />
           </View>
-          <View style={styles.walletListHeading}>
-            <Text style={styles.sectionTitle}>Wallet transactions</Text>
-            <Text style={styles.filterText}>{items.length} loaded</Text>
+        )}
+        contentContainerStyle={styles.walletContent}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListHeaderComponent={
+          <View>
+            <Text style={styles.settingsIntro}>Choose a wallet to see its transactions.</Text>
+            <View style={styles.settingsSection}>
+              <AccountDropdown
+                value={selectedWallet}
+                options={accounts}
+                onChange={setWallet}
+                label="Wallet"
+                hint="Only transactions from this wallet are shown"
+                accessibilityLabel="Select wallet"
+              />
+            </View>
+            <View style={styles.walletListHeading}>
+              <Text style={styles.sectionTitle}>Wallet transactions</Text>
+              <Text style={styles.filterText}>{items.length} loaded</Text>
+            </View>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </View>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-        </View>
-      }
-      ListEmptyComponent={
-        loading ? null : (
-          <Text style={styles.emptyText}>
-            {accounts.length ? 'No transactions in this wallet.' : 'No wallets are enabled.'}
-          </Text>
-        )
-      }
-      ListFooterComponent={
-        loadingMore ? <ActivityIndicator color={colors.accent} style={styles.loadingMore} /> : null
-      }
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={() => void refresh(true)}
-          tintColor={colors.accent}
-          colors={[colors.accent]}
-          progressBackgroundColor={colors.white}
-        />
-      }
-      onEndReached={() => void loadMore()}
-      onEndReachedThreshold={0.35}
-      onScroll={({ nativeEvent }) => {
-        const distanceFromEnd =
-          nativeEvent.contentSize.height -
-          nativeEvent.layoutMeasurement.height -
-          nativeEvent.contentOffset.y;
-        if (distanceFromEnd < 240) void loadMore();
-      }}
-      scrollEventThrottle={200}
-      showsVerticalScrollIndicator={false}
-    />
+        }
+        ListEmptyComponent={
+          loading ? null : (
+            <Text style={styles.emptyText}>
+              {accounts.length ? 'No transactions in this wallet.' : 'No wallets are enabled.'}
+            </Text>
+          )
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <ActivityIndicator color={colors.accent} style={styles.loadingMore} />
+          ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => void refresh(true)}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.white}
+          />
+        }
+        onEndReached={() => void loadMore()}
+        onEndReachedThreshold={0.35}
+        onScroll={({ nativeEvent }) => {
+          const distanceFromEnd =
+            nativeEvent.contentSize.height -
+            nativeEvent.layoutMeasurement.height -
+            nativeEvent.contentOffset.y;
+          if (distanceFromEnd < 240) void loadMore();
+        }}
+        scrollEventThrottle={200}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
   );
 }

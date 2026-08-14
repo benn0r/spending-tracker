@@ -133,11 +133,23 @@ describe('transaction presentation', () => {
     );
 
     expect(screen.getByText('Comet Rail')).toBeVisible();
-    expect(screen.getByText('Skyship Travel · Moonlight Wallet')).toBeVisible();
+    expect(screen.getByLabelText('Wallet Moonlight Wallet')).toBeVisible();
     expect(screen.getByText('− CHF 25.50')).toBeVisible();
     expect(screen.getByTestId('icon-airplane-outline')).toBeVisible();
     fireEvent.press(screen.getByRole('button', { name: 'Delete Comet Rail' }));
     expect(onDelete).toHaveBeenCalledWith(expense);
+
+    rerender(
+      <TransactionRow
+        item={transaction({ notes: 'Night train', tags: ['holiday', 'shared'] })}
+        categories={[]}
+        onDelete={onDelete}
+      />,
+    );
+    expect(screen.getByText('Night train')).toBeVisible();
+    expect(screen.getByText('#holiday')).toBeVisible();
+    expect(screen.getByText('#shared')).toBeVisible();
+    expect(screen.getByLabelText('Wallet Moonlight Wallet')).toBeVisible();
 
     rerender(
       <TransactionRow
@@ -148,7 +160,7 @@ describe('transaction presentation', () => {
     );
     expect(screen.getByText('Income')).toBeVisible();
     expect(screen.getByText('+ CHF 40.00')).toBeVisible();
-    expect(screen.getByTestId('icon-wallet-outline')).toBeVisible();
+    expect(screen.getAllByTestId('icon-wallet-outline')).toHaveLength(2);
 
     rerender(
       <TransactionRow

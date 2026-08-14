@@ -1,4 +1,4 @@
-import { Text, View } from 'react-native';
+import { type LayoutChangeEvent, Text, View } from 'react-native';
 
 import { styles } from '../../styles';
 import { deviceLocale } from '../../transactions';
@@ -21,13 +21,19 @@ function monthLabel(month: string, style: 'long' | 'short') {
   }).format(new Date(year, monthNumber - 1, 1, 12));
 }
 
-export function SummaryCard({ cashFlow }: { cashFlow: CashFlow | null }) {
+export function SummaryCard({
+  cashFlow,
+  onLayout,
+}: {
+  cashFlow: CashFlow | null;
+  onLayout?: (event: LayoutChangeEvent) => void;
+}) {
   const months = cashFlow?.months ?? [];
   const current = months.at(-1) ?? { month: '', income: 0, expenses: 0, net: 0 };
   const maximum = Math.max(1, ...months.flatMap(({ income, expenses }) => [income, expenses]));
 
   return (
-    <View style={styles.summaryCard} testID="cash-flow-summary">
+    <View onLayout={onLayout} style={styles.summaryCard} testID="cash-flow-summary">
       <Text style={styles.cashFlowEyebrow}>MONTHLY CASH FLOW</Text>
       <Text style={styles.cashFlowBalance}>{amount(current.net, cashFlow?.currency ?? 'CHF')}</Text>
       <Text style={styles.cashFlowMonth}>

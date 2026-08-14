@@ -7,6 +7,13 @@ import { formatCurrency } from '../../transactions';
 import type { ApiTransaction, CategoryReference } from '../../types';
 import { categoryVisual, transactionIcon } from '../categories/categoryVisual';
 
+const walletColors = ['#7B3FA1', '#2D83B7', '#2A9D78', '#C27A32', '#C34F70', '#5D6F91'];
+
+function walletColor(account: string) {
+  const index = [...account].reduce((total, character) => total + character.charCodeAt(0), 0);
+  return walletColors[index % walletColors.length] ?? walletColors[0];
+}
+
 export function TransactionRow({
   item,
   categories,
@@ -17,6 +24,8 @@ export function TransactionRow({
   onDelete: (item: ApiTransaction) => void;
 }) {
   const title = item.payee && item.payee !== '—' ? item.payee : item.category;
+  const notes =
+    item.notes && item.notes !== title && item.notes !== item.category ? item.notes : null;
   const serverCategory = categories.find(
     ({ name }) => name.toLowerCase() === item.category.toLowerCase(),
   );
@@ -28,10 +37,12 @@ export function TransactionRow({
     : item.amount > 0
       ? '#DDF0E5'
       : `${iconColor}1A`;
+  const accountColor = walletColor(item.account);
   return (
     <SwipeToDelete
       id={`transaction-${item.id}`}
       label={title}
+      rounded={false}
       revealSpacing={12}
       onDelete={() => onDelete(item)}
     >
@@ -41,9 +52,32 @@ export function TransactionRow({
         </View>
         <View style={styles.transactionCopy}>
           <Text style={styles.merchant}>{title}</Text>
-          <Text style={styles.transactionMeta}>
-            {item.category} · {item.account}
-          </Text>
+          <View style={styles.transactionMetaRow}>
+            <View
+              accessible
+              accessibilityLabel={`Wallet ${item.account}`}
+              accessibilityRole="image"
+              style={[styles.transactionWalletPill, { backgroundColor: `${accountColor}1A` }]}
+            >
+              <Ionicons name="wallet-outline" size={11} color={accountColor} />
+            </View>
+            {(item.tags ?? []).map((tag) => (
+              <View key={tag} style={styles.transactionTagPill}>
+                <Text ellipsizeMode="tail" numberOfLines={1} style={styles.transactionTagText}>
+                  #{tag}
+                </Text>
+              </View>
+            ))}
+            {notes ? (
+              <Text
+                ellipsizeMode="tail"
+                numberOfLines={1}
+                style={[styles.transactionMeta, styles.transactionMetaDetails]}
+              >
+                {notes}
+              </Text>
+            ) : null}
+          </View>
         </View>
         <Text style={[styles.amount, item.amount > 0 && styles.incomeAmount]}>
           {formatCurrency(item.amount)}

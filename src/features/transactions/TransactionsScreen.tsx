@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
 import type { QueuedTransaction } from '../../app-model';
@@ -51,6 +51,8 @@ export function TransactionsScreen({
 }: TransactionsScreenProps) {
   const listRef = useRef<FlatList<ApiTransaction>>(null);
   const dayTotals = useMemo(() => transactionDayTotals(transactions), [transactions]);
+  const [cashFlowHeight, setCashFlowHeight] = useState(0);
+  const [showScrolledDivider, setShowScrolledDivider] = useState(false);
 
   useEffect(() => {
     if (activationRequest === 0) return;
@@ -107,7 +109,10 @@ export function TransactionsScreen({
         )}
         ListHeaderComponent={
           <>
-            <SummaryCard cashFlow={cashFlow} />
+            <SummaryCard
+              cashFlow={cashFlow}
+              onLayout={({ nativeEvent }) => setCashFlowHeight(nativeEvent.layout.height)}
+            />
             {error ? (
               <Pressable
                 accessibilityRole="button"
@@ -145,6 +150,8 @@ export function TransactionsScreen({
         onEndReached={() => void onLoadMore()}
         onEndReachedThreshold={0.35}
         onScroll={({ nativeEvent }) => {
+          const pastCashFlow = cashFlowHeight > 0 && nativeEvent.contentOffset.y >= cashFlowHeight;
+          setShowScrolledDivider((current) => (current === pastCashFlow ? current : pastCashFlow));
           const distanceFromEnd =
             nativeEvent.contentSize.height -
             nativeEvent.layoutMeasurement.height -
@@ -163,6 +170,7 @@ export function TransactionsScreen({
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
+      {showScrolledDivider ? <View pointerEvents="none" style={styles.scrolledTopDivider} /> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Add transaction"

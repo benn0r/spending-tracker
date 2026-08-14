@@ -450,11 +450,13 @@ test('opens a processed receipt as a prefilled transaction', async ({ page }) =>
   await expect(page.getByTestId('receipt-tab-badge')).toHaveText('1');
   await page.getByRole('tab', { name: 'Receipts' }).click();
   await expect(page.getByRole('button', { name: 'Scan receipt' })).toBeVisible();
+  await page.getByRole('button', { name: 'View details for Corner Market' }).click();
   await page.getByRole('button', { name: 'View Corner Market' }).click();
   await expect(page.getByTestId('receipt-preview')).toBeVisible();
   await expect(page.getByLabel('Receipt photo receipt.jpg')).toBeVisible();
   await page.getByRole('button', { name: 'Close receipt photo' }).click();
   await expect(page.getByTestId('receipt-preview')).toHaveCount(0);
+  await page.getByRole('button', { name: 'View details for Corner Market' }).click();
   await page.getByRole('button', { name: 'Add Corner Market' }).click();
 
   await expect(page.getByTestId('entry-sheet')).toBeVisible();
@@ -539,6 +541,7 @@ test('corrects an unbalanced processed receipt before submitting it', async ({ p
 
   await page.goto('/');
   await page.getByRole('tab', { name: 'Receipts' }).click();
+  await page.getByRole('button', { name: 'View details for Split Cafe' }).click();
   const addReceipt = page.getByRole('button', { name: 'Add Split Cafe' });
   await expect(addReceipt).toBeVisible();
   await addReceipt.click();

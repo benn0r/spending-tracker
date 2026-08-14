@@ -161,7 +161,10 @@ function ConfiguredApp({
   return (
     <SafeAreaProvider>
       <SwipeProvider>
-        <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
+        <SafeAreaView
+          edges={['top', 'left', 'right']}
+          style={[styles.safeArea, styles.homeSafeArea]}
+        >
           <StatusBar style="dark" />
           <View style={styles.appShell}>
             <View style={styles.tabContent}>

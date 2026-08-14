@@ -111,6 +111,35 @@ test('cancels the web camera chooser without uploading a receipt', async ({ page
   expect(uploadRequests).toBe(0);
 });
 
+test('chooses a receipt from the photo library and uploads it', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('spending-tracker.default-account', 'moonlight-wallet');
+  });
+  let uploaded = false;
+  await setupFantasyApi(page);
+  await routeApi(page, 'POST', '/api/receipts', async (route) => {
+    const body = route.request().postDataBuffer();
+    expect(body?.toString('latin1')).toContain('filename="starlight-library.jpg"');
+    uploaded = true;
+    await fulfillJson(route, { id: 22, status: 'queued' }, { status: 201 });
+  });
+
+  await page.goto('/');
+  await openTab(page, 'Receipts');
+
+  const chooserPromise = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Choose receipt photo' }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({
+    name: 'starlight-library.jpg',
+    mimeType: 'image/jpeg',
+    buffer: tinyJpeg,
+  });
+
+  await expect.poll(() => uploaded).toBe(true);
+  await expect(page.getByText('Uploading receipt…')).toHaveCount(0);
+});
+
 test('does not open the camera when no account is enabled', async ({ page }) => {
   let uploadRequests = 0;
   await setupFantasyApi(page, {
@@ -164,6 +193,7 @@ test('polls a queued receipt until its processed suggestion is actionable', asyn
   await expect.poll(() => receiptReads, { timeout: 6_000 }).toBeGreaterThanOrEqual(2);
   await expect(page.getByTestId('receipt-30')).toContainText('Starlight Bakery');
   await expect(page.getByTestId('receipt-30')).toContainText('CHF 16.5');
+  await page.getByRole('button', { name: 'View details for Starlight Bakery' }).click();
   await expect(page.getByRole('button', { name: 'Add Starlight Bakery' })).toBeVisible();
 });
 
@@ -209,6 +239,7 @@ test('renders successful, failed, and non-image receipt previews', async ({ page
   await page.goto('/');
   await openTab(page, 'Receipts');
 
+  await page.getByRole('button', { name: 'View details for Prism Pastries' }).click();
   await page.getByRole('button', { name: 'View Prism Pastries' }).click();
   await expect(page.getByTestId('receipt-preview')).toBeVisible();
   await expect
@@ -224,11 +255,13 @@ test('renders successful, failed, and non-image receipt previews', async ({ page
   await expect(page.getByText('Could not load this receipt photo.')).toHaveCount(0);
   await page.getByRole('button', { name: 'Close receipt photo' }).click();
 
+  await page.getByRole('button', { name: 'View details for Broken Moon Map' }).click();
   await page.getByRole('button', { name: 'View Broken Moon Map' }).click();
   await expect(page.getByText('Could not load this receipt photo.')).toBeVisible();
   expect(brokenImageRequests).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'Close receipt photo' }).click();
 
+  await page.getByRole('button', { name: 'View details for Guild Invoice' }).click();
   await page.getByRole('button', { name: 'View Guild Invoice' }).click();
   await expect(page.getByText('Photo preview is unavailable for this file.')).toBeVisible();
   await expect(page.getByLabel('Receipt photo guild-invoice.pdf')).toHaveCount(0);
@@ -262,6 +295,7 @@ test('keeps a failed receipt submission open and never moves it to the offline q
 
   await page.goto('/');
   await openTab(page, 'Receipts');
+  await page.getByRole('button', { name: 'View details for Moonbeam Market' }).click();
   await page.getByRole('button', { name: 'Add Moonbeam Market' }).click();
 
   const sheet = page.getByTestId('entry-sheet');

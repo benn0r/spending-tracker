@@ -15,7 +15,9 @@ jest.mock('../../src/components/SwipeToDelete', () => {
 });
 jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
+  requestMediaLibraryPermissionsAsync: jest.fn(),
   launchCameraAsync: jest.fn(),
+  launchImageLibraryAsync: jest.fn(),
 }));
 jest.mock('../../src/api', () => ({
   receiptFileSource: jest.fn((id: number) => ({ uri: `https://example.test/receipts/${id}` })),
@@ -140,6 +142,49 @@ describe('ReceiptsScreen', () => {
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
   });
 
+  it('explains denied photo library permission and never opens the picker', async () => {
+    jest.mocked(ImagePicker.requestMediaLibraryPermissionsAsync).mockResolvedValue({
+      granted: false,
+    } as ImagePicker.PermissionResponse);
+    renderReceipts();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Choose receipt photo' }));
+
+    expect(
+      await screen.findByText('Photo library access is required to choose a receipt.'),
+    ).toBeVisible();
+    expect(ImagePicker.launchImageLibraryAsync).not.toHaveBeenCalled();
+  });
+
+  it('chooses and uploads one receipt image from the photo library', async () => {
+    const asset = {
+      uri: 'file:///library-receipt.jpg',
+      fileName: 'library-receipt.jpg',
+      mimeType: 'image/jpeg',
+      width: 10,
+      height: 10,
+    };
+    jest
+      .mocked(ImagePicker.requestMediaLibraryPermissionsAsync)
+      .mockResolvedValue({ granted: true } as ImagePicker.PermissionResponse);
+    jest
+      .mocked(ImagePicker.launchImageLibraryAsync)
+      .mockResolvedValue({ canceled: false, assets: [asset] });
+    jest.mocked(api.uploadReceipt).mockResolvedValue({ id: 9, status: 'queued' });
+    renderReceipts();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Choose receipt photo' }));
+
+    await waitFor(() => expect(api.uploadReceipt).toHaveBeenCalledWith(asset, 'savings'));
+    expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledWith({
+      mediaTypes: ['images'],
+      quality: 0.85,
+      allowsEditing: false,
+      selectionLimit: 1,
+    });
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+  });
+
   it('falls back to the first account and reports upload failures', async () => {
     jest
       .mocked(ImagePicker.requestCameraPermissionsAsync)
@@ -174,6 +219,8 @@ describe('ReceiptsScreen', () => {
     });
     expect(screen.getByText('Processing receipt…')).toBeVisible();
     expect(screen.getByText('Unreadable')).toBeVisible();
+    expect(screen.getByLabelText('Receipt added')).toBeVisible();
+    fireEvent.press(screen.getAllByRole('button', { name: 'View details for Moon Market' })[1]);
     fireEvent.press(screen.getByRole('button', { name: 'Add Moon Market' }));
     expect(onAdd).toHaveBeenCalledWith(
       expect.objectContaining({ id: 4 }),
@@ -182,7 +229,7 @@ describe('ReceiptsScreen', () => {
     );
   });
 
-  it('refreshes on pull and expands grouped line items with subtotals and final total', () => {
+  it('refreshes on pull and shows grouped line items in a bottom drawer', () => {
     renderReceipts({
       receipts: [
         receipt({
@@ -213,7 +260,9 @@ describe('ReceiptsScreen', () => {
     refreshControl.props.onRefresh();
     expect(refresh).toHaveBeenCalledTimes(1);
 
-    fireEvent.press(screen.getByRole('button', { name: 'Expand Moon Market' }));
+    expect(screen.queryByTestId('receipt-details-sheet')).toBeNull();
+    fireEvent.press(screen.getByRole('button', { name: 'View details for Moon Market' }));
+    expect(screen.getByTestId('receipt-details-sheet')).toBeVisible();
     expect(screen.getByText('Apples')).toBeVisible();
     expect(screen.getByText('Soap')).toBeVisible();
     expect(screen.getByText('Groceries')).toBeVisible();
@@ -221,7 +270,7 @@ describe('ReceiptsScreen', () => {
     expect(screen.getAllByText('CHF 5.00')).toHaveLength(2);
     expect(screen.getAllByText('CHF 7.50')).toHaveLength(2);
     expect(screen.getAllByText('CHF 12.50')).toHaveLength(2);
-    fireEvent.press(screen.getByRole('button', { name: 'Collapse Moon Market' }));
+    fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt details' })[0]);
     expect(screen.queryByText('Apples')).toBeNull();
   });
 
@@ -235,6 +284,7 @@ describe('ReceiptsScreen', () => {
       status: 'failed',
     });
     renderReceipts({ receipts: [image, document] });
+    fireEvent.press(screen.getByRole('button', { name: 'View details for Moon Market' }));
     fireEvent.press(screen.getByRole('button', { name: 'View Moon Market' }));
     const photo = screen.getByLabelText('Receipt photo market.jpg');
     expect(photo).toBeVisible();
@@ -244,6 +294,7 @@ describe('ReceiptsScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Close receipt photo' }));
     expect(screen.queryByTestId('receipt-preview')).toBeNull();
 
+    fireEvent.press(screen.getByRole('button', { name: 'View details for statement.pdf' }));
     fireEvent.press(screen.getByRole('button', { name: 'View statement.pdf' }));
     expect(screen.getByText('Photo preview is unavailable for this file.')).toBeVisible();
     expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
@@ -251,6 +302,7 @@ describe('ReceiptsScreen', () => {
 
   it('replaces the preview spinner with an image error message', () => {
     renderReceipts({ receipts: [receipt()] });
+    fireEvent.press(screen.getByRole('button', { name: 'View details for Moon Market' }));
     fireEvent.press(screen.getByRole('button', { name: 'View Moon Market' }));
     fireEvent(screen.getByLabelText('Receipt photo market.jpg'), 'error');
     expect(screen.getByText('Could not load this receipt photo.')).toBeVisible();
