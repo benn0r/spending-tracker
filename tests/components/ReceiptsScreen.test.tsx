@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, RefreshControl } from 'react-native';
 
 import * as api from '../../src/api';
 import { ReceiptsScreen } from '../../src/features/receipts/ReceiptsScreen';
@@ -26,7 +26,10 @@ const accounts = [
   { id: 'everyday', name: 'Everyday' },
   { id: 'savings', name: 'Savings' },
 ];
-const categories = [{ id: 'groceries', name: 'Groceries' }];
+const categories = [
+  { id: 'groceries', name: 'Groceries' },
+  { id: 'home', name: 'Home' },
+];
 const tags = [{ id: 'weekly', name: 'Weekly' }];
 const refresh = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
 
@@ -177,6 +180,49 @@ describe('ReceiptsScreen', () => {
       expect.objectContaining({ account: 'savings', category: 'groceries', amount: '12.5' }),
       'transaction',
     );
+  });
+
+  it('refreshes on pull and expands grouped line items with subtotals and final total', () => {
+    renderReceipts({
+      receipts: [
+        receipt({
+          suggestion: {
+            ...receipt().suggestion!,
+            amount: -12.5,
+            items: [
+              {
+                description: 'Apples',
+                quantity: 2,
+                unitAmount: 2.5,
+                totalAmount: 5,
+                category: 'groceries',
+              },
+              {
+                description: 'Soap',
+                quantity: 1,
+                unitAmount: 7.5,
+                totalAmount: 7.5,
+                category: 'home',
+              },
+            ],
+          },
+        }),
+      ],
+    });
+    const refreshControl = screen.UNSAFE_getByType(RefreshControl);
+    refreshControl.props.onRefresh();
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getByRole('button', { name: 'Expand Moon Market' }));
+    expect(screen.getByText('Apples')).toBeVisible();
+    expect(screen.getByText('Soap')).toBeVisible();
+    expect(screen.getByText('Groceries')).toBeVisible();
+    expect(screen.getByText('Home')).toBeVisible();
+    expect(screen.getAllByText('CHF 5.00')).toHaveLength(2);
+    expect(screen.getAllByText('CHF 7.50')).toHaveLength(2);
+    expect(screen.getAllByText('CHF 12.50')).toHaveLength(2);
+    fireEvent.press(screen.getByRole('button', { name: 'Collapse Moon Market' }));
+    expect(screen.queryByText('Apples')).toBeNull();
   });
 
   it('renders image and non-image preview states and closes them', () => {

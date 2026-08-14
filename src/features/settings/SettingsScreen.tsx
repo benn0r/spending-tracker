@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { AccountDropdown } from '../../components/AccountDropdown';
 import { styles } from '../../styles';
 import type { Reference } from '../../types';
@@ -7,10 +8,14 @@ export function SettingsScreen({
   defaultAccount,
   accounts,
   onChangeDefaultAccount,
+  serverUrl,
+  onEditConnection,
 }: {
   defaultAccount: string;
   accounts: Reference[];
   onChangeDefaultAccount: (account: string) => void;
+  serverUrl: string;
+  onEditConnection: () => void;
 }) {
   return (
     <ScrollView style={styles.secondaryScreen} contentContainerStyle={styles.settingsContent}>
@@ -25,6 +30,28 @@ export function SettingsScreen({
           options={accounts}
           onChange={onChangeDefaultAccount}
         />
+      </View>
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsLabel}>Server connection</Text>
+        <Pressable
+          accessibilityLabel="Edit server connection"
+          accessibilityRole="button"
+          onPress={onEditConnection}
+          style={styles.settingsConnection}
+        >
+          <View style={styles.settingsSelectCopy}>
+            <View style={styles.settingsSelectIcon}>
+              <Ionicons name="server-outline" size={20} color="#77409A" />
+            </View>
+            <View style={styles.settingsConnectionCopy}>
+              <Text numberOfLines={1} style={styles.settingsSelectValue}>
+                {serverUrl}
+              </Text>
+              <Text style={styles.settingsSelectHint}>API token saved on this device</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#746B78" />
+        </Pressable>
       </View>
     </ScrollView>
   );

@@ -70,15 +70,78 @@ describe('API client', () => {
     fetchMock.mockResolvedValueOnce(
       response({ transactions: [], total: 0, page: 3, pageSize: 25 }),
     );
-    await api.loadTransactionPage(3, 25, 'wallet / one');
+    await api.loadTransactionPage(3, 25, 'wallet / one', 'Moonlight Wallet');
     expect(fetchMock).toHaveBeenLastCalledWith(
-      'https://api.example.test/api/transactions?page=3&pageSize=25&account=wallet%20%2F%20one',
+      'https://api.example.test/api/transactions?page=3&pageSize=25&account=wallet%20%2F%20one&wallet=Moonlight%20Wallet',
       expect.any(Object),
     );
   });
 
+  it('normalizes the new Spendee receipt envelope and field names', async () => {
+    fetchMock.mockResolvedValueOnce(
+      response({
+        receipts: [
+          {
+            id: 7,
+            filename: 'receipt.jpg',
+            accountId: 'wallet-id',
+            accountName: 'Moonlight Wallet',
+            mimeType: 'image/jpeg',
+            status: 'processed',
+            suggestion: null,
+            error: null,
+            submitted: true,
+            actualTransactionId: 'actual-id',
+            createdAt: '2026-08-14T10:00:00Z',
+            processedAt: '2026-08-14T10:00:01Z',
+            submittedAt: '2026-08-14T10:00:02Z',
+          },
+        ],
+      }),
+    );
+
+    await expect(api.loadReceipts()).resolves.toEqual([
+      expect.objectContaining({
+        id: 7,
+        account: 'wallet-id',
+        actualId: 'actual-id',
+      }),
+    ]);
+  });
+
+  it('rejects incompatible successful responses with a safe contract diagnostic', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    fetchMock.mockResolvedValueOnce(response({ unexpected: [] }));
+
+    await expect(api.loadReceipts()).rejects.toThrow('Expected: an array or { receipts: array }');
+    expect(consoleError).toHaveBeenCalledWith(
+      'Spending Tracker API response mismatch',
+      expect.objectContaining({ received: 'object(unexpected)' }),
+    );
+    consoleError.mockRestore();
+  });
+
+  it('uses a saved runtime server configuration for future requests', async () => {
+    api.configureApi({ serverUrl: 'https://saved.example.test/', apiToken: 'saved-token' });
+    fetchMock.mockResolvedValueOnce(response([]));
+
+    await api.loadReceipts();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://saved.example.test/api/receipts',
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer saved-token' }),
+      }),
+    );
+  });
+
   it('uses the correct methods, JSON bodies, and resource paths', async () => {
-    fetchMock.mockResolvedValue(response(null));
+    fetchMock
+      .mockResolvedValueOnce(response(null))
+      .mockResolvedValueOnce(response(null))
+      .mockResolvedValueOnce(response([]))
+      .mockResolvedValueOnce(response(null))
+      .mockResolvedValueOnce(response(null));
     const payload = {
       account: 'wallet',
       category: 'food',

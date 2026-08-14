@@ -7,6 +7,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Text,
   View,
@@ -23,6 +24,36 @@ import type {
   Reference,
 } from '../../types';
 import { prepareReceiptDraft } from '../../app-model';
+
+function receiptItemGroups(receipt: ApiReceipt, categories: CategoryReference[]) {
+  const suggestion = receipt.suggestion;
+  if (!suggestion) return [];
+  const categoryNames = new Map(categories.map(({ id, name }) => [id, name]));
+  const groups = new Map<
+    string,
+    { id: string; name: string; total: number; items: typeof suggestion.items }
+  >();
+  for (const item of suggestion.items) {
+    const id = item.category || suggestion.category || 'uncategorized';
+    const group = groups.get(id) ?? {
+      id,
+      name: categoryNames.get(id) ?? 'Uncategorized',
+      total: 0,
+      items: [],
+    };
+    group.items.push(item);
+    group.total += item.totalAmount;
+    groups.set(id, group);
+  }
+  return [...groups.values()];
+}
+
+function receiptAmount(currency: string, amount: number) {
+  return `${currency} ${Math.abs(amount).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 export function ReceiptsScreen({
   receipts,
@@ -51,6 +82,7 @@ export function ReceiptsScreen({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(false);
   const [webPreviewUri, setWebPreviewUri] = useState<string | null>(null);
+  const [expandedReceipts, setExpandedReceipts] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !previewReceipt || !previewReceipt.mimeType.startsWith('image/'))
@@ -129,84 +161,164 @@ export function ReceiptsScreen({
         </Pressable>
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      {loading && !receipts.length ? (
-        <ActivityIndicator color={colors.accent} style={styles.loadingMore} />
-      ) : (
-        <ScrollView contentContainerStyle={styles.receiptsContent}>
-          {uploading ? (
-            <View style={styles.receiptCard}>
-              <ActivityIndicator color={colors.accent} />
-              <Text style={styles.receiptCardTitle}>Uploading receipt…</Text>
-            </View>
-          ) : null}
-          {receipts.map((receipt) => {
-            const prepared = prepareReceiptDraft(receipt, { accounts, categories, tags });
-            return (
-              <SwipeToDelete
-                id={`receipt-${receipt.id}`}
-                key={receipt.id}
-                label={receipt.suggestion?.merchant || receipt.filename}
-                bordered
-                onDelete={() => onDelete(receipt)}
-              >
-                <View style={styles.receiptCard} testID={`receipt-${receipt.id}`}>
-                  <View style={styles.receiptCardIcon}>
-                    <Ionicons name="receipt-outline" size={23} color={colors.accent} />
-                  </View>
-                  <View style={styles.receiptCardCopy}>
-                    <Text style={styles.receiptCardTitle}>
-                      {receipt.suggestion?.merchant || receipt.filename}
-                    </Text>
-                    <Text style={styles.receiptCardMeta}>
-                      {receipt.status === 'processed'
-                        ? `${receipt.suggestion?.currency ?? ''} ${receipt.suggestion?.amount ?? ''}`
-                        : receipt.status === 'failed'
-                          ? receipt.error || 'Processing failed'
-                          : 'Processing receipt…'}
-                    </Text>
-                  </View>
-                  <View style={styles.receiptActions}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`View ${receipt.suggestion?.merchant || receipt.filename}`}
-                      onPress={() => {
-                        setWebPreviewUri(null);
-                        setPreviewLoading(receipt.mimeType.startsWith('image/'));
-                        setPreviewError(false);
-                        setPreviewReceipt(receipt);
-                      }}
-                      style={styles.viewReceiptButton}
-                    >
-                      <Ionicons name="eye-outline" size={19} color={colors.accentDark} />
-                    </Pressable>
-                    {receipt.status === 'processed' && !receipt.submitted && prepared ? (
+      <ScrollView
+        contentContainerStyle={styles.receiptsContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => void refresh()}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+            progressBackgroundColor={colors.white}
+          />
+        }
+      >
+        {loading && !receipts.length ? (
+          <ActivityIndicator color={colors.accent} style={styles.loadingMore} />
+        ) : (
+          <>
+            {uploading ? (
+              <View style={styles.receiptCard}>
+                <ActivityIndicator color={colors.accent} />
+                <Text style={styles.receiptCardTitle}>Uploading receipt…</Text>
+              </View>
+            ) : null}
+            {receipts.map((receipt) => {
+              const prepared = prepareReceiptDraft(receipt, { accounts, categories, tags });
+              const expanded = expandedReceipts.has(receipt.id);
+              const itemGroups = receiptItemGroups(receipt, categories);
+              const currency = receipt.suggestion?.currency ?? '';
+              return (
+                <SwipeToDelete
+                  id={`receipt-${receipt.id}`}
+                  key={receipt.id}
+                  label={receipt.suggestion?.merchant || receipt.filename}
+                  bordered
+                  onDelete={() => onDelete(receipt)}
+                >
+                  <View style={styles.receiptCard} testID={`receipt-${receipt.id}`}>
+                    <View style={styles.receiptCardHeader}>
                       <Pressable
                         accessibilityRole="button"
-                        accessibilityLabel={`Add ${receipt.suggestion?.merchant || 'receipt'}`}
-                        onPress={() => onAdd(receipt, prepared.draft, prepared.mode)}
-                        style={styles.addReceiptButton}
+                        accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${receipt.suggestion?.merchant || receipt.filename}`}
+                        accessibilityState={{ expanded }}
+                        onPress={() =>
+                          setExpandedReceipts((current) => {
+                            const next = new Set(current);
+                            if (next.has(receipt.id)) next.delete(receipt.id);
+                            else next.add(receipt.id);
+                            return next;
+                          })
+                        }
+                        style={styles.receiptCardSummary}
                       >
-                        <Ionicons name="add" size={22} color={colors.white} />
+                        <View style={styles.receiptCardIcon}>
+                          <Ionicons name="receipt-outline" size={23} color={colors.accent} />
+                        </View>
+                        <View style={styles.receiptCardCopy}>
+                          <Text style={styles.receiptCardTitle}>
+                            {receipt.suggestion?.merchant || receipt.filename}
+                          </Text>
+                          <Text style={styles.receiptCardMeta}>
+                            {receipt.status === 'processed' && receipt.suggestion
+                              ? receiptAmount(currency, receipt.suggestion.amount)
+                              : receipt.status === 'failed'
+                                ? receipt.error || 'Processing failed'
+                                : 'Processing receipt…'}
+                          </Text>
+                        </View>
+                        {receipt.status === 'processed' ? (
+                          <Ionicons
+                            name={expanded ? 'chevron-up' : 'chevron-down'}
+                            size={18}
+                            color={colors.muted}
+                          />
+                        ) : null}
                       </Pressable>
-                    ) : receipt.submitted ? (
-                      <Ionicons name="checkmark-circle" size={24} color={colors.green} />
+                      <View style={styles.receiptActions}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`View ${receipt.suggestion?.merchant || receipt.filename}`}
+                          onPress={() => {
+                            setWebPreviewUri(null);
+                            setPreviewLoading(receipt.mimeType.startsWith('image/'));
+                            setPreviewError(false);
+                            setPreviewReceipt(receipt);
+                          }}
+                          style={styles.viewReceiptButton}
+                        >
+                          <Ionicons name="eye-outline" size={19} color={colors.accentDark} />
+                        </Pressable>
+                        {receipt.status === 'processed' && !receipt.submitted && prepared ? (
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Add ${receipt.suggestion?.merchant || 'receipt'}`}
+                            onPress={() => onAdd(receipt, prepared.draft, prepared.mode)}
+                            style={styles.addReceiptButton}
+                          >
+                            <Ionicons name="add" size={22} color={colors.white} />
+                          </Pressable>
+                        ) : receipt.submitted ? (
+                          <Ionicons name="checkmark-circle" size={24} color={colors.green} />
+                        ) : null}
+                      </View>
+                    </View>
+                    {expanded && receipt.suggestion ? (
+                      <View style={styles.receiptDetails}>
+                        {itemGroups.length ? (
+                          itemGroups.map((group) => (
+                            <View key={group.id} style={styles.receiptItemGroup}>
+                              <View style={styles.receiptItemGroupHeader}>
+                                <Text style={styles.receiptItemGroupTitle}>{group.name}</Text>
+                                <Text style={styles.receiptItemGroupTotal}>
+                                  {receiptAmount(currency, group.total)}
+                                </Text>
+                              </View>
+                              {group.items.map((item, index) => (
+                                <View
+                                  key={`${item.description}-${index}`}
+                                  style={styles.receiptItemRow}
+                                >
+                                  <View style={styles.receiptItemCopy}>
+                                    <Text style={styles.receiptItemName}>{item.description}</Text>
+                                    <Text style={styles.receiptItemQuantity}>
+                                      {item.quantity} × {receiptAmount(currency, item.unitAmount)}
+                                    </Text>
+                                  </View>
+                                  <Text style={styles.receiptItemAmount}>
+                                    {receiptAmount(currency, item.totalAmount)}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={styles.receiptNoItems}>No line items extracted.</Text>
+                        )}
+                        <View style={styles.receiptFinalTotal}>
+                          <Text style={styles.receiptFinalTotalLabel}>Total</Text>
+                          <Text style={styles.receiptFinalTotalAmount}>
+                            {receiptAmount(currency, receipt.suggestion.amount)}
+                          </Text>
+                        </View>
+                      </View>
                     ) : null}
                   </View>
+                </SwipeToDelete>
+              );
+            })}
+            {!receipts.length && !uploading && !loading ? (
+              <View style={styles.emptyScreenCard}>
+                <View style={styles.emptyScreenIcon}>
+                  <Ionicons name="receipt-outline" size={34} color={colors.accent} />
                 </View>
-              </SwipeToDelete>
-            );
-          })}
-          {!receipts.length && !uploading ? (
-            <View style={styles.emptyScreenCard}>
-              <View style={styles.emptyScreenIcon}>
-                <Ionicons name="receipt-outline" size={34} color={colors.accent} />
+                <Text style={styles.emptyScreenTitle}>No receipts yet</Text>
+                <Text style={styles.emptyScreenText}>Tap + to scan your first receipt.</Text>
               </View>
-              <Text style={styles.emptyScreenTitle}>No receipts yet</Text>
-              <Text style={styles.emptyScreenText}>Tap + to scan your first receipt.</Text>
-            </View>
-          ) : null}
-        </ScrollView>
-      )}
+            ) : null}
+          </>
+        )}
+      </ScrollView>
       <Modal
         animationType="fade"
         transparent

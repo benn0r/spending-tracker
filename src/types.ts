@@ -56,6 +56,7 @@ export type ReceiptSuggestion = {
     quantity: number;
     unitAmount: number;
     totalAmount: number;
+    category?: string;
   }[];
   splits: { category: string; amount: number; notes: string; tags: string[] }[];
   confidence: number;

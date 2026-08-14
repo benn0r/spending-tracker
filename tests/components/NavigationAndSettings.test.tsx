@@ -23,6 +23,8 @@ describe('navigation and settings presentation', () => {
         defaultAccount="dragon-hoard"
         accounts={accounts}
         onChangeDefaultAccount={onChangeDefaultAccount}
+        serverUrl="https://spending.example.test"
+        onEditConnection={jest.fn()}
       />,
     );
 
@@ -32,6 +34,7 @@ describe('navigation and settings presentation', () => {
     ).toBeVisible();
     const selector = screen.getByRole('button', { name: 'Select default account' });
     expect(screen.getByText('Dragon Hoard')).toBeVisible();
+    expect(screen.getByText('https://spending.example.test')).toBeVisible();
     fireEvent.press(selector);
 
     expect(screen.getByRole('radio', { name: 'Dragon Hoard' })).toBeChecked();

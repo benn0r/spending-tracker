@@ -27,6 +27,7 @@ export function WalletsScreen({
   const loadingMoreRef = useRef(false);
   const generation = useRef(0);
   const selectedWallet = wallet || accounts[0]?.id || '';
+  const selectedWalletName = accounts.find(({ id }) => id === selectedWallet)?.name;
 
   const refresh = useCallback(
     async (showIndicator = true) => {
@@ -43,7 +44,7 @@ export function WalletsScreen({
       setRefreshing(showIndicator);
       setError('');
       try {
-        const result = await loadTransactionPage(1, 20, selectedWallet);
+        const result = await loadTransactionPage(1, 20, selectedWallet, selectedWalletName);
         if (requestGeneration !== generation.current) return;
         setItems(result.transactions);
         setPage(result.page);
@@ -58,7 +59,7 @@ export function WalletsScreen({
         }
       }
     },
-    [selectedWallet],
+    [selectedWallet, selectedWalletName],
   );
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export function WalletsScreen({
     loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
-      const result = await loadTransactionPage(page + 1, 20, selectedWallet);
+      const result = await loadTransactionPage(page + 1, 20, selectedWallet, selectedWalletName);
       if (requestGeneration !== generation.current) return;
       setItems((current) => mergeTransactionPages(current, result.transactions));
       setPage(result.page);
@@ -83,7 +84,7 @@ export function WalletsScreen({
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [items.length, loading, page, selectedWallet, total]);
+  }, [items.length, loading, page, selectedWallet, selectedWalletName, total]);
 
   return (
     <FlatList
