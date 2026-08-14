@@ -6,9 +6,11 @@ jest.mock('@expo/vector-icons/Ionicons', () =>
   Object.assign(() => null, {
     glyphMap: {
       'basket-outline': 1,
+      'cart-outline': 2,
       'git-branch-outline': 2,
       'home-outline': 3,
       pricetag: 4,
+      'pricetag-outline': 4,
       'receipt-outline': 5,
       'train-outline': 6,
       'wallet-outline': 7,
@@ -34,6 +36,19 @@ describe('category visuals', () => {
     expect(
       categoryVisual(
         {
+          id: 'server-groceries',
+          name: 'Server Groceries',
+          icon: 'pricetag',
+          iconId: 2,
+          color: '#BD774B',
+        },
+        0,
+      ),
+    ).toEqual({ icon: 'cart-outline', color: '#BD774B' });
+
+    expect(
+      categoryVisual(
+        {
           id: 'groceries',
           name: 'Enchanted Groceries',
           icon: 'basket-outline',
@@ -48,9 +63,9 @@ describe('category visuals', () => {
         { id: 'unknown', name: 'Unknown Magic', icon: 'not-a-real-icon', color: 'purple' },
         6,
       ),
-    ).toEqual({ icon: 'pricetag', color: '#3C91C9' });
+    ).toEqual({ icon: 'pricetag-outline', color: '#3C91C9' });
     expect(categoryVisual({ id: 'missing', name: 'Missing Visuals' }, 5)).toEqual({
-      icon: 'pricetag',
+      icon: 'pricetag-outline',
       color: '#77409A',
     });
     expect(categoryVisual({ id: 'negative', name: 'Negative Index' }, -1).color).toBe(

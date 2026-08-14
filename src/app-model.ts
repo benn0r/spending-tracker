@@ -65,10 +65,17 @@ function parseCategoryReference(value: unknown): CategoryReference | null {
   const reference = parseReference(value);
   if (!reference || !isRecord(value)) return null;
   if (value.icon !== undefined && typeof value.icon !== 'string') return null;
+  if (
+    value.iconId !== undefined &&
+    value.iconId !== null &&
+    (!Number.isInteger(value.iconId) || (value.iconId as number) < 1)
+  )
+    return null;
   if (value.color !== undefined && typeof value.color !== 'string') return null;
   return {
     ...reference,
     ...(value.icon === undefined ? {} : { icon: value.icon }),
+    ...(value.iconId === undefined ? {} : { iconId: value.iconId as number | null }),
     ...(value.color === undefined ? {} : { color: value.color }),
   };
 }

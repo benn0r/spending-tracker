@@ -21,9 +21,13 @@ export function TransactionRow({
     ({ name }) => name.toLowerCase() === item.category.toLowerCase(),
   );
   const serverVisual = serverCategory ? categoryVisual(serverCategory, 0) : null;
-  const icon = item.amount > 0 ? 'wallet-outline' : (serverVisual?.icon ?? transactionIcon(item));
-  const iconColor = item.amount > 0 ? colors.green : (serverVisual?.color ?? colors.accentDark);
-  const iconBackground = item.amount > 0 ? '#DDF0E5' : `${iconColor}1A`;
+  const icon = serverVisual?.icon ?? transactionIcon(item);
+  const iconColor = serverVisual?.color ?? (item.amount > 0 ? colors.green : colors.accentDark);
+  const iconBackground = serverVisual
+    ? `${iconColor}1A`
+    : item.amount > 0
+      ? '#DDF0E5'
+      : `${iconColor}1A`;
   return (
     <SwipeToDelete
       id={`transaction-${item.id}`}

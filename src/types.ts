@@ -1,7 +1,11 @@
 export type EntryMode = 'transaction' | 'split';
 
 export type Reference = { id: string; name: string };
-export type CategoryReference = Reference & { icon?: string; color?: string };
+export type CategoryReference = Reference & {
+  icon?: string;
+  iconId?: number | null;
+  color?: string;
+};
 
 export type ApiTransaction = {
   id: string;

@@ -137,6 +137,22 @@ describe('transaction presentation', () => {
 
     rerender(
       <TransactionRow
+        item={transaction({ id: 'salary', amount: 40, category: 'Salary', payee: '—' })}
+        categories={[
+          {
+            id: 'salary',
+            name: 'Salary',
+            iconId: 34,
+            color: '#28AAC4',
+          },
+        ]}
+        onDelete={onDelete}
+      />,
+    );
+    expect(screen.getByTestId('icon-cash-outline')).toBeVisible();
+
+    rerender(
+      <TransactionRow
         item={transaction({ id: 'home', category: 'Home', payee: '—' })}
         categories={[]}
         onDelete={onDelete}

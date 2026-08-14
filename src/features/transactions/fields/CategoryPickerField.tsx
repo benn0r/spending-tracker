@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlatList, Modal, Pressable, Text, View } from 'react-native';
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
-import type { Reference } from '../../../types';
+import type { CategoryReference } from '../../../types';
 import { categoryVisual } from '../../categories/categoryVisual';
 
 export function CategoryPickerField({
@@ -15,7 +15,7 @@ export function CategoryPickerField({
   accessibilityLabel = 'Select category',
 }: {
   value: string;
-  options: Reference[];
+  options: CategoryReference[];
   onChange: (value: string) => void;
   open: boolean;
   onRequestOpen: () => void;
