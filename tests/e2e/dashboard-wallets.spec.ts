@@ -128,6 +128,10 @@ test('shows the selected wallet empty state independently of dashboard transacti
   await expect(page.getByRole('button', { name: 'Select account' })).toContainText(
     'Moonlight Wallet',
   );
+  await expect(page.getByText('CURRENT BALANCE', { exact: true })).toBeVisible();
+  await expect(page.getByText('MONTHLY CASH FLOW', { exact: true })).toBeVisible();
+  await expect(page.getByText(/254\.00/, { exact: false })).toBeVisible();
+  await expect(page.getByText(/1,700\.00/, { exact: false })).toBeVisible();
   await expect(page.getByText('No transactions in this account.', { exact: true })).toBeVisible();
   await expect(page.getByText('Cloud Castle Curios', { exact: true })).toHaveCount(0);
 });

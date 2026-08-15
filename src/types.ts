@@ -38,6 +38,7 @@ export type CashFlow = {
   currency: string;
   currentMonth: string;
   months: CashFlowMonth[];
+  balance?: number;
 };
 
 export type References = {

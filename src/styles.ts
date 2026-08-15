@@ -769,6 +769,33 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: -0.7,
   },
+  accountHeaderMetrics: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  accountHeaderMetric: { flex: 1, minWidth: 0 },
+  accountHeaderMetricDivider: {
+    width: 1,
+    marginHorizontal: 14,
+    backgroundColor: colors.line,
+  },
+  accountHeaderMetricLabel: {
+    color: colors.muted,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  accountHeaderMetricValue: {
+    marginTop: 4,
+    color: colors.ink,
+    fontSize: 17,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
   receiptsScreen: { flex: 1, paddingTop: 34 },
   receiptsHeader: {
     flexDirection: 'row',

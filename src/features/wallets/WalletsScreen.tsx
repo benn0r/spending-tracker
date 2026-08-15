@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-native';
-import { deleteTransaction, loadTransactionPage } from '../../api';
+import { deleteTransaction, loadCashFlow, loadTransactionPage } from '../../api';
 import { mergeTransactionPages } from '../../app-model';
 import { AccountDropdown } from '../../components/AccountDropdown';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
-import { transactionDayTotals } from '../../transactions';
-import type { ApiTransaction, CategoryReference, Reference } from '../../types';
+import { deviceLocale, transactionDayTotals } from '../../transactions';
+import type { ApiTransaction, CashFlow, CategoryReference, Reference } from '../../types';
 import { TransactionRow } from '../transactions/TransactionRow';
 import { DateSectionHeader } from '../transactions/DateSectionHeader';
+
+function formatAccountAmount(value: number | undefined, currency: string | undefined) {
+  if (value === undefined) return '—';
+  return new Intl.NumberFormat(deviceLocale(), {
+    style: 'currency',
+    currency: currency ?? 'CHF',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
 
 export function WalletsScreen({
   accounts,
@@ -25,6 +35,7 @@ export function WalletsScreen({
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
+  const [cashFlow, setCashFlow] = useState<CashFlow | null>(null);
   const loadingMoreRef = useRef(false);
   const generation = useRef(0);
   const selectedWallet = wallet || accounts[0]?.id || '';
@@ -38,6 +49,7 @@ export function WalletsScreen({
       if (!selectedWallet) {
         setItems([]);
         setTotal(0);
+        setCashFlow(null);
         setLoading(false);
         setRefreshing(false);
         return;
@@ -45,12 +57,17 @@ export function WalletsScreen({
       setLoading(true);
       setRefreshing(showIndicator);
       setError('');
+      setCashFlow(null);
       try {
-        const result = await loadTransactionPage(1, 20, selectedWallet, selectedWalletName);
+        const [result, accountCashFlow] = await Promise.all([
+          loadTransactionPage(1, 20, selectedWallet, selectedWalletName),
+          loadCashFlow(selectedWallet),
+        ]);
         if (requestGeneration !== generation.current) return;
         setItems(result.transactions);
         setPage(result.page);
         setTotal(result.total);
+        setCashFlow(accountCashFlow);
       } catch (cause) {
         if (requestGeneration === generation.current)
           setError(cause instanceof Error ? cause.message : 'Could not load account transactions.');
@@ -100,6 +117,21 @@ export function WalletsScreen({
           accessibilityLabel="Select account"
           variant="header"
         />
+        <View style={styles.accountHeaderMetrics}>
+          <View style={styles.accountHeaderMetric}>
+            <Text style={styles.accountHeaderMetricLabel}>CURRENT BALANCE</Text>
+            <Text style={styles.accountHeaderMetricValue} numberOfLines={1}>
+              {formatAccountAmount(cashFlow?.balance, cashFlow?.currency)}
+            </Text>
+          </View>
+          <View style={styles.accountHeaderMetricDivider} />
+          <View style={styles.accountHeaderMetric}>
+            <Text style={styles.accountHeaderMetricLabel}>MONTHLY CASH FLOW</Text>
+            <Text style={styles.accountHeaderMetricValue} numberOfLines={1}>
+              {formatAccountAmount(cashFlow?.months.at(-1)?.net, cashFlow?.currency)}
+            </Text>
+          </View>
+        </View>
       </View>
       <FlatList
         testID="wallets-list"

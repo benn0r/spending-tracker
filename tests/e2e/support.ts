@@ -141,7 +141,10 @@ export async function setupFantasyApi(
     typeof value === 'function' ? value() : value;
 
   await routeApi(page, 'GET', '/api/references', (route) => fulfillJson(route, references));
-  await routeApi(page, 'GET', '/api/cash-flow', (route) => fulfillJson(route, cashFlow));
+  await routeApi(page, 'GET', '/api/cash-flow', (route) => {
+    const accountId = new URL(route.request().url()).searchParams.get('account');
+    return fulfillJson(route, accountId ? { ...cashFlow, balance: 254 } : cashFlow);
+  });
   await routeApi(page, 'GET', '/api/transactions', (route) => {
     const url = new URL(route.request().url());
     const requestedPage = Math.max(1, Number(url.searchParams.get('page')) || 1);

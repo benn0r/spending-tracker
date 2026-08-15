@@ -176,6 +176,11 @@ export function loadTransactionPage(
   );
 }
 
+export function loadCashFlow(accountId?: string): Promise<CashFlow> {
+  const accountQuery = accountId ? `?account=${encodeURIComponent(accountId)}` : '';
+  return request(`/api/cash-flow${accountQuery}`);
+}
+
 export async function submitTransaction(
   payload: TransactionPayload,
 ): Promise<{ id: string; status: 'created' }> {
