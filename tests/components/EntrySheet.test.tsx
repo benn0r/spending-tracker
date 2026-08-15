@@ -1,10 +1,22 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 
 import { EntrySheet } from '../../src/features/transactions/EntrySheet';
 import type { References } from '../../src/types';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+jest.mock('@react-native-picker/picker', () => {
+  const { View } = jest.requireActual('react-native');
+  function PickerMock({ children, ...props }: { children: ReactNode }) {
+    return <View {...props}>{children}</View>;
+  }
+  function PickerItemMock() {
+    return null;
+  }
+  const Picker = Object.assign(PickerMock, { Item: PickerItemMock });
+  return { Picker };
+});
 
 const references: References = {
   accounts: [
@@ -37,7 +49,7 @@ describe('EntrySheet', () => {
     fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
     fireEvent.changeText(screen.getByLabelText('Amount'), '24');
     fireEvent.press(screen.getByRole('checkbox', { name: 'Add to expense split' }));
-    fireEvent.press(screen.getByRole('radio', { name: 'Household · 2 people' }));
+    fireEvent(screen.getByLabelText('Expense split'), 'valueChange', '7');
     fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave.mock.calls[0]?.[2]).toEqual({ mode: 'existing', splitId: 7 });
@@ -65,7 +77,7 @@ describe('EntrySheet', () => {
     fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
     fireEvent.changeText(screen.getByLabelText('Amount'), '15');
     fireEvent.press(screen.getByRole('checkbox', { name: 'Add to expense split' }));
-    fireEvent.press(screen.getByRole('radio', { name: 'Create new split' }));
+    fireEvent(screen.getByLabelText('Expense split'), 'valueChange', '__new__');
     expect(screen.getByPlaceholderText('Split from 15.08.2026')).toBeVisible();
     fireEvent.changeText(screen.getByLabelText('Number of people'), '3');
     fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));

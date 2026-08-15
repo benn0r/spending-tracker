@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Picker } from '@react-native-picker/picker';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -215,66 +216,73 @@ export function EntrySheet({
             <DatePickerField value={draft.date} onChange={(value) => update('date', value)} />
             {!initialDraft ? (
               <>
-                <Pressable
-                  accessibilityRole="checkbox"
-                  accessibilityLabel="Add to expense split"
-                  accessibilityState={{ checked: shareExpense }}
-                  onPress={() => setShareExpense((current) => !current)}
-                  style={styles.expenseSplitToggle}
-                >
+                <View style={styles.expenseSplitRow}>
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityLabel="Add to expense split"
+                    accessibilityState={{ checked: shareExpense }}
+                    onPress={() => setShareExpense((current) => !current)}
+                    style={styles.expenseSplitToggle}
+                  >
+                    <View
+                      style={[
+                        styles.expenseSplitCheckbox,
+                        shareExpense && styles.expenseSplitCheckboxChecked,
+                      ]}
+                    >
+                      {shareExpense ? (
+                        <Ionicons name="checkmark" size={15} color={colors.white} />
+                      ) : null}
+                    </View>
+                    <Text style={styles.expenseSplitToggleTitle}>Split this expense</Text>
+                  </Pressable>
                   <View
                     style={[
-                      styles.expenseSplitCheckbox,
-                      shareExpense && styles.expenseSplitCheckboxChecked,
+                      styles.expenseSplitPickerShell,
+                      !shareExpense && styles.expenseSplitPickerDisabled,
                     ]}
                   >
-                    {shareExpense ? (
-                      <Ionicons name="checkmark" size={15} color={colors.white} />
-                    ) : null}
+                    <Picker
+                      accessibilityLabel="Expense split"
+                      enabled={shareExpense}
+                      mode="dropdown"
+                      dropdownIconColor={colors.accentDark}
+                      selectedValue={expenseSplitChoice}
+                      style={styles.expenseSplitPicker}
+                      onValueChange={(value) => setExpenseSplitChoice(String(value))}
+                    >
+                      <Picker.Item label="Choose split" value="" />
+                      {expenseSplits.map((split) => (
+                        <Picker.Item
+                          key={split.id}
+                          label={`${split.title} · ${split.splitCount} people`}
+                          value={String(split.id)}
+                        />
+                      ))}
+                      <Picker.Item label="Create new split" value="__new__" />
+                    </Picker>
                   </View>
-                  <View style={styles.expenseSplitToggleCopy}>
-                    <Text style={styles.expenseSplitToggleTitle}>Split this expense</Text>
-                    <Text style={styles.expenseSplitToggleText}>
-                      Add it to an expense-sharing split.
-                    </Text>
-                  </View>
-                </Pressable>
-                {shareExpense ? (
+                </View>
+                {shareExpense && expenseSplitChoice === '__new__' ? (
                   <View style={styles.expenseSplitFields}>
-                    <ChoiceField
-                      label="Expense split"
-                      value={expenseSplitChoice}
-                      options={[
-                        ...expenseSplits.map((split) => ({
-                          id: String(split.id),
-                          name: `${split.title} · ${split.splitCount} people`,
-                        })),
-                        { id: '__new__', name: 'Create new split' },
-                      ]}
-                      onChange={setExpenseSplitChoice}
+                    <TextField
+                      label="Split name"
+                      value={newSplitTitle}
+                      onChangeText={setNewSplitTitle}
+                      placeholder={`Split from ${(draft.date || formatLocalDate(new Date()))
+                        .split('-')
+                        .reverse()
+                        .join('.')}`}
+                      icon="people-outline"
                     />
-                    {expenseSplitChoice === '__new__' ? (
-                      <>
-                        <TextField
-                          label="Split name"
-                          value={newSplitTitle}
-                          onChangeText={setNewSplitTitle}
-                          placeholder={`Split from ${(draft.date || formatLocalDate(new Date()))
-                            .split('-')
-                            .reverse()
-                            .join('.')}`}
-                          icon="people-outline"
-                        />
-                        <TextField
-                          label="Number of people"
-                          value={newSplitCount}
-                          onChangeText={setNewSplitCount}
-                          placeholder="2"
-                          icon="person-add-outline"
-                          keyboardType="number-pad"
-                        />
-                      </>
-                    ) : null}
+                    <TextField
+                      label="Number of people"
+                      value={newSplitCount}
+                      onChangeText={setNewSplitCount}
+                      placeholder="2"
+                      icon="person-add-outline"
+                      keyboardType="number-pad"
+                    />
                   </View>
                 ) : null}
               </>
