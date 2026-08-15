@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { deleteTransaction, loadDashboard, loadTransactionPage } from '../api';
 import {
   emptyReferences,
+  cashFlowCacheStorageKey,
   mergeTransactionPages,
   parseReferenceCache,
   prependConfirmedTransaction,
@@ -71,6 +72,9 @@ export function useDashboardTransactions(
         setTransactionTotal(result.page.total);
         setReferences(result.references);
         setCashFlow(result.cashFlow);
+        void AsyncStorage.setItem(cashFlowCacheStorageKey, JSON.stringify(result.cashFlow)).catch(
+          () => undefined,
+        );
         void AsyncStorage.setItem(
           referenceCacheStorageKey,
           JSON.stringify(result.references),
@@ -125,10 +129,12 @@ export function useDashboardTransactions(
   useEffect(() => {
     let cancelled = false;
     const hydrateThenRefresh = async () => {
-      const [cachedTransactionsValue, cachedReferencesValue] = await Promise.all([
-        AsyncStorage.getItem(transactionCacheStorageKey).catch(() => null),
-        AsyncStorage.getItem(referenceCacheStorageKey).catch(() => null),
-      ]);
+      const [cachedTransactionsValue, cachedReferencesValue, cachedCashFlowValue] =
+        await Promise.all([
+          AsyncStorage.getItem(transactionCacheStorageKey).catch(() => null),
+          AsyncStorage.getItem(referenceCacheStorageKey).catch(() => null),
+          AsyncStorage.getItem(cashFlowCacheStorageKey).catch(() => null),
+        ]);
       const cached = parseTransactionCache(cachedTransactionsValue);
       const cachedReferences = parseReferenceCache(cachedReferencesValue);
       if (cancelled) return;
@@ -138,6 +144,13 @@ export function useDashboardTransactions(
         setTransactionTotal(cached.length);
       }
       if (cachedReferences) setReferences(cachedReferences);
+      if (cachedCashFlowValue) {
+        try {
+          setCashFlow(JSON.parse(cachedCashFlowValue) as CashFlow);
+        } catch {
+          // Ignore corrupt cache entries and replace them on refresh.
+        }
+      }
       void refresh();
     };
     void hydrateThenRefresh();

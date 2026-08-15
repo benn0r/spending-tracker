@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { describeSubmissionError, submitTransaction } from '../api';
+import { ApiError, describeSubmissionError, submitTransaction } from '../api';
 import {
   enqueueQueuedTransaction,
   parseTransactionQueue,
@@ -22,7 +22,19 @@ export function useTransactionQueue({
 }) {
   const [items, setItems] = useState<QueuedTransaction[]>([]);
   const [retryingId, setRetryingId] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  const itemsRef = useRef<QueuedTransaction[]>([]);
+  const persistence = useRef(Promise.resolve());
+
+  const commit = useCallback((next: QueuedTransaction[]) => {
+    itemsRef.current = next;
+    setItems(next);
+    const write = () =>
+      next.length
+        ? AsyncStorage.setItem(transactionQueueStorageKey, JSON.stringify(next))
+        : AsyncStorage.removeItem(transactionQueueStorageKey);
+    persistence.current = persistence.current.catch(() => undefined).then(write);
+    return persistence.current;
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -31,40 +43,32 @@ export function useTransactionQueue({
       .then((stored) => {
         if (!active) return;
         const restored = parseTransactionQueue(stored);
-        setItems((current) => {
-          const currentIds = new Set(current.map(({ id }) => id));
-          return [...current, ...restored.filter(({ id }) => !currentIds.has(id))];
-        });
-      })
-      .finally(() => {
-        if (active) setHydrated(true);
+        const currentIds = new Set(itemsRef.current.map(({ id }) => id));
+        const next = [...itemsRef.current, ...restored.filter(({ id }) => !currentIds.has(id))];
+        itemsRef.current = next;
+        setItems(next);
       });
     return () => {
       active = false;
     };
   }, []);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    if (items.length) {
-      void AsyncStorage.setItem(transactionQueueStorageKey, JSON.stringify(items)).catch(
-        () => undefined,
-      );
-    } else {
-      void AsyncStorage.removeItem(transactionQueueStorageKey).catch(() => undefined);
-    }
-  }, [hydrated, items]);
-
-  const enqueue = useCallback((transaction: QueuedTransactionInput) => {
-    setItems((current) => enqueueQueuedTransaction(current, transaction));
-  }, []);
+  const enqueue = useCallback(
+    async (transaction: QueuedTransactionInput) => {
+      const next = enqueueQueuedTransaction(itemsRef.current, transaction);
+      const queued = next[0]!;
+      await commit(next);
+      return queued;
+    },
+    [commit],
+  );
 
   const retry = useCallback(
-    async (item: QueuedTransaction) => {
+    async (item: QueuedTransaction, discardClientErrors = false) => {
       setRetryingId(item.id);
       try {
         const created = await submitTransaction(item.payload);
-        setItems((current) => removeQueuedTransaction(current, item.id));
+        await commit(removeQueuedTransaction(itemsRef.current, item.id));
         onConfirmed({
           id: created.id,
           payload: item.payload,
@@ -74,18 +78,30 @@ export function useTransactionQueue({
         });
         void onRefresh();
       } catch (cause) {
+        if (
+          discardClientErrors &&
+          cause instanceof ApiError &&
+          cause.status !== undefined &&
+          cause.status < 500
+        ) {
+          await commit(removeQueuedTransaction(itemsRef.current, item.id));
+          throw cause;
+        }
         const error = describeSubmissionError(cause);
-        setItems((current) => replaceQueuedTransaction(current, { ...item, error }));
+        await commit(replaceQueuedTransaction(itemsRef.current, { ...item, error }));
       } finally {
         setRetryingId(null);
       }
     },
-    [onConfirmed, onRefresh],
+    [commit, onConfirmed, onRefresh],
   );
 
-  const discard = useCallback((item: QueuedTransaction) => {
-    setItems((current) => removeQueuedTransaction(current, item.id));
-  }, []);
+  const discard = useCallback(
+    (item: QueuedTransaction) => {
+      void commit(removeQueuedTransaction(itemsRef.current, item.id));
+    },
+    [commit],
+  );
 
   return { items, retryingId, enqueue, retry, discard };
 }

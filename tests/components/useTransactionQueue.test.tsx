@@ -41,7 +41,7 @@ describe('useTransactionQueue', () => {
     );
     await waitFor(() => expect(result.current.items).toEqual([queued]));
 
-    act(() =>
+    await act(async () =>
       result.current.enqueue({
         payload: queued.payload,
         mode: queued.mode,
@@ -54,10 +54,8 @@ describe('useTransactionQueue', () => {
       'queued-2026-08-12-moonlight-wallet-12-2',
       queued.id,
     ]);
-    await waitFor(async () => {
-      const stored = await AsyncStorage.getItem('spending-tracker.transaction-queue');
-      expect(JSON.parse(stored ?? '[]')).toHaveLength(2);
-    });
+    const stored = await AsyncStorage.getItem('spending-tracker.transaction-queue');
+    expect(JSON.parse(stored ?? '[]')).toHaveLength(2);
   });
 
   it('retries the exact payload, confirms it, refreshes, and removes persisted state', async () => {

@@ -52,6 +52,7 @@ describe('useDashboardTransactions', () => {
     const live = transaction('live', 'Live Star Market');
     await AsyncStorage.setItem('spending-tracker.transactions-v1', JSON.stringify([cached]));
     await AsyncStorage.setItem('spending-tracker.references-v1', JSON.stringify(references));
+    await AsyncStorage.setItem('spending-tracker.cash-flow-v1', JSON.stringify(cashFlow));
     let resolveDashboard: (value: {
       references: References;
       page: TransactionPage;
@@ -67,6 +68,7 @@ describe('useDashboardTransactions', () => {
 
     await waitFor(() => expect(result.current.transactions).toEqual([cached]));
     expect(result.current.references).toEqual(references);
+    expect(result.current.cashFlow).toEqual(cashFlow);
     expect(result.current.loading).toBe(true);
 
     await act(async () => resolveDashboard({ references, page: page([live]), cashFlow }));

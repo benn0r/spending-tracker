@@ -2,13 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
-import {
-  ApiError,
-  type ApiConfiguration,
-  describeSubmissionError,
-  submitReceiptTransaction,
-  submitTransaction,
-} from './src/api';
+import { type ApiConfiguration, submitReceiptTransaction } from './src/api';
 import type { ConfirmedTransactionInput } from './src/app-model';
 import { BottomNavigation, type AppTab } from './src/components/BottomNavigation';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
@@ -132,26 +126,19 @@ function ConfiguredApp({
       mode === 'split'
         ? 'Split transaction'
         : references.categories.find(({ id }) => id === payload.category)?.name;
-    let created: Awaited<ReturnType<typeof submitTransaction>>;
-    try {
-      created = receiptEntry
-        ? await submitReceiptTransaction(receiptEntry.id, payload)
-        : await submitTransaction(payload);
-    } catch (cause) {
-      if (receiptEntry) throw cause;
-      const diagnostic = describeSubmissionError(cause);
-      if (cause instanceof ApiError && cause.status !== undefined && cause.status < 500)
-        throw cause;
-      enqueueTransaction({
+    if (!receiptEntry) {
+      const queued = await enqueueTransaction({
         payload,
         mode,
         account: account ?? 'Unknown account',
         category: category ?? 'Uncategorized',
-        error: diagnostic,
+        error: 'Saved on this device. Waiting to sync.',
       });
+      await retryQueuedTransaction(queued, true);
       setSheetOpen(false);
       return;
     }
+    const created = await submitReceiptTransaction(receiptEntry.id, payload);
     setSheetOpen(false);
     setReceiptEntry(null);
     addConfirmedTransaction(created.id, payload, mode, account, category);

@@ -1,9 +1,10 @@
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
 import { deleteReceipt, loadReceipts } from '../api';
-import { countActionableReceipts } from '../app-model';
+import { countActionableReceipts, receiptCacheStorageKey } from '../app-model';
 import type { ApiReceipt } from '../types';
 
 export type UseReceiptsResult = {
@@ -20,7 +21,11 @@ export function useReceipts(): UseReceiptsResult {
 
   const refreshReceipts = useCallback(async () => {
     try {
-      setReceipts(await loadReceipts());
+      const loaded = await loadReceipts();
+      setReceipts(loaded);
+      void AsyncStorage.setItem(receiptCacheStorageKey, JSON.stringify(loaded)).catch(
+        () => undefined,
+      );
     } finally {
       setReceiptsLoading(false);
     }
@@ -29,8 +34,24 @@ export function useReceipts(): UseReceiptsResult {
   const receiptCount = countActionableReceipts(receipts);
 
   useEffect(() => {
-    const initialLoad = setTimeout(() => void refreshReceipts().catch(() => undefined), 0);
-    return () => clearTimeout(initialLoad);
+    let active = true;
+    void AsyncStorage.getItem(receiptCacheStorageKey)
+      .catch(() => null)
+      .then((stored) => {
+        if (!active || !stored) return;
+        try {
+          const cached = JSON.parse(stored) as unknown;
+          if (Array.isArray(cached)) setReceipts(cached as ApiReceipt[]);
+        } catch {
+          // Ignore corrupt cache entries and replace them on refresh.
+        }
+      })
+      .finally(() => {
+        if (active) void refreshReceipts().catch(() => undefined);
+      });
+    return () => {
+      active = false;
+    };
   }, [refreshReceipts]);
 
   useEffect(() => {
@@ -61,7 +82,13 @@ export function useReceipts(): UseReceiptsResult {
 
   const removeReceipt = useCallback(
     (receipt: ApiReceipt) => {
-      setReceipts((current) => current.filter(({ id }) => id !== receipt.id));
+      setReceipts((current) => {
+        const next = current.filter(({ id }) => id !== receipt.id);
+        void AsyncStorage.setItem(receiptCacheStorageKey, JSON.stringify(next)).catch(
+          () => undefined,
+        );
+        return next;
+      });
       void deleteReceipt(receipt.id).catch(() => void refreshReceipts().catch(() => undefined));
     },
     [refreshReceipts],

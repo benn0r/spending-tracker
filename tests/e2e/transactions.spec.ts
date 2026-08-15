@@ -753,6 +753,48 @@ test('queues a failed transaction and retries it later', async ({ page }) => {
   await expect(page.getByText('− CHF 18.00')).toBeVisible();
 });
 
+test('persists a new transaction before its network request completes', async ({ page }) => {
+  let releaseRequest: () => void = () => undefined;
+  const requestPending = new Promise<void>((resolve) => {
+    releaseRequest = resolve;
+  });
+  await page.route('**/api/transactions**', async (route) => {
+    if (route.request().method() === 'POST') {
+      await requestPending;
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'persisted-first', status: 'created' }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 20 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await page.getByRole('radio', { name: 'Groceries' }).click();
+  await page.getByRole('radio', { name: 'Everyday' }).click();
+  await page.getByLabel('Amount').fill('19');
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await expect(page.getByTestId('transaction-queue')).toBeVisible();
+  await expect(page.getByTestId('transaction-transaction-1')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const stored = localStorage.getItem('spending-tracker.transaction-queue');
+        return stored ? JSON.parse(stored).length : 0;
+      }),
+    )
+    .toBe(1);
+
+  releaseRequest();
+  await expect(page.getByTestId('transaction-queue')).toBeHidden();
+});
+
 test('restores a queued transaction after reload and retries the exact payload', async ({
   page,
 }) => {

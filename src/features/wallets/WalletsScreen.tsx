@@ -1,7 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-native';
 import { deleteTransaction, loadCashFlow, loadTransactionPage } from '../../api';
-import { mergeTransactionPages } from '../../app-model';
+import { accountCacheStorageKey, mergeTransactionPages } from '../../app-model';
 import { AccountDropdown } from '../../components/AccountDropdown';
 import { nativeDeviceLocale } from '../../device-locale';
 import { styles } from '../../styles';
@@ -48,6 +49,17 @@ export function WalletsScreen({
     [listItems],
   );
 
+  const persistAccountCache = useCallback(
+    (transactions: ApiTransaction[], nextCashFlow: CashFlow | null, nextTotal: number) => {
+      if (!selectedWallet) return;
+      void AsyncStorage.setItem(
+        accountCacheStorageKey(selectedWallet),
+        JSON.stringify({ transactions, cashFlow: nextCashFlow, total: nextTotal }),
+      ).catch(() => undefined);
+    },
+    [selectedWallet],
+  );
+
   const refresh = useCallback(
     async (showIndicator = true) => {
       generation.current += 1;
@@ -63,7 +75,6 @@ export function WalletsScreen({
       setLoading(true);
       setRefreshing(showIndicator);
       setError('');
-      setCashFlow(null);
       try {
         const [transactionsResult, cashFlowResult] = await Promise.allSettled([
           loadTransactionPage(1, 20, selectedWallet, selectedWalletName),
@@ -75,7 +86,9 @@ export function WalletsScreen({
         setItems(result.transactions);
         setPage(result.page);
         setTotal(result.total);
-        setCashFlow(cashFlowResult.status === 'fulfilled' ? cashFlowResult.value : null);
+        const nextCashFlow = cashFlowResult.status === 'fulfilled' ? cashFlowResult.value : null;
+        setCashFlow(nextCashFlow);
+        persistAccountCache(result.transactions, nextCashFlow, result.total);
       } catch (cause) {
         if (requestGeneration === generation.current)
           setError(cause instanceof Error ? cause.message : 'Could not load account transactions.');
@@ -86,13 +99,40 @@ export function WalletsScreen({
         }
       }
     },
-    [selectedWallet, selectedWalletName],
+    [persistAccountCache, selectedWallet, selectedWalletName],
   );
 
   useEffect(() => {
-    const initialLoad = setTimeout(() => void refresh(false), 0);
-    return () => clearTimeout(initialLoad);
-  }, [refresh]);
+    let active = true;
+    if (!selectedWallet) return () => undefined;
+    void AsyncStorage.getItem(accountCacheStorageKey(selectedWallet))
+      .catch(() => null)
+      .then((stored) => {
+        if (!active) return;
+        setItems([]);
+        setTotal(0);
+        setCashFlow(null);
+        if (!stored) return;
+        try {
+          const cached = JSON.parse(stored) as {
+            transactions?: ApiTransaction[];
+            cashFlow?: CashFlow | null;
+            total?: number;
+          };
+          if (Array.isArray(cached.transactions)) setItems(cached.transactions);
+          if (typeof cached.total === 'number') setTotal(cached.total);
+          if (cached.cashFlow) setCashFlow(cached.cashFlow);
+        } catch {
+          // Ignore corrupt cache entries and replace them on refresh.
+        }
+      })
+      .finally(() => {
+        if (active) void refresh(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [refresh, selectedWallet]);
 
   const loadMore = useCallback(async () => {
     if (!selectedWallet || loading || loadingMoreRef.current || items.length >= total) return;
@@ -102,7 +142,11 @@ export function WalletsScreen({
     try {
       const result = await loadTransactionPage(page + 1, 20, selectedWallet, selectedWalletName);
       if (requestGeneration !== generation.current) return;
-      setItems((current) => mergeTransactionPages(current, result.transactions));
+      setItems((current) => {
+        const next = mergeTransactionPages(current, result.transactions);
+        persistAccountCache(next, cashFlow, result.total);
+        return next;
+      });
       setPage(result.page);
       setTotal(result.total);
     } catch (cause) {
@@ -111,7 +155,16 @@ export function WalletsScreen({
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [items.length, loading, page, selectedWallet, selectedWalletName, total]);
+  }, [
+    cashFlow,
+    items.length,
+    loading,
+    page,
+    persistAccountCache,
+    selectedWallet,
+    selectedWalletName,
+    total,
+  ]);
 
   return (
     <View style={styles.secondaryFixedScreen}>
@@ -167,7 +220,11 @@ export function WalletsScreen({
               item={item.transaction}
               categories={categories}
               onDelete={(transaction) => {
-                setItems((current) => current.filter(({ id }) => id !== transaction.id));
+                setItems((current) => {
+                  const next = current.filter(({ id }) => id !== transaction.id);
+                  persistAccountCache(next, cashFlow, Math.max(0, total - 1));
+                  return next;
+                });
                 setTotal((current) => Math.max(0, current - 1));
                 void deleteTransaction(transaction.id).catch(() => void refresh());
               }}
