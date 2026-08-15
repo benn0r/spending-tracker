@@ -164,12 +164,7 @@ export function TransactionRow({
                     ) : null}
                   </View>
                 </View>
-                <Text
-                  style={[
-                    styles.splitTransactionChildAmount,
-                    child.amount > 0 && styles.incomeAmount,
-                  ]}
-                >
+                <Text style={[styles.amount, child.amount > 0 && styles.incomeAmount]}>
                   {formatCurrency(child.amount)}
                 </Text>
               </View>
