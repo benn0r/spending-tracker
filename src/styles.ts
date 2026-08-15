@@ -339,7 +339,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     paddingHorizontal: 22,
     paddingVertical: 7,
-    backgroundColor: '#EEECEF',
+    backgroundColor: '#F5F3F6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

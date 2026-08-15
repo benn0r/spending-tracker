@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useCallback, useState } from 'react';
 import { FlatList, Modal, Pressable, Text, View } from 'react-native';
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
@@ -24,6 +25,14 @@ export function CategoryPickerField({
   accessibilityLabel?: string;
 }) {
   const selected = options.find(({ id }) => id === value);
+  const [closing, setClosing] = useState(false);
+  const dismiss = () => {
+    setClosing(true);
+    onDismiss();
+  };
+  const finishDismiss = useCallback(() => {
+    if (!open) setClosing(false);
+  }, [open]);
   return (
     <View style={styles.fieldGroup}>
       <Pressable
@@ -51,16 +60,23 @@ export function CategoryPickerField({
         )}
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
       </Pressable>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={onDismiss}>
-        <View style={styles.nestedModalRoot}>
+      <Modal visible={open || closing} transparent animationType="none" onRequestClose={dismiss}>
+        <View
+          style={styles.nestedModalRoot}
+          pointerEvents={open ? 'auto' : 'none'}
+          accessibilityElementsHidden={!open}
+          importantForAccessibility={open ? 'auto' : 'no-hide-descendants'}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close category picker"
             style={styles.nestedScrim}
-            onPress={onDismiss}
+            onPress={dismiss}
           />
           <DrawerSheet
-            key={open ? 'open' : 'closed'}
+            visible={open}
+            onHidden={finishDismiss}
+            delay={280}
             style={styles.categorySheet}
             testID="category-sheet"
           >
@@ -92,7 +108,7 @@ export function CategoryPickerField({
                     aria-checked={active}
                     onPress={() => {
                       onChange(item.id);
-                      onDismiss();
+                      dismiss();
                     }}
                     style={styles.categoryTile}
                   >

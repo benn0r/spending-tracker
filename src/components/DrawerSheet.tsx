@@ -6,21 +6,31 @@ export function DrawerSheet({
   children,
   style,
   testID,
+  visible = true,
+  onHidden,
+  delay = 0,
 }: {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  visible?: boolean;
+  onHidden?: () => void;
+  delay?: number;
 }) {
   const [translateY] = useState(() => new Animated.Value(Dimensions.get('window').height));
 
   useEffect(() => {
+    if (visible) translateY.setValue(Dimensions.get('window').height);
     Animated.timing(translateY, {
-      toValue: 0,
+      toValue: visible ? 0 : Dimensions.get('window').height,
       duration: 280,
-      easing: Easing.out(Easing.cubic),
+      delay: visible ? delay : 0,
+      easing: visible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
       useNativeDriver: true,
-    }).start();
-  }, [translateY]);
+    }).start(({ finished }) => {
+      if (finished && !visible) onHidden?.();
+    });
+  }, [delay, onHidden, translateY, visible]);
 
   return (
     <Animated.View style={[style, { transform: [{ translateY }] }]} testID={testID}>
