@@ -5,7 +5,7 @@ import { mergeTransactionPages } from '../../app-model';
 import { AccountDropdown } from '../../components/AccountDropdown';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
-import { deviceLocale, transactionDayTotals } from '../../transactions';
+import { deviceLocale, transactionDayTotals, transactionListItems } from '../../transactions';
 import type { ApiTransaction, CashFlow, CategoryReference, Reference } from '../../types';
 import { TransactionRow } from '../transactions/TransactionRow';
 import { DateSectionHeader } from '../transactions/DateSectionHeader';
@@ -41,6 +41,11 @@ export function WalletsScreen({
   const selectedWallet = wallet || accounts[0]?.id || '';
   const selectedWalletName = accounts.find(({ id }) => id === selectedWallet)?.name;
   const dayTotals = useMemo(() => transactionDayTotals(items), [items]);
+  const listItems = useMemo(() => transactionListItems(items), [items]);
+  const stickyHeaderIndices = useMemo(
+    () => listItems.flatMap((item, index) => (item.kind === 'date' ? [index + 1] : [])),
+    [listItems],
+  );
 
   const refresh = useCallback(
     async (showIndicator = true) => {
@@ -59,15 +64,17 @@ export function WalletsScreen({
       setError('');
       setCashFlow(null);
       try {
-        const [result, accountCashFlow] = await Promise.all([
+        const [transactionsResult, cashFlowResult] = await Promise.allSettled([
           loadTransactionPage(1, 20, selectedWallet, selectedWalletName),
           loadCashFlow(selectedWallet),
         ]);
         if (requestGeneration !== generation.current) return;
+        if (transactionsResult.status === 'rejected') throw transactionsResult.reason;
+        const result = transactionsResult.value;
         setItems(result.transactions);
         setPage(result.page);
         setTotal(result.total);
-        setCashFlow(accountCashFlow);
+        setCashFlow(cashFlowResult.status === 'fulfilled' ? cashFlowResult.value : null);
       } catch (cause) {
         if (requestGeneration === generation.current)
           setError(cause instanceof Error ? cause.message : 'Could not load account transactions.');
@@ -135,19 +142,21 @@ export function WalletsScreen({
       </View>
       <FlatList
         testID="wallets-list"
-        data={items}
-        keyExtractor={({ id }) => id}
-        renderItem={({ item, index }) => (
-          <View>
-            {index === 0 || items[index - 1]?.date !== item.date ? (
-              <DateSectionHeader
-                date={item.date}
-                total={dayTotals[item.date] ?? 0}
-                flushTop={index === 0}
-              />
-            ) : null}
+        data={listItems}
+        stickyHeaderIndices={stickyHeaderIndices}
+        keyExtractor={(item) =>
+          item.kind === 'date' ? `date-${item.date}` : `transaction-${item.transaction.id}`
+        }
+        renderItem={({ item, index }) =>
+          item.kind === 'date' ? (
+            <DateSectionHeader
+              date={item.date}
+              total={dayTotals[item.date] ?? 0}
+              flushTop={index === 0}
+            />
+          ) : (
             <TransactionRow
-              item={item}
+              item={item.transaction}
               categories={categories}
               onDelete={(transaction) => {
                 setItems((current) => current.filter(({ id }) => id !== transaction.id));
@@ -155,11 +164,13 @@ export function WalletsScreen({
                 void deleteTransaction(transaction.id).catch(() => void refresh());
               }}
             />
-          </View>
-        )}
+          )
+        }
         contentContainerStyle={styles.walletContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListHeaderComponent={error ? <Text style={styles.errorText}>{error}</Text> : null}
+        ListHeaderComponent={
+          <View>{error ? <Text style={styles.errorText}>{error}</Text> : null}</View>
+        }
         ListEmptyComponent={
           loading ? null : (
             <Text style={styles.emptyText}>

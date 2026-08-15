@@ -5,7 +5,11 @@ import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } fr
 import type { QueuedTransaction } from '../../app-model';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
-import { transactionDayTotals } from '../../transactions';
+import {
+  transactionDayTotals,
+  transactionListItems,
+  type TransactionListItem,
+} from '../../transactions';
 import type { ApiTransaction, CashFlow, CategoryReference } from '../../types';
 import { SummaryCard } from './SummaryCard';
 import { DateSectionHeader } from './DateSectionHeader';
@@ -49,8 +53,13 @@ export function TransactionsScreen({
   onDiscardQueued,
   onAdd,
 }: TransactionsScreenProps) {
-  const listRef = useRef<FlatList<ApiTransaction>>(null);
+  const listRef = useRef<FlatList<TransactionListItem>>(null);
   const dayTotals = useMemo(() => transactionDayTotals(transactions), [transactions]);
+  const listItems = useMemo(() => transactionListItems(transactions), [transactions]);
+  const stickyHeaderIndices = useMemo(
+    () => listItems.flatMap((item, index) => (item.kind === 'date' ? [index + 1] : [])),
+    [listItems],
+  );
   const [cashFlowHeight, setCashFlowHeight] = useState(0);
   const [showScrolledDivider, setShowScrolledDivider] = useState(false);
 
@@ -96,21 +105,23 @@ export function TransactionsScreen({
       <FlatList
         ref={listRef}
         testID="transactions-list"
-        data={transactions}
+        data={listItems}
+        stickyHeaderIndices={stickyHeaderIndices}
         removeClippedSubviews={false}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <View>
-            {index === 0 || transactions[index - 1]?.date !== item.date ? (
-              <DateSectionHeader
-                date={item.date}
-                total={dayTotals[item.date] ?? 0}
-                flushTop={index === 0}
-              />
-            ) : null}
-            <TransactionRow item={item} categories={categories} onDelete={onDelete} />
-          </View>
-        )}
+        keyExtractor={(item) =>
+          item.kind === 'date' ? `date-${item.date}` : `transaction-${item.transaction.id}`
+        }
+        renderItem={({ item, index }) =>
+          item.kind === 'date' ? (
+            <DateSectionHeader
+              date={item.date}
+              total={dayTotals[item.date] ?? 0}
+              flushTop={index === 0}
+            />
+          ) : (
+            <TransactionRow item={item.transaction} categories={categories} onDelete={onDelete} />
+          )
+        }
         ListHeaderComponent={
           <>
             <SummaryCard

@@ -12,6 +12,7 @@ import {
   parseTransactionCache,
   summarize,
   transactionDayTotals,
+  transactionListItems,
 } from '../../src/transactions.ts';
 
 describe('transaction helpers', () => {
@@ -67,6 +68,34 @@ describe('transaction helpers', () => {
       { income: 100, spent: 35, balance: 65 },
     );
     assert.deepEqual(summarize([]), { income: 0, spent: 0, balance: 0 });
+  });
+
+  it('inserts one sticky-title item before each transaction day', () => {
+    const base = {
+      amount: -10,
+      account: 'Main',
+      category: 'Food',
+      payee: 'Market',
+      isSplit: false,
+    };
+    const transactions = [
+      { ...base, id: 'one', date: '2026-08-12' },
+      { ...base, id: 'two', date: '2026-08-12' },
+      { ...base, id: 'three', date: '2026-08-11' },
+    ];
+
+    assert.deepEqual(
+      transactionListItems(transactions).map((item) =>
+        item.kind === 'date' ? `date:${item.date}` : `transaction:${item.transaction.id}`,
+      ),
+      [
+        'date:2026-08-12',
+        'transaction:one',
+        'transaction:two',
+        'date:2026-08-11',
+        'transaction:three',
+      ],
+    );
   });
 
   it('totals transactions by day for section headers', () => {

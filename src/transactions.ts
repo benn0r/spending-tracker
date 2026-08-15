@@ -66,6 +66,22 @@ export function transactionDayTotals(transactions: ApiTransaction[]): Record<str
   }, {});
 }
 
+export type TransactionListItem =
+  { kind: 'date'; date: string } | { kind: 'transaction'; transaction: ApiTransaction };
+
+export function transactionListItems(transactions: ApiTransaction[]): TransactionListItem[] {
+  const items: TransactionListItem[] = [];
+  let previousDate = '';
+  for (const transaction of transactions) {
+    if (transaction.date !== previousDate) {
+      items.push({ kind: 'date', date: transaction.date });
+      previousDate = transaction.date;
+    }
+    items.push({ kind: 'transaction', transaction });
+  }
+  return items;
+}
+
 export function isDraftValid(draft: DraftTransaction, mode: EntryMode): boolean {
   const amount = numberValue(draft.amount);
   if (
