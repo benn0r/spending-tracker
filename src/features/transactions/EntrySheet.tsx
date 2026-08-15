@@ -137,7 +137,7 @@ export function EntrySheet({
       : Number.isInteger(Number(expenseSplitChoice)) && Number(expenseSplitChoice) > 0);
   const formValid = isDraftValid(draft, mode) && expenseSplitValid;
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
       <KeyboardAvoidingView
         style={styles.modalRoot}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

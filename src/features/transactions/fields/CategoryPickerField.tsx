@@ -50,7 +50,7 @@ export function CategoryPickerField({
         )}
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
       </Pressable>
-      <Modal visible={open} transparent animationType="slide" onRequestClose={onDismiss}>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={onDismiss}>
         <View style={styles.nestedModalRoot}>
           <Pressable
             accessibilityRole="button"

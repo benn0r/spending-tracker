@@ -237,7 +237,7 @@ function ConfiguredApp({
             onSave={addTransaction}
           />
           <Modal
-            animationType="slide"
+            animationType="fade"
             transparent
             visible={setupOpen}
             onRequestClose={() => setSetupOpen(false)}

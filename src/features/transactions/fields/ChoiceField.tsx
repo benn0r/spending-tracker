@@ -91,7 +91,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
         <Modal
           visible={tagSearchOpen}
           transparent
-          animationType={Platform.OS === 'web' ? 'none' : 'slide'}
+          animationType={Platform.OS === 'web' ? 'none' : 'fade'}
           onRequestClose={() => setTagSearchOpen(false)}
         >
           <View style={styles.nestedModalRoot}>

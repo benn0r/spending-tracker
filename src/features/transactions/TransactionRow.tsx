@@ -175,7 +175,7 @@ export function TransactionRow({
       <Modal
         visible={detailsOpen}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setDetailsOpen(false)}
       >
         <View style={styles.receiptDetailsModalRoot}>

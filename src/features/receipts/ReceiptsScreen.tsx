@@ -327,7 +327,7 @@ export function ReceiptsScreen({
       <Modal
         visible={detailsReceipt !== null}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setDetailsReceipt(null)}
       >
         <View style={styles.receiptDetailsModalRoot}>
@@ -445,7 +445,7 @@ export function ReceiptsScreen({
         </View>
       </Modal>
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent
         visible={previewReceipt !== null}
         onRequestClose={() => setPreviewReceipt(null)}

@@ -57,7 +57,7 @@ export function AccountDropdown({
           </>
         )}
       </Pressable>
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View style={styles.nestedModalRoot}>
           <Pressable
             accessibilityRole="button"

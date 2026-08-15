@@ -60,7 +60,7 @@ export function DatePickerField({
       <Modal
         visible={open && Platform.OS === 'ios'}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setOpen(false)}
       >
         <View style={styles.nestedModalRoot}>
