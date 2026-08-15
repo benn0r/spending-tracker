@@ -21,6 +21,7 @@ const queued: QueuedTransaction = {
     category: 'enchanted-groceries',
     date: '2026-08-12',
     amount: -12,
+    expenseSplit: { mode: 'existing', splitId: 7 },
   },
   mode: 'transaction',
   account: 'Moonlight Wallet',

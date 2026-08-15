@@ -15,12 +15,13 @@ import { TransactionsScreen } from './src/features/transactions/TransactionsScre
 import { WalletsScreen } from './src/features/wallets/WalletsScreen';
 import { useDashboardTransactions } from './src/hooks/useDashboardTransactions';
 import { useDefaultAccount } from './src/hooks/useDefaultAccount';
+import { useExpenseSplits } from './src/hooks/useExpenseSplits';
 import { useReceipts } from './src/hooks/useReceipts';
 import { useServerConfig } from './src/hooks/useServerConfig';
 import { useTransactionQueue } from './src/hooks/useTransactionQueue';
 import { styles } from './src/styles';
 import { createPayload } from './src/transactions';
-import type { DraftTransaction, EntryMode } from './src/types';
+import type { DraftTransaction, EntryMode, ExpenseSplitSelection } from './src/types';
 
 export default function App() {
   const { configuration, hydrated, saveConfiguration } = useServerConfig();
@@ -103,10 +104,13 @@ function ConfiguredApp({
     removeTransaction,
   } = useDashboardTransactions(validateDefaultAccount);
   const { receipts, receiptsLoading, receiptCount, refreshReceipts, removeReceipt } = useReceipts();
+  const { expenseSplits, refreshExpenseSplits } = useExpenseSplits();
   const confirmQueuedTransaction = useCallback(
-    ({ id, payload, mode, account, category }: ConfirmedTransactionInput) =>
-      addConfirmedTransaction(id, payload, mode, account, category),
-    [addConfirmedTransaction],
+    ({ id, payload, mode, account, category }: ConfirmedTransactionInput) => {
+      addConfirmedTransaction(id, payload, mode, account, category);
+      if (payload.expenseSplit) void refreshExpenseSplits().catch(() => undefined);
+    },
+    [addConfirmedTransaction, refreshExpenseSplits],
   );
   const {
     items: queuedTransactions,
@@ -118,9 +122,13 @@ function ConfiguredApp({
     onConfirmed: confirmQueuedTransaction,
     onRefresh: refresh,
   });
-  const addTransaction = async (draft: DraftTransaction, mode: EntryMode) => {
+  const addTransaction = async (
+    draft: DraftTransaction,
+    mode: EntryMode,
+    expenseSplit?: ExpenseSplitSelection,
+  ) => {
     const submittedReceipt = receiptEntry;
-    const payload = createPayload(draft, mode);
+    const payload = { ...createPayload(draft, mode), ...(expenseSplit ? { expenseSplit } : {}) };
     const account = references.accounts.find(({ id }) => id === payload.account)?.name;
     const category =
       mode === 'split'
@@ -218,6 +226,7 @@ function ConfiguredApp({
           <EntrySheet
             visible={sheetOpen}
             references={references}
+            expenseSplits={expenseSplits}
             defaultAccount={defaultAccount}
             initialDraft={receiptEntry?.draft}
             initialMode={receiptEntry?.mode}

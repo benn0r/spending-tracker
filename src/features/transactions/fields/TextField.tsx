@@ -20,7 +20,7 @@ export function TextField({
   placeholder: string;
   icon: keyof typeof Ionicons.glyphMap;
   multiline?: boolean;
-  keyboardType?: 'decimal-pad';
+  keyboardType?: 'decimal-pad' | 'number-pad';
   inputRef?: RefObject<TextInput | null>;
 }) {
   return (

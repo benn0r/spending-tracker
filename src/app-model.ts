@@ -19,6 +19,7 @@ export const transactionCacheStorageKey = 'spending-tracker.transactions-v1';
 export const referenceCacheStorageKey = 'spending-tracker.references-v1';
 export const cashFlowCacheStorageKey = 'spending-tracker.cash-flow-v1';
 export const receiptCacheStorageKey = 'spending-tracker.receipts-v1';
+export const expenseSplitCacheStorageKey = 'spending-tracker.expense-splits-v1';
 export const accountCacheStorageKey = (accountId: string) =>
   `spending-tracker.account-v1.${accountId}`;
 
@@ -167,12 +168,39 @@ function parseQueuedPayload(value: unknown, mode: EntryMode): TransactionPayload
   }
   const tags = parseOptionalStringList(value.tags);
   if (!tags.valid) return null;
+  let expenseSplit: TransactionPayload['expenseSplit'];
+  if (value.expenseSplit !== undefined) {
+    if (!isRecord(value.expenseSplit)) return null;
+    if (
+      value.expenseSplit.mode === 'existing' &&
+      typeof value.expenseSplit.splitId === 'number' &&
+      Number.isInteger(value.expenseSplit.splitId) &&
+      value.expenseSplit.splitId > 0
+    ) {
+      expenseSplit = { mode: 'existing', splitId: value.expenseSplit.splitId };
+    } else if (
+      value.expenseSplit.mode === 'new' &&
+      isNonEmptyString(value.expenseSplit.title) &&
+      typeof value.expenseSplit.splitCount === 'number' &&
+      Number.isInteger(value.expenseSplit.splitCount) &&
+      value.expenseSplit.splitCount > 0
+    ) {
+      expenseSplit = {
+        mode: 'new',
+        title: value.expenseSplit.title,
+        splitCount: value.expenseSplit.splitCount,
+      };
+    } else {
+      return null;
+    }
+  }
   const common: TransactionPayload = {
     account: value.account,
     date: value.date,
     amount: value.amount,
     ...(value.notes === undefined ? {} : { notes: value.notes }),
     ...(tags.value === undefined ? {} : { tags: tags.value }),
+    ...(expenseSplit ? { expenseSplit } : {}),
   };
   if (mode === 'transaction') {
     if (!isNonEmptyString(value.category) || value.splits !== undefined) return null;

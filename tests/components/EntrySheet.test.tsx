@@ -22,6 +22,61 @@ const references: References = {
 };
 
 describe('EntrySheet', () => {
+  it('assigns an expense to an existing or newly created sharing split', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    const { rerender } = render(
+      <EntrySheet
+        visible
+        references={references}
+        expenseSplits={[{ id: 7, title: 'Household', splitCount: 2, transactionCount: 3 }]}
+        defaultAccount="everyday"
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+    fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
+    fireEvent.changeText(screen.getByLabelText('Amount'), '24');
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Add to expense split' }));
+    fireEvent.press(screen.getByRole('radio', { name: 'Household · 2 people' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0]?.[2]).toEqual({ mode: 'existing', splitId: 7 });
+
+    rerender(
+      <EntrySheet
+        visible={false}
+        references={references}
+        expenseSplits={[]}
+        defaultAccount="everyday"
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+    rerender(
+      <EntrySheet
+        visible
+        references={references}
+        expenseSplits={[]}
+        defaultAccount="everyday"
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+    fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
+    fireEvent.changeText(screen.getByLabelText('Amount'), '15');
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Add to expense split' }));
+    fireEvent.press(screen.getByRole('radio', { name: 'Create new split' }));
+    fireEvent.changeText(screen.getByLabelText('Split name'), 'Holiday');
+    fireEvent.changeText(screen.getByLabelText('Number of people'), '3');
+    fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    expect(onSave.mock.calls[1]?.[2]).toEqual({
+      mode: 'new',
+      title: 'Holiday',
+      splitCount: 3,
+    });
+  });
+
   it('prefills the default account and submits a complete normal expense', async () => {
     const onSave = jest.fn().mockResolvedValue(undefined);
     render(

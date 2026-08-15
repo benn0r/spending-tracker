@@ -3,6 +3,7 @@ import { File as ExpoFile } from 'expo-file-system';
 import type {
   ApiReceipt,
   CashFlow,
+  ExpenseSplitSummary,
   References,
   TransactionPage,
   TransactionPayload,
@@ -179,6 +180,11 @@ export function loadTransactionPage(
 export function loadCashFlow(accountId?: string): Promise<CashFlow> {
   const accountQuery = accountId ? `?account=${encodeURIComponent(accountId)}` : '';
   return request(`/api/cash-flow${accountQuery}`);
+}
+
+export async function loadExpenseSplits(): Promise<ExpenseSplitSummary[]> {
+  const payload = await request<{ splits?: ExpenseSplitSummary[] }>('/api/splits');
+  return Array.isArray(payload.splits) ? payload.splits : [];
 }
 
 export async function submitTransaction(

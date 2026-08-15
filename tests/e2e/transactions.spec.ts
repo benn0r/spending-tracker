@@ -35,6 +35,14 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/receipts**', (route) =>
     route.fulfill({ contentType: 'application/json', body: JSON.stringify([]) }),
   );
+  await page.route('**/api/splits', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        splits: [{ id: 7, title: 'Household', splitCount: 2, transactionCount: 3 }],
+      }),
+    }),
+  );
 });
 
 test('shows split postings nested beneath their parent transaction', async ({ page }) => {
@@ -751,6 +759,40 @@ test('queues a failed transaction and retries it later', async ({ page }) => {
   await page.getByRole('button', { name: 'Retry Groceries' }).click();
   await expect(page.getByTestId('transaction-queue')).toBeHidden();
   await expect(page.getByText('− CHF 18.00')).toBeVisible();
+});
+
+test('adds a new transaction to an existing expense-sharing split', async ({ page }) => {
+  let submitted: Record<string, unknown> | null = null;
+  await page.route('**/api/transactions**', async (route) => {
+    if (route.request().method() === 'POST') {
+      submitted = route.request().postDataJSON() as Record<string, unknown>;
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'shared-expense', status: 'created' }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 20 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await page.getByRole('radio', { name: 'Groceries' }).click();
+  await page.getByRole('radio', { name: 'Everyday' }).click();
+  await page.getByLabel('Amount').fill('21');
+  await page.getByRole('checkbox', { name: 'Add to expense split' }).click();
+  await page.getByRole('radio', { name: 'Household · 2 people' }).click();
+  await page.getByRole('button', { name: 'Save expense' }).click();
+
+  await expect
+    .poll(() => submitted)
+    .toMatchObject({
+      amount: -21,
+      expenseSplit: { mode: 'existing', splitId: 7 },
+    });
 });
 
 test('persists a new transaction before its network request completes', async ({ page }) => {

@@ -57,6 +57,16 @@ export type References = {
   tags: Reference[];
 };
 
+export type ExpenseSplitSummary = {
+  id: number;
+  title: string;
+  splitCount: number;
+  transactionCount: number;
+};
+
+export type ExpenseSplitSelection =
+  { mode: 'existing'; splitId: number } | { mode: 'new'; title: string; splitCount: number };
+
 export type SplitDraft = { category: string; amount: string; tags: string[] };
 
 export type DraftTransaction = {
@@ -111,4 +121,5 @@ export type TransactionPayload = {
   notes?: string;
   tags?: string[];
   splits?: { category: string; amount: number; tags?: string[] }[];
+  expenseSplit?: ExpenseSplitSelection;
 };
