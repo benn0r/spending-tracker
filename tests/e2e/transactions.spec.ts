@@ -360,6 +360,7 @@ test('swipes transactions and receipts left to delete them', async ({ page }) =>
   await page.mouse.down();
   await page.mouse.move(receiptBox.x + receiptBox.width - 110, receiptBox.y + 25, { steps: 10 });
   await page.mouse.up();
+  await expect(page.getByLabel('Close receipt details')).toHaveCount(0);
   await page.getByRole('button', { name: 'Delete market.jpg', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm delete market.jpg' }).click();
   await expect(receiptRow).toHaveCount(0);

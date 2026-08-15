@@ -131,6 +131,7 @@ export function SwipeToDelete({
       </Pressable>
       <Animated.View
         {...responder.panHandlers}
+        pointerEvents={isOpen ? 'none' : 'auto'}
         style={[
           styles.swipeForeground,
           bordered && styles.borderedSwipeForeground,
