@@ -66,13 +66,12 @@ describe('EntrySheet', () => {
     fireEvent.changeText(screen.getByLabelText('Amount'), '15');
     fireEvent.press(screen.getByRole('checkbox', { name: 'Add to expense split' }));
     fireEvent.press(screen.getByRole('radio', { name: 'Create new split' }));
-    fireEvent.changeText(screen.getByLabelText('Split name'), 'Holiday');
+    expect(screen.getByPlaceholderText('Split from 15.08.2026')).toBeVisible();
     fireEvent.changeText(screen.getByLabelText('Number of people'), '3');
     fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
     expect(onSave.mock.calls[1]?.[2]).toEqual({
       mode: 'new',
-      title: 'Holiday',
       splitCount: 3,
     });
   });

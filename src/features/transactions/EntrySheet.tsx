@@ -103,7 +103,7 @@ export function EntrySheet({
         : expenseSplitChoice === '__new__'
           ? {
               mode: 'new' as const,
-              title: newSplitTitle.trim(),
+              ...(newSplitTitle.trim() ? { title: newSplitTitle.trim() } : {}),
               splitCount: Number(newSplitCount),
             }
           : { mode: 'existing' as const, splitId: Number(expenseSplitChoice) };
@@ -133,9 +133,7 @@ export function EntrySheet({
   const expenseSplitValid =
     !shareExpense ||
     (expenseSplitChoice === '__new__'
-      ? Boolean(newSplitTitle.trim()) &&
-        Number.isInteger(Number(newSplitCount)) &&
-        Number(newSplitCount) > 0
+      ? Number.isInteger(Number(newSplitCount)) && Number(newSplitCount) > 0
       : Number.isInteger(Number(expenseSplitChoice)) && Number(expenseSplitChoice) > 0);
   const formValid = isDraftValid(draft, mode) && expenseSplitValid;
   return (
@@ -260,7 +258,10 @@ export function EntrySheet({
                           label="Split name"
                           value={newSplitTitle}
                           onChangeText={setNewSplitTitle}
-                          placeholder="Household expenses"
+                          placeholder={`Split from ${(draft.date || formatLocalDate(new Date()))
+                            .split('-')
+                            .reverse()
+                            .join('.')}`}
                           icon="people-outline"
                         />
                         <TextField

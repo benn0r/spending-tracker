@@ -180,14 +180,14 @@ function parseQueuedPayload(value: unknown, mode: EntryMode): TransactionPayload
       expenseSplit = { mode: 'existing', splitId: value.expenseSplit.splitId };
     } else if (
       value.expenseSplit.mode === 'new' &&
-      isNonEmptyString(value.expenseSplit.title) &&
+      (value.expenseSplit.title === undefined || typeof value.expenseSplit.title === 'string') &&
       typeof value.expenseSplit.splitCount === 'number' &&
       Number.isInteger(value.expenseSplit.splitCount) &&
       value.expenseSplit.splitCount > 0
     ) {
       expenseSplit = {
         mode: 'new',
-        title: value.expenseSplit.title,
+        ...(value.expenseSplit.title?.trim() ? { title: value.expenseSplit.title.trim() } : {}),
         splitCount: value.expenseSplit.splitCount,
       };
     } else {

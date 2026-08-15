@@ -65,7 +65,7 @@ export type ExpenseSplitSummary = {
 };
 
 export type ExpenseSplitSelection =
-  { mode: 'existing'; splitId: number } | { mode: 'new'; title: string; splitCount: number };
+  { mode: 'existing'; splitId: number } | { mode: 'new'; title?: string; splitCount: number };
 
 export type SplitDraft = { category: string; amount: string; tags: string[] };
 
