@@ -4,6 +4,7 @@ import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'r
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
 import type { Reference } from '../../../types';
+import { DrawerSheet } from '../../../components/DrawerSheet';
 
 type ChoiceFieldProps = {
   label: string;
@@ -100,7 +101,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
               onPress={() => setTagSearchOpen(false)}
               style={styles.nestedScrim}
             />
-            <View style={styles.tagSearchSheet} testID="tag-search-sheet">
+            <DrawerSheet style={styles.tagSearchSheet} testID="tag-search-sheet">
               <View style={styles.handle} />
               <View style={styles.tagSearchHeader}>
                 <Text style={styles.categorySheetTitle}>Choose tags</Text>
@@ -162,7 +163,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
                   <Text style={styles.emptyText}>No matching tags.</Text>
                 ) : null}
               </ScrollView>
-            </View>
+            </DrawerSheet>
           </View>
         </Modal>
       ) : null}

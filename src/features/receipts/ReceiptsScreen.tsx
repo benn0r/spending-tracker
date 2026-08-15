@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { loadReceiptFile, receiptFileSource, uploadReceipt } from '../../api';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
+import { DrawerSheet } from '../../components/DrawerSheet';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import type {
@@ -336,7 +337,7 @@ export function ReceiptsScreen({
             style={styles.receiptDetailsScrim}
             onPress={() => setDetailsReceipt(null)}
           />
-          <View style={styles.receiptDetailsSheet} testID="receipt-details-sheet">
+          <DrawerSheet style={styles.receiptDetailsSheet} testID="receipt-details-sheet">
             <View style={styles.handle} />
             <View style={styles.receiptDetailsHeading}>
               <View style={styles.sheetTitleGroup}>
@@ -441,7 +442,7 @@ export function ReceiptsScreen({
                 </>
               ) : null}
             </ScrollView>
-          </View>
+          </DrawerSheet>
         </View>
       </Modal>
       <Modal
@@ -456,7 +457,7 @@ export function ReceiptsScreen({
             style={styles.receiptPreviewScrim}
             onPress={() => setPreviewReceipt(null)}
           />
-          <View style={styles.receiptPreviewCard}>
+          <DrawerSheet style={styles.receiptPreviewCard}>
             <View style={styles.handle} />
             <View style={styles.receiptPreviewHeader}>
               <Text numberOfLines={1} style={styles.receiptPreviewTitle}>
@@ -509,7 +510,7 @@ export function ReceiptsScreen({
                 </Text>
               </View>
             ) : null}
-          </View>
+          </DrawerSheet>
         </View>
       </Modal>
     </View>

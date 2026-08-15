@@ -5,6 +5,7 @@ import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
 import { type ApiConfiguration, submitReceiptTransaction } from './src/api';
 import type { ConfirmedTransactionInput } from './src/app-model';
 import { BottomNavigation, type AppTab } from './src/components/BottomNavigation';
+import { DrawerSheet } from './src/components/DrawerSheet';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { SwipeProvider } from './src/components/SwipeToDelete';
 import { ReceiptsScreen } from './src/features/receipts/ReceiptsScreen';
@@ -248,17 +249,19 @@ function ConfiguredApp({
                 style={styles.receiptDetailsScrim}
                 onPress={() => setSetupOpen(false)}
               />
-              <ServerSetupScreen
-                sheet
-                initialValue={configuration}
-                onCancel={() => setSetupOpen(false)}
-                onSave={(next) => {
-                  onChangeConfiguration(next);
-                  setSetupOpen(false);
-                  void refresh();
-                  void refreshReceipts().catch(() => undefined);
-                }}
-              />
+              <DrawerSheet>
+                <ServerSetupScreen
+                  sheet
+                  initialValue={configuration}
+                  onCancel={() => setSetupOpen(false)}
+                  onSave={(next) => {
+                    onChangeConfiguration(next);
+                    setSetupOpen(false);
+                    void refresh();
+                    void refreshReceipts().catch(() => undefined);
+                  }}
+                />
+              </DrawerSheet>
             </View>
           </Modal>
         </SafeAreaView>

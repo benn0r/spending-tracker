@@ -4,6 +4,7 @@ import { styles } from '../../../styles';
 import { colors } from '../../../theme';
 import type { CategoryReference } from '../../../types';
 import { categoryVisual } from '../../categories/categoryVisual';
+import { DrawerSheet } from '../../../components/DrawerSheet';
 
 export function CategoryPickerField({
   value,
@@ -58,7 +59,7 @@ export function CategoryPickerField({
             style={styles.nestedScrim}
             onPress={onDismiss}
           />
-          <View style={styles.categorySheet} testID="category-sheet">
+          <DrawerSheet style={styles.categorySheet} testID="category-sheet">
             <View style={styles.handle} />
             <View style={styles.categorySheetHeader}>
               <View>
@@ -111,7 +112,7 @@ export function CategoryPickerField({
                 );
               }}
             />
-          </View>
+          </DrawerSheet>
         </View>
       </Modal>
     </View>

@@ -5,6 +5,7 @@ import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { styles } from '../styles';
 import { colors } from '../theme';
 import type { Reference } from '../types';
+import { DrawerSheet } from './DrawerSheet';
 
 export function AccountDropdown({
   value,
@@ -65,7 +66,7 @@ export function AccountDropdown({
             style={styles.nestedScrim}
             onPress={() => setOpen(false)}
           />
-          <View style={styles.accountSheet} testID="account-sheet">
+          <DrawerSheet style={styles.accountSheet} testID="account-sheet">
             <View style={styles.handle} />
             <Text style={styles.categorySheetTitle}>{label}</Text>
             <Text style={styles.categorySheetSubtitle}>
@@ -104,7 +105,7 @@ export function AccountDropdown({
                 <Text style={styles.categoryEmpty}>No accounts are enabled on the server.</Text>
               ) : null}
             </ScrollView>
-          </View>
+          </DrawerSheet>
         </View>
       </Modal>
     </View>

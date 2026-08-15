@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { formatLocalDate } from '../../app-model';
+import { DrawerSheet } from '../../components/DrawerSheet';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import { emptyDraft, isDraftValid } from '../../transactions';
@@ -147,7 +148,7 @@ export function EntrySheet({
           style={styles.scrim}
           onPress={close}
         />
-        <View style={styles.sheet} testID="entry-sheet">
+        <DrawerSheet style={styles.sheet} testID="entry-sheet">
           <View style={styles.handle} />
           <View style={styles.sheetHeading}>
             <View style={styles.sheetTitleGroup}>
@@ -363,7 +364,7 @@ export function EntrySheet({
               )}
             </Pressable>
           </View>
-        </View>
+        </DrawerSheet>
       </KeyboardAvoidingView>
     </Modal>
   );

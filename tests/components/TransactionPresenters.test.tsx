@@ -243,7 +243,11 @@ describe('transaction presentation', () => {
     );
 
     expect(screen.getByLabelText('Split transaction')).toBeVisible();
-    expect(screen.getByLabelText(/Split entry 1 of 2: Food & Drink/)).toBeVisible();
+    expect(screen.getByLabelText(/Split entry 1 of 2: Food & Drink/)).toHaveStyle({
+      minHeight: 44,
+      borderWidth: 0,
+      backgroundColor: '#F7F4F8',
+    });
     expect(screen.getByLabelText(/Split entry 2 of 2: Skyship Travel/)).toBeVisible();
     expect(screen.getByText('− CHF 12.00')).toBeVisible();
     expect(screen.getByText('− CHF 18.00')).toBeVisible();

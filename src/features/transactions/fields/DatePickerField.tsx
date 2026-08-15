@@ -7,6 +7,7 @@ import { nativeDeviceLocale } from '../../../device-locale';
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
 import { formatDateHeader } from '../../../transactions';
+import { DrawerSheet } from '../../../components/DrawerSheet';
 
 export function DatePickerField({
   value,
@@ -65,7 +66,7 @@ export function DatePickerField({
       >
         <View style={styles.nestedModalRoot}>
           <Pressable style={styles.nestedScrim} onPress={() => setOpen(false)} />
-          <View style={styles.datePickerSheet}>
+          <DrawerSheet style={styles.datePickerSheet}>
             <View style={styles.handle} />
             <View style={styles.datePickerHeader}>
               <View>
@@ -92,7 +93,7 @@ export function DatePickerField({
               accentColor={colors.accent}
               style={styles.datePicker}
             />
-          </View>
+          </DrawerSheet>
         </View>
       </Modal>
     </View>

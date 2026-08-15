@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
+import { DrawerSheet } from '../../components/DrawerSheet';
 import { nativeDeviceLocale } from '../../device-locale';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
@@ -135,19 +136,18 @@ export function TransactionRow({
                 key={child.id}
                 style={styles.splitTransactionChild}
               >
-                <View style={styles.splitTransactionRail} />
                 <View
                   style={[styles.splitTransactionChildIcon, { backgroundColor: `${childColor}1A` }]}
                 >
                   <Ionicons
                     name={childVisual?.icon ?? 'git-branch-outline'}
-                    size={16}
+                    size={14}
                     color={childColor}
                   />
                 </View>
                 <View style={styles.transactionCopy}>
                   <Text style={styles.splitTransactionChildTitle}>{child.category}</Text>
-                  <View style={styles.transactionMetaRow}>
+                  <View style={[styles.transactionMetaRow, styles.splitTransactionChildMeta]}>
                     {(child.tags ?? []).map((tag) => (
                       <View key={tag} style={styles.transactionTagPill}>
                         <Text style={styles.transactionTagText}>#{tag}</Text>
@@ -164,7 +164,13 @@ export function TransactionRow({
                     ) : null}
                   </View>
                 </View>
-                <Text style={[styles.amount, child.amount > 0 && styles.incomeAmount]}>
+                <Text
+                  style={[
+                    styles.amount,
+                    styles.splitTransactionChildAmount,
+                    child.amount > 0 && styles.incomeAmount,
+                  ]}
+                >
                   {formatCurrency(child.amount)}
                 </Text>
               </View>
@@ -184,7 +190,7 @@ export function TransactionRow({
             style={styles.receiptDetailsScrim}
             onPress={() => setDetailsOpen(false)}
           />
-          <View style={styles.receiptDetailsSheet} testID="transaction-details-sheet">
+          <DrawerSheet style={styles.receiptDetailsSheet} testID="transaction-details-sheet">
             <View style={styles.handle} />
             <View style={styles.receiptDetailsHeading}>
               <View style={styles.sheetTitleGroup}>
@@ -283,7 +289,7 @@ export function TransactionRow({
                 </View>
               ) : null}
             </ScrollView>
-          </View>
+          </DrawerSheet>
         </View>
       </Modal>
     </>
