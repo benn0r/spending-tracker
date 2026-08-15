@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
+import { nativeDeviceLocale } from '../../device-locale';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import { formatCurrency, formatTransactionDate } from '../../transactions';
@@ -141,7 +142,7 @@ export function TransactionRow({
               <View style={styles.transactionDetailsRow}>
                 <Text style={styles.transactionDetailsLabel}>Date</Text>
                 <Text style={styles.transactionDetailsValue}>
-                  {formatTransactionDate(item.date)}
+                  {formatTransactionDate(item.date, nativeDeviceLocale())}
                 </Text>
               </View>
               <View style={styles.transactionDetailsRow}>

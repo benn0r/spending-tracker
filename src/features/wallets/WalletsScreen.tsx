@@ -3,16 +3,17 @@ import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-n
 import { deleteTransaction, loadCashFlow, loadTransactionPage } from '../../api';
 import { mergeTransactionPages } from '../../app-model';
 import { AccountDropdown } from '../../components/AccountDropdown';
+import { nativeDeviceLocale } from '../../device-locale';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
-import { deviceLocale, transactionDayTotals, transactionListItems } from '../../transactions';
+import { transactionDayTotals, transactionListItems } from '../../transactions';
 import type { ApiTransaction, CashFlow, CategoryReference, Reference } from '../../types';
 import { TransactionRow } from '../transactions/TransactionRow';
 import { DateSectionHeader } from '../transactions/DateSectionHeader';
 
 function formatAccountAmount(value: number | undefined, currency: string | undefined) {
   if (value === undefined) return '—';
-  return new Intl.NumberFormat(deviceLocale(), {
+  return new Intl.NumberFormat(nativeDeviceLocale(), {
     style: 'currency',
     currency: currency ?? 'CHF',
     minimumFractionDigits: 2,

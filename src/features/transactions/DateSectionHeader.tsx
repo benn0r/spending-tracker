@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 
 import { styles } from '../../styles';
+import { nativeDeviceLocale } from '../../device-locale';
 import { formatCurrency, formatDateHeader } from '../../transactions';
 
 export function DateSectionHeader({
@@ -22,7 +23,9 @@ export function DateSectionHeader({
         sticky && styles.stickyDateSectionHeader,
       ]}
     >
-      <Text style={styles.dateSectionTitle}>{formatDateHeader(date)}</Text>
+      <Text style={styles.dateSectionTitle}>
+        {formatDateHeader(date, new Date(), nativeDeviceLocale())}
+      </Text>
       <Text style={[styles.amount, styles.dateSectionAmount]}>{formatCurrency(total)}</Text>
     </View>
   );

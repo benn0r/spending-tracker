@@ -30,7 +30,8 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-notifications",
-      "./plugins/with-local-badge-only"
+      "./plugins/with-local-badge-only",
+      "expo-localization"
     ],
     "android": {
       "package": "app.spendingtracker.mobile",

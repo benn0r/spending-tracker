@@ -1,11 +1,11 @@
 import { type LayoutChangeEvent, Text, View } from 'react-native';
 
 import { styles } from '../../styles';
-import { deviceLocale } from '../../transactions';
+import { nativeDeviceLocale } from '../../device-locale';
 import type { CashFlow } from '../../types';
 
 function amount(value: number, currency: string) {
-  return new Intl.NumberFormat(deviceLocale(), {
+  return new Intl.NumberFormat(nativeDeviceLocale(), {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
@@ -15,7 +15,7 @@ function amount(value: number, currency: string) {
 
 function monthLabel(month: string, style: 'long' | 'short') {
   const [year = new Date().getFullYear(), monthNumber = 1] = month.split('-').map(Number);
-  return new Intl.DateTimeFormat(deviceLocale(), {
+  return new Intl.DateTimeFormat(nativeDeviceLocale(), {
     month: style,
     ...(style === 'long' ? { year: 'numeric' as const } : {}),
   }).format(new Date(year, monthNumber - 1, 1, 12));

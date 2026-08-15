@@ -3,6 +3,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { useState } from 'react';
 import { Modal, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { formatLocalDate, parseLocalDate } from '../../../app-model';
+import { nativeDeviceLocale } from '../../../device-locale';
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
 import { formatDateHeader } from '../../../transactions';
@@ -17,6 +18,7 @@ export function DatePickerField({
   const [open, setOpen] = useState(false);
   const today = formatLocalDate(new Date());
   const selected = value || today;
+  const locale = nativeDeviceLocale();
   const chooseDate = (_event: DateTimePickerEvent, date?: Date) => {
     if (Platform.OS !== 'ios') setOpen(false);
     if (date) onChange(formatLocalDate(date));
@@ -42,7 +44,9 @@ export function DatePickerField({
             style={styles.dateCalendarButton}
           >
             <Ionicons name="calendar-outline" size={18} color={colors.accent} />
-            <Text style={styles.dateCalendarText}>{formatDateHeader(selected)}</Text>
+            <Text style={styles.dateCalendarText}>
+              {formatDateHeader(selected, new Date(), locale)}
+            </Text>
           </Pressable>
         )}
       </View>
@@ -66,7 +70,9 @@ export function DatePickerField({
             <View style={styles.datePickerHeader}>
               <View>
                 <Text style={styles.categorySheetTitle}>Transaction date</Text>
-                <Text style={styles.datePickerSelection}>{formatDateHeader(selected)}</Text>
+                <Text style={styles.datePickerSelection}>
+                  {formatDateHeader(selected, new Date(), locale)}
+                </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
@@ -81,6 +87,7 @@ export function DatePickerField({
               value={parseLocalDate(selected) ?? new Date()}
               mode="date"
               display="inline"
+              locale={locale}
               onChange={chooseDate}
               accentColor={colors.accent}
               style={styles.datePicker}
