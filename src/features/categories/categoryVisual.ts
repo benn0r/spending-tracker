@@ -84,6 +84,7 @@ export function categoryVisual(category: CategoryReference, index: number): Cate
 }
 
 export function transactionIcon(transaction: ApiTransaction): keyof typeof Ionicons.glyphMap {
+  if (transaction.type === 'Transfer') return 'swap-horizontal-outline';
   if (transaction.isSplit) return 'git-branch-outline';
   if (transaction.amount > 0) return 'wallet-outline';
   const category = transaction.category.toLowerCase();

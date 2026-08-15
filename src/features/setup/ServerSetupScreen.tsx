@@ -10,11 +10,13 @@ export function ServerSetupScreen({
   onSave,
   onCancel,
   recoveryMessage,
+  sheet = false,
 }: {
   initialValue?: ApiConfiguration | null;
   onSave: (configuration: ApiConfiguration) => void;
   onCancel?: () => void;
   recoveryMessage?: string;
+  sheet?: boolean;
 }) {
   const [serverUrl, setServerUrl] = useState(initialValue?.serverUrl ?? '');
   const [apiToken, setApiToken] = useState(initialValue?.apiToken ?? '');
@@ -38,19 +40,44 @@ export function ServerSetupScreen({
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={styles.setupScreen}
+      style={sheet ? styles.setupSheet : styles.setupScreen}
     >
-      <View style={styles.setupCard}>
-        <View style={styles.setupIcon}>
-          <Ionicons name="server-outline" size={28} color="#77409A" />
-        </View>
-        <Text style={styles.setupEyebrow}>CONNECTION</Text>
-        <Text accessibilityRole="header" style={styles.setupTitle}>
-          Connect your server
-        </Text>
+      <View style={sheet ? styles.setupSheetContent : styles.setupCard}>
+        {sheet ? <View style={styles.handle} /> : null}
+        {sheet ? (
+          <View style={styles.setupSheetHeading}>
+            <View style={styles.sheetTitleGroup}>
+              <View style={styles.sheetTitleIcon}>
+                <Ionicons name="server-outline" size={20} color="#77409A" />
+              </View>
+              <Text accessibilityRole="header" style={styles.receiptDetailsTitle}>
+                Server connection
+              </Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Close server connection settings"
+              accessibilityRole="button"
+              onPress={onCancel}
+              style={styles.closeButton}
+            >
+              <Ionicons name="close" size={22} color="#2E2833" />
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <View style={styles.setupIcon}>
+              <Ionicons name="server-outline" size={28} color="#77409A" />
+            </View>
+            <Text style={styles.setupEyebrow}>CONNECTION</Text>
+            <Text accessibilityRole="header" style={styles.setupTitle}>
+              Connect your server
+            </Text>
+          </>
+        )}
         <Text style={styles.setupIntro}>
-          Enter the Spending Tracker Server address and its API token. These details stay on this
-          device.
+          {sheet
+            ? 'Update the server address and API token saved on this device.'
+            : 'Enter the Spending Tracker Server address and its API token. These details stay on this device.'}
         </Text>
         {recoveryMessage ? (
           <View style={styles.setupRecovery}>
@@ -97,7 +124,7 @@ export function ServerSetupScreen({
         </View>
         {error ? <Text style={styles.setupError}>{error}</Text> : null}
         <View style={styles.setupActions}>
-          {onCancel ? (
+          {onCancel && !sheet ? (
             <Pressable accessibilityRole="button" onPress={onCancel} style={styles.setupCancel}>
               <Text style={styles.setupCancelText}>Cancel</Text>
             </Pressable>

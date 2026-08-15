@@ -1,9 +1,9 @@
 import { nativeDeviceLocale } from '../../src/device-locale';
 
 jest.mock('expo-localization', () => ({
-  getLocales: () => [{ languageTag: 'de-CH' }],
+  getLocales: () => [{ languageTag: 'en-US', languageCode: 'en', regionCode: 'CH' }],
 }));
 
-test('uses the native device locale instead of the JavaScript runtime locale', () => {
-  expect(nativeDeviceLocale()).toBe('de-CH');
+test('combines the native language and region instead of using the runtime locale', () => {
+  expect(nativeDeviceLocale()).toBe('en-CH');
 });

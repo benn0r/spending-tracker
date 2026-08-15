@@ -143,9 +143,7 @@ export function formatTransactionDate(date: string, locale = deviceLocale()): st
   const value = new Date(`${date}T12:00:00`);
   if (Number.isNaN(value.getTime())) return date;
   return new Intl.DateTimeFormat(locale, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
+    dateStyle: 'short',
   }).format(value);
 }
 
@@ -162,9 +160,17 @@ export function formatDateHeader(date: string, now = new Date(), locale = device
   if (date === localValue(yesterday)) return 'Yesterday';
   const value = new Date(`${date}T12:00:00`);
   if (Number.isNaN(value.getTime())) return date;
-  return new Intl.DateTimeFormat(locale, {
+  const options = {
     day: 'numeric',
     month: 'long',
     ...(value.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' as const }),
-  }).format(value);
+  } as const;
+  const formatter = new Intl.DateTimeFormat(locale, options);
+  const shortParts = new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).formatToParts(value);
+  const dayIndex = shortParts.findIndex(({ type }) => type === 'day');
+  const daySuffix = shortParts[dayIndex + 1]?.value.trim() === '.' ? '.' : '';
+  return formatter
+    .formatToParts(value)
+    .map(({ type, value: part }) => (type === 'day' ? `${part}${daySuffix}` : part))
+    .join('');
 }

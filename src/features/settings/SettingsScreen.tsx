@@ -53,7 +53,6 @@ export function SettingsScreen({
                 <Text style={styles.settingsSelectHint}>API token saved on this device</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#746B78" />
           </Pressable>
         </View>
       </ScrollView>

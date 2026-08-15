@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Modal, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
 import {
   ApiError,
   type ApiConfiguration,
@@ -242,12 +242,18 @@ function ConfiguredApp({
           />
           <Modal
             animationType="slide"
-            presentationStyle="pageSheet"
+            transparent
             visible={setupOpen}
             onRequestClose={() => setSetupOpen(false)}
           >
-            <SafeAreaView style={styles.safeArea}>
+            <View style={styles.setupModalRoot}>
+              <Pressable
+                accessibilityLabel="Close server connection settings"
+                style={styles.receiptDetailsScrim}
+                onPress={() => setSetupOpen(false)}
+              />
               <ServerSetupScreen
+                sheet
                 initialValue={configuration}
                 onCancel={() => setSetupOpen(false)}
                 onSave={(next) => {
@@ -257,7 +263,7 @@ function ConfiguredApp({
                   void refreshReceipts().catch(() => undefined);
                 }}
               />
-            </SafeAreaView>
+            </View>
           </Modal>
         </SafeAreaView>
       </SwipeProvider>

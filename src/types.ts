@@ -19,6 +19,8 @@ export type ApiTransaction = {
   tags?: string[];
   isSplit: boolean;
   cleared?: boolean;
+  type?: 'Expense' | 'Income' | 'Transfer';
+  transferAccount?: string;
 };
 
 export type TransactionPage = {

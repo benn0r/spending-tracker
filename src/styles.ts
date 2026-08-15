@@ -1156,7 +1156,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  settingsSelectCopy: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  settingsSelectCopy: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 11 },
   settingsSelectIcon: {
     width: 40,
     height: 40,
@@ -1179,6 +1179,24 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   settingsConnectionCopy: { flex: 1, marginRight: 10 },
+  setupModalRoot: { flex: 1, justifyContent: 'flex-end' },
+  setupSheet: {
+    maxHeight: '88%',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    backgroundColor: colors.surface,
+  },
+  setupSheetContent: {
+    paddingHorizontal: 22,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
+  },
+  setupSheetHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 4,
+  },
   setupLoading: {
     flex: 1,
     alignItems: 'center',

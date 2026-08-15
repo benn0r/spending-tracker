@@ -191,6 +191,29 @@ describe('transaction presentation', () => {
     expect(screen.getByTestId('icon-home-outline')).toBeVisible();
   });
 
+  it('presents Actual Budget transfers with their destination account', () => {
+    render(
+      <TransactionRow
+        item={transaction({
+          id: 'transfer',
+          type: 'Transfer',
+          category: 'Uncategorized',
+          payee: 'Transfer: Cloud Vault',
+          transferAccount: 'Cloud Vault',
+        })}
+        categories={[]}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Transfer')).toBeVisible();
+    expect(screen.getByText('To Cloud Vault')).toBeVisible();
+    expect(screen.getByTestId('icon-swap-horizontal-outline')).toBeVisible();
+    fireEvent.press(screen.getByRole('button', { name: 'View details for Transfer' }));
+    expect(screen.getByText('To account')).toBeVisible();
+    expect(screen.getByText('Cloud Vault')).toBeVisible();
+  });
+
   it('hides an empty queue and wires enabled retry and discard actions', () => {
     const onRetry = jest.fn();
     const onDiscard = jest.fn();

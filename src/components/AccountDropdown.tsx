@@ -54,7 +54,6 @@ export function AccountDropdown({
                 <Text style={styles.settingsSelectHint}>{hint}</Text>
               </View>
             </View>
-            <Ionicons name="chevron-down" size={20} color={colors.muted} />
           </>
         )}
       </Pressable>

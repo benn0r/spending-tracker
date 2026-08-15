@@ -25,15 +25,26 @@ export function TransactionRow({
   categories: CategoryReference[];
   onDelete: (item: ApiTransaction) => void;
 }) {
-  const title = item.payee && item.payee !== '—' ? item.payee : item.category;
+  const isTransfer = item.type === 'Transfer';
+  const title = isTransfer
+    ? 'Transfer'
+    : item.payee && item.payee !== '—'
+      ? item.payee
+      : item.category;
+  const transferDescription = item.transferAccount
+    ? `${item.amount < 0 ? 'To' : 'From'} ${item.transferAccount}`
+    : null;
   const notes =
-    item.notes && item.notes !== title && item.notes !== item.category ? item.notes : null;
-  const serverCategory = categories.find(
-    ({ name }) => name.toLowerCase() === item.category.toLowerCase(),
-  );
+    transferDescription ??
+    (item.notes && item.notes !== title && item.notes !== item.category ? item.notes : null);
+  const serverCategory = isTransfer
+    ? undefined
+    : categories.find(({ name }) => name.toLowerCase() === item.category.toLowerCase());
   const serverVisual = serverCategory ? categoryVisual(serverCategory, 0) : null;
   const icon = serverVisual?.icon ?? transactionIcon(item);
-  const iconColor = serverVisual?.color ?? (item.amount > 0 ? colors.green : colors.accentDark);
+  const iconColor = isTransfer
+    ? '#397A9B'
+    : (serverVisual?.color ?? (item.amount > 0 ? colors.green : colors.accentDark));
   const iconBackground = serverVisual
     ? `${iconColor}1A`
     : item.amount > 0
@@ -151,12 +162,28 @@ export function TransactionRow({
               </View>
               <View style={styles.transactionDetailsRow}>
                 <Text style={styles.transactionDetailsLabel}>Category</Text>
-                <Text style={styles.transactionDetailsValue}>{item.category}</Text>
+                <Text style={styles.transactionDetailsValue}>
+                  {isTransfer ? 'Transfer' : item.category}
+                </Text>
               </View>
+              {item.transferAccount ? (
+                <View style={styles.transactionDetailsRow}>
+                  <Text style={styles.transactionDetailsLabel}>
+                    {item.amount < 0 ? 'To account' : 'From account'}
+                  </Text>
+                  <Text style={styles.transactionDetailsValue}>{item.transferAccount}</Text>
+                </View>
+              ) : null}
               <View style={styles.transactionDetailsRow}>
                 <Text style={styles.transactionDetailsLabel}>Type</Text>
                 <Text style={styles.transactionDetailsValue}>
-                  {item.isSplit ? 'Split transaction' : item.amount > 0 ? 'Income' : 'Expense'}
+                  {isTransfer
+                    ? 'Transfer'
+                    : item.isSplit
+                      ? 'Split transaction'
+                      : item.amount > 0
+                        ? 'Income'
+                        : 'Expense'}
                 </Text>
               </View>
               {item.tags?.length ? (

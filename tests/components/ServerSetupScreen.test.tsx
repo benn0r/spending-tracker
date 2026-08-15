@@ -37,4 +37,21 @@ describe('ServerSetupScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalled();
   });
+
+  it('uses a compact close action when editing in a sheet', () => {
+    const onCancel = jest.fn();
+    render(
+      <ServerSetupScreen
+        sheet
+        initialValue={{ serverUrl: 'https://spending.example.test', apiToken: 'token' }}
+        onCancel={onCancel}
+        onSave={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('header', { name: 'Server connection' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeOnTheScreen();
+    fireEvent.press(screen.getByRole('button', { name: 'Close server connection settings' }));
+    expect(onCancel).toHaveBeenCalled();
+  });
 });

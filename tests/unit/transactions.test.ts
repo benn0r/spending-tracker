@@ -26,6 +26,7 @@ describe('transaction helpers', () => {
     assert.equal(formatDateHeader('2026-08-10', now), 'Today');
     assert.equal(formatDateHeader('2026-08-09', now), 'Yesterday');
     assert.equal(formatDateHeader('2026-08-08', now, 'en-US'), 'August 8');
+    assert.equal(formatDateHeader('2026-08-08', now, 'en-CH'), '8. August');
     assert.equal(
       formatDateHeader('1992-10-13', now),
       new Intl.DateTimeFormat(deviceLocale(), {
@@ -38,10 +39,14 @@ describe('transaction helpers', () => {
     assert.equal(
       formatTransactionDate('1992-10-13', 'de-CH'),
       new Intl.DateTimeFormat('de-CH', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
+        dateStyle: 'short',
       }).format(new Date('1992-10-13T12:00:00')),
+    );
+    assert.equal(
+      formatTransactionDate('1992-10-13', 'en-US'),
+      new Intl.DateTimeFormat('en-US', { dateStyle: 'short' }).format(
+        new Date('1992-10-13T12:00:00'),
+      ),
     );
   });
 
