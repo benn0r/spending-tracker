@@ -7,6 +7,7 @@ import type {
   TransactionPage,
   TransactionPayload,
 } from './types';
+import { sortCategoryReferences } from './app-model';
 
 let apiUrl =
   process.env.EXPO_PUBLIC_SPENDING_TRACKER_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
@@ -152,7 +153,14 @@ export async function loadDashboard(): Promise<{
     loadTransactionPage(1),
     request<CashFlow>('/api/cash-flow'),
   ]);
-  return { references, page, cashFlow };
+  return {
+    references: {
+      ...references,
+      categories: sortCategoryReferences(references.categories),
+    },
+    page,
+    cashFlow,
+  };
 }
 
 export function loadTransactionPage(

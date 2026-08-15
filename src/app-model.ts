@@ -72,12 +72,27 @@ function parseCategoryReference(value: unknown): CategoryReference | null {
   )
     return null;
   if (value.color !== undefined && typeof value.color !== 'string') return null;
+  if (
+    value.sortOrder !== undefined &&
+    value.sortOrder !== null &&
+    (!Number.isInteger(value.sortOrder) || (value.sortOrder as number) < 1)
+  )
+    return null;
   return {
     ...reference,
     ...(value.icon === undefined ? {} : { icon: value.icon }),
     ...(value.iconId === undefined ? {} : { iconId: value.iconId as number | null }),
     ...(value.color === undefined ? {} : { color: value.color }),
+    ...(value.sortOrder === undefined ? {} : { sortOrder: value.sortOrder as number | null }),
   };
+}
+
+export function sortCategoryReferences(categories: CategoryReference[]): CategoryReference[] {
+  return [...categories].sort(
+    (left, right) =>
+      (left.sortOrder ?? Number.MAX_SAFE_INTEGER) - (right.sortOrder ?? Number.MAX_SAFE_INTEGER) ||
+      left.name.localeCompare(right.name),
+  );
 }
 
 function hasUniqueIds(items: Reference[]): boolean {
@@ -108,7 +123,7 @@ export function parseReferenceCache(value: string | null): References | null {
     }
     const references: References = {
       accounts: accounts as Reference[],
-      categories: categories as CategoryReference[],
+      categories: sortCategoryReferences(categories as CategoryReference[]),
       tags: tags as Reference[],
     };
     if (

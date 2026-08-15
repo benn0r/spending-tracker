@@ -5,6 +5,7 @@ export type CategoryReference = Reference & {
   icon?: string;
   iconId?: number | null;
   color?: string;
+  sortOrder?: number | null;
 };
 
 export type ApiTransaction = {

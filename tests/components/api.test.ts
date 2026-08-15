@@ -51,10 +51,20 @@ describe('API client', () => {
 
   it('loads dashboard endpoints and encodes paginated account filters', async () => {
     fetchMock
-      .mockResolvedValueOnce(response({ accounts: [], categories: [], tags: [] }))
+      .mockResolvedValueOnce(
+        response({
+          accounts: [],
+          categories: [
+            { id: 'bills', name: 'Bills' },
+            { id: 'food', name: 'Food', sortOrder: 1 },
+          ],
+          tags: [],
+        }),
+      )
       .mockResolvedValueOnce(response({ transactions: [], total: 0, page: 1, pageSize: 20 }))
       .mockResolvedValueOnce(response({ currency: 'CHF', currentMonth: '2026-08', months: [] }));
-    await api.loadDashboard();
+    const dashboard = await api.loadDashboard();
+    expect(dashboard.references.categories.map(({ id }) => id)).toEqual(['food', 'bills']);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       'https://api.example.test/api/references',

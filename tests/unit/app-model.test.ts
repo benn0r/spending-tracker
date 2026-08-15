@@ -11,6 +11,7 @@ import {
   mergeTransactionPages,
   parseLocalDate,
   parseReferenceCache,
+  sortCategoryReferences,
   parseTransactionQueue,
   prepareReceiptDraft,
   prependConfirmedTransaction,
@@ -99,6 +100,18 @@ function receipt(overrides: Partial<ApiReceipt> = {}): ApiReceipt {
 }
 
 describe('reference cache', () => {
+  it('sorts configured categories first and alphabetizes the remainder', () => {
+    assert.deepEqual(
+      sortCategoryReferences([
+        { id: 'travel', name: 'Travel' },
+        { id: 'food', name: 'Food', sortOrder: 2 },
+        { id: 'home', name: 'Home', sortOrder: 1 },
+        { id: 'bills', name: 'Bills' },
+      ]).map(({ id }) => id),
+      ['home', 'food', 'bills', 'travel'],
+    );
+  });
+
   it('restores a deeply valid reference cache and drops unknown properties', () => {
     const cached = JSON.stringify({
       ...references,
@@ -123,6 +136,15 @@ describe('reference cache', () => {
     assert.equal(
       parseReferenceCache(
         JSON.stringify({ ...references, categories: [{ id: 'food', name: 'Food', icon: 42 }] }),
+      ),
+      null,
+    );
+    assert.equal(
+      parseReferenceCache(
+        JSON.stringify({
+          ...references,
+          categories: [{ id: 'food', name: 'Food', sortOrder: 0 }],
+        }),
       ),
       null,
     );
