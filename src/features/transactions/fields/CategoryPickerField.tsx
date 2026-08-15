@@ -59,7 +59,11 @@ export function CategoryPickerField({
             style={styles.nestedScrim}
             onPress={onDismiss}
           />
-          <DrawerSheet style={styles.categorySheet} testID="category-sheet">
+          <DrawerSheet
+            key={open ? 'open' : 'closed'}
+            style={styles.categorySheet}
+            testID="category-sheet"
+          >
             <View style={styles.handle} />
             <View style={styles.categorySheetHeader}>
               <View>
