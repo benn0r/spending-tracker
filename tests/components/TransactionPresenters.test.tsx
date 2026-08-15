@@ -246,7 +246,7 @@ describe('transaction presentation', () => {
     expect(screen.getByLabelText(/Split entry 1 of 2: Food & Drink/)).toHaveStyle({
       minHeight: 44,
       borderWidth: 0,
-      backgroundColor: '#F7F4F8',
+      backgroundColor: '#FAF9FB',
     });
     expect(screen.getByLabelText(/Split entry 2 of 2: Skyship Travel/)).toBeVisible();
     expect(screen.getByText('− CHF 12.00')).toBeVisible();

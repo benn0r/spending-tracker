@@ -249,7 +249,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 0,
-    backgroundColor: '#F7F4F8',
+    backgroundColor: colors.canvas,
   },
   splitTransactionChildIcon: {
     width: 30,
