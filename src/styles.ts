@@ -91,7 +91,7 @@ export const styles = StyleSheet.create({
   summaryCard: {
     marginHorizontal: -22,
     marginTop: -24,
-    marginBottom: 18,
+    marginBottom: 0,
     paddingHorizontal: 22,
     paddingTop: 25,
     paddingBottom: 15,
