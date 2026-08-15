@@ -7,13 +7,21 @@ export function DateSectionHeader({
   date,
   total,
   flushTop = false,
+  sticky = false,
 }: {
   date: string;
   total: number;
   flushTop?: boolean;
+  sticky?: boolean;
 }) {
   return (
-    <View style={[styles.dateSectionHeader, flushTop && styles.dateSectionHeaderFlushTop]}>
+    <View
+      style={[
+        styles.dateSectionHeader,
+        flushTop && styles.dateSectionHeaderFlushTop,
+        sticky && styles.stickyDateSectionHeader,
+      ]}
+    >
       <Text style={styles.dateSectionTitle}>{formatDateHeader(date)}</Text>
       <Text style={[styles.amount, styles.dateSectionAmount]}>{formatCurrency(total)}</Text>
     </View>

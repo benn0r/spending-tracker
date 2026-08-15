@@ -86,13 +86,20 @@ describe('transaction helpers', () => {
 
     assert.deepEqual(
       transactionListItems(transactions).map((item) =>
-        item.kind === 'date' ? `date:${item.date}` : `transaction:${item.transaction.id}`,
+        item.kind === 'date'
+          ? `date:${item.date}`
+          : item.kind === 'spacing'
+            ? `spacing:${item.id}`
+            : `transaction:${item.transaction.id}`,
       ),
       [
         'date:2026-08-12',
+        'spacing:after-2026-08-12',
         'transaction:one',
         'transaction:two',
+        'spacing:before-2026-08-11',
         'date:2026-08-11',
+        'spacing:after-2026-08-11',
         'transaction:three',
       ],
     );

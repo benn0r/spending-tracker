@@ -282,6 +282,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   dateSectionHeaderFlushTop: { marginTop: 0 },
+  stickyDateSectionHeader: { marginTop: 0, marginBottom: 0 },
+  transactionSectionSpacing: { height: 8 },
   dateSectionTitle: {
     color: colors.muted,
     fontSize: 13,

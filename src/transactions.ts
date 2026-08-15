@@ -67,14 +67,18 @@ export function transactionDayTotals(transactions: ApiTransaction[]): Record<str
 }
 
 export type TransactionListItem =
-  { kind: 'date'; date: string } | { kind: 'transaction'; transaction: ApiTransaction };
+  | { kind: 'date'; date: string }
+  | { kind: 'spacing'; id: string }
+  | { kind: 'transaction'; transaction: ApiTransaction };
 
 export function transactionListItems(transactions: ApiTransaction[]): TransactionListItem[] {
   const items: TransactionListItem[] = [];
   let previousDate = '';
   for (const transaction of transactions) {
     if (transaction.date !== previousDate) {
+      if (previousDate) items.push({ kind: 'spacing', id: `before-${transaction.date}` });
       items.push({ kind: 'date', date: transaction.date });
+      items.push({ kind: 'spacing', id: `after-${transaction.date}` });
       previousDate = transaction.date;
     }
     items.push({ kind: 'transaction', transaction });

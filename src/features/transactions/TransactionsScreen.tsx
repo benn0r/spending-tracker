@@ -109,7 +109,11 @@ export function TransactionsScreen({
         stickyHeaderIndices={stickyHeaderIndices}
         removeClippedSubviews={false}
         keyExtractor={(item) =>
-          item.kind === 'date' ? `date-${item.date}` : `transaction-${item.transaction.id}`
+          item.kind === 'date'
+            ? `date-${item.date}`
+            : item.kind === 'spacing'
+              ? item.id
+              : `transaction-${item.transaction.id}`
         }
         renderItem={({ item, index }) =>
           item.kind === 'date' ? (
@@ -117,7 +121,10 @@ export function TransactionsScreen({
               date={item.date}
               total={dayTotals[item.date] ?? 0}
               flushTop={index === 0}
+              sticky
             />
+          ) : item.kind === 'spacing' ? (
+            <View style={styles.transactionSectionSpacing} />
           ) : (
             <TransactionRow item={item.transaction} categories={categories} onDelete={onDelete} />
           )
