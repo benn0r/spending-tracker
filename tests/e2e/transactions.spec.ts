@@ -127,7 +127,8 @@ test('loads 20 transactions initially and fetches the next page on scroll', asyn
   });
 
   await page.goto('/');
-  await expect(page.getByText('20 loaded')).toBeVisible();
+  await expect(page.getByText('Merchant 19')).toBeVisible();
+  await expect(page.getByText('Recent transactions', { exact: true })).toHaveCount(0);
   expect(requests[0]).toBe('?page=1&pageSize=20');
 
   await page.evaluate(() => {
@@ -277,12 +278,10 @@ test('opens wallets without an initial loading indicator while its data is delay
   await expect.poll(() => walletRequestStarted).toBe(true);
 
   await expect(page.getByRole('button', { name: 'Select wallet' })).toBeVisible();
-  await expect(page.getByText('0 loaded')).toBeVisible();
   await expect(page.getByRole('progressbar')).toHaveCount(0);
 
   releaseWalletResponse();
   await expect(page.getByText('Delayed wallet merchant')).toBeVisible();
-  await expect(page.getByText('1 loaded')).toBeVisible();
 });
 
 test('swipes transactions and receipts left to delete them', async ({ page }) => {

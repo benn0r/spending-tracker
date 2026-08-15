@@ -13,6 +13,7 @@ export function AccountDropdown({
   label = 'Default account',
   hint = 'Preselected for every new expense',
   accessibilityLabel = 'Select default account',
+  variant = 'default',
 }: {
   value: string;
   options: Reference[];
@@ -20,28 +21,42 @@ export function AccountDropdown({
   label?: string;
   hint?: string;
   accessibilityLabel?: string;
+  variant?: 'default' | 'header';
 }) {
   const [open, setOpen] = useState(false);
   const selected = options.find(({ id }) => id === value);
   return (
-    <View>
-      <Text style={styles.settingsLabel}>{label}</Text>
+    <View style={variant === 'header' ? styles.headerAccountDropdown : undefined}>
+      {variant === 'default' ? <Text style={styles.settingsLabel}>{label}</Text> : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         onPress={() => setOpen(true)}
-        style={styles.settingsSelect}
+        style={variant === 'header' ? styles.headerAccountSelect : styles.settingsSelect}
       >
-        <View style={styles.settingsSelectCopy}>
-          <View style={styles.settingsSelectIcon}>
-            <Ionicons name="wallet-outline" size={21} color={colors.accent} />
-          </View>
-          <View>
-            <Text style={styles.settingsSelectValue}>{selected?.name ?? 'Choose an account'}</Text>
-            <Text style={styles.settingsSelectHint}>{hint}</Text>
-          </View>
-        </View>
-        <Ionicons name="chevron-down" size={20} color={colors.muted} />
+        {variant === 'header' ? (
+          <>
+            <Text style={styles.headerAccountValue} numberOfLines={1}>
+              {selected?.name ?? 'Choose a wallet'}
+            </Text>
+            <Ionicons name="chevron-down" size={22} color={colors.ink} />
+          </>
+        ) : (
+          <>
+            <View style={styles.settingsSelectCopy}>
+              <View style={styles.settingsSelectIcon}>
+                <Ionicons name="wallet-outline" size={21} color={colors.accent} />
+              </View>
+              <View>
+                <Text style={styles.settingsSelectValue}>
+                  {selected?.name ?? 'Choose an account'}
+                </Text>
+                <Text style={styles.settingsSelectHint}>{hint}</Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-down" size={20} color={colors.muted} />
+          </>
+        )}
       </Pressable>
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <View style={styles.nestedModalRoot}>

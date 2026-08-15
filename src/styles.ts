@@ -156,14 +156,6 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.line,
     zIndex: 5,
   },
-  listHeading: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: { color: colors.ink, fontSize: 19, fontWeight: '700' },
-  filterText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
   queuePanel: {
     borderWidth: 1,
     borderColor: '#D8C4E1',
@@ -761,6 +753,22 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
+  headerAccountDropdown: { marginTop: 4 },
+  headerAccountSelect: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    gap: 7,
+  },
+  headerAccountValue: {
+    flexShrink: 1,
+    color: colors.ink,
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -0.7,
+  },
   receiptsScreen: { flex: 1, paddingTop: 34 },
   receiptsHeader: {
     flexDirection: 'row',
@@ -1015,13 +1023,6 @@ export const styles = StyleSheet.create({
     gap: 14,
   },
   walletContent: { paddingHorizontal: 22, paddingBottom: 40 },
-  walletListHeading: {
-    marginTop: 32,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   secondaryEyebrow: {
     color: colors.accent,
     fontSize: 11,

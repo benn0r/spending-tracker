@@ -83,7 +83,7 @@ test('shows an empty dashboard without treating it as an error', async ({ page }
   await page.goto('/');
 
   await expect(page.getByText('No transactions yet.', { exact: true })).toBeVisible();
-  await expect(page.getByText('0 loaded', { exact: true })).toBeVisible();
+  await expect(page.getByText('Recent transactions', { exact: true })).toHaveCount(0);
   await expect(page.getByTestId('cash-flow-summary')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add transaction' })).toBeVisible();
   await expect(page.getByText('Couldn’t load your budget', { exact: true })).toHaveCount(0);
@@ -100,9 +100,9 @@ test('explains that no wallets are available when references contain no accounts
   await openTab(page, 'Wallets');
 
   await expect(page.getByText('No wallets are enabled.', { exact: true })).toBeVisible();
-  await expect(page.getByText('0 loaded', { exact: true })).toBeVisible();
+  await expect(page.getByText('Wallet transactions', { exact: true })).toHaveCount(0);
   const selector = page.getByRole('button', { name: 'Select wallet' });
-  await expect(selector).toContainText('Choose an account');
+  await expect(selector).toContainText('Choose a wallet');
   await selector.click();
   await expect(
     page.getByText('No accounts are enabled on the server.', { exact: true }),
@@ -129,7 +129,6 @@ test('shows the selected wallet empty state independently of dashboard transacti
     'Moonlight Wallet',
   );
   await expect(page.getByText('No transactions in this wallet.', { exact: true })).toBeVisible();
-  await expect(page.getByText('0 loaded', { exact: true })).toBeVisible();
   await expect(page.getByText('Cloud Castle Curios', { exact: true })).toHaveCount(0);
 });
 
@@ -188,7 +187,6 @@ test('clears a wallet error and recovers when another wallet is selected', async
 
   await expect(page.getByText('Phoenix Feather Forge', { exact: true })).toBeVisible();
   await expect(page.getByText(/Moonlight ledger sealed/)).toHaveCount(0);
-  await expect(page.getByText('1 loaded', { exact: true })).toBeVisible();
 });
 
 test('loads additional wallet pages with the selected account filter', async ({ page }) => {
@@ -215,7 +213,7 @@ test('loads additional wallet pages with the selected account filter', async ({ 
 
   await page.goto('/');
   await openTab(page, 'Wallets');
-  await expect(page.getByText('20 loaded', { exact: true })).toBeVisible();
+  await expect(page.getByText('Astral Merchant 19', { exact: true })).toBeVisible();
   expect(walletRequests[0]).toEqual({
     account: 'moonlight-wallet',
     page: '1',
@@ -225,12 +223,6 @@ test('loads additional wallet pages with the selected account filter', async ({ 
   const list = page.getByTestId('wallets-list');
   await scrollListToEnd(list);
   await expect.poll(() => walletRequests.some((request) => request.page === '2')).toBe(true);
-  await expect
-    .poll(async () => {
-      const text = await page.getByText(/\d+ loaded/).textContent();
-      return Number.parseInt(text ?? '0', 10);
-    })
-    .toBeGreaterThanOrEqual(40);
   await scrollListToEnd(list);
 
   await expect(page.getByText('Astral Merchant 39', { exact: true })).toBeVisible();
@@ -349,5 +341,4 @@ test('restores a wallet transaction when its optimistic delete fails', async ({ 
 
   await expect(row).toBeVisible();
   await expect(page.getByText('Nebula Noodles', { exact: true })).toBeVisible();
-  await expect(page.getByText('1 loaded', { exact: true })).toBeVisible();
 });

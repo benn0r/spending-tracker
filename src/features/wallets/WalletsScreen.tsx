@@ -92,7 +92,14 @@ export function WalletsScreen({
     <View style={styles.secondaryFixedScreen}>
       <View style={styles.secondaryHeader}>
         <Text style={styles.secondaryEyebrow}>ACCOUNTS</Text>
-        <Text style={styles.secondaryTitle}>Wallets</Text>
+        <AccountDropdown
+          value={selectedWallet}
+          options={accounts}
+          onChange={setWallet}
+          label="Wallet"
+          accessibilityLabel="Select wallet"
+          variant="header"
+        />
       </View>
       <FlatList
         testID="wallets-list"
@@ -116,26 +123,7 @@ export function WalletsScreen({
         )}
         contentContainerStyle={styles.walletContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListHeaderComponent={
-          <View>
-            <Text style={styles.settingsIntro}>Choose a wallet to see its transactions.</Text>
-            <View style={styles.settingsSection}>
-              <AccountDropdown
-                value={selectedWallet}
-                options={accounts}
-                onChange={setWallet}
-                label="Wallet"
-                hint="Only transactions from this wallet are shown"
-                accessibilityLabel="Select wallet"
-              />
-            </View>
-            <View style={styles.walletListHeading}>
-              <Text style={styles.sectionTitle}>Wallet transactions</Text>
-              <Text style={styles.filterText}>{items.length} loaded</Text>
-            </View>
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          </View>
-        }
+        ListHeaderComponent={error ? <Text style={styles.errorText}>{error}</Text> : null}
         ListEmptyComponent={
           loading ? null : (
             <Text style={styles.emptyText}>

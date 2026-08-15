@@ -129,10 +129,6 @@ export function TransactionsScreen({
               onRetry={onRetryQueued}
               onDiscard={onDiscardQueued}
             />
-            <View style={styles.listHeading}>
-              <Text style={styles.sectionTitle}>Recent transactions</Text>
-              <Text style={styles.filterText}>{transactions.length} loaded</Text>
-            </View>
           </>
         }
         ListEmptyComponent={<Text style={styles.emptyText}>No transactions yet.</Text>}
