@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Picker } from '@react-native-picker/picker';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -27,6 +26,7 @@ import type {
 import { CategoryPickerField } from './fields/CategoryPickerField';
 import { ChoiceField } from './fields/ChoiceField';
 import { DatePickerField } from './fields/DatePickerField';
+import { ExpenseSplitPickerField } from './fields/ExpenseSplitPickerField';
 import { TextField } from './fields/TextField';
 
 export function EntrySheet({
@@ -59,6 +59,7 @@ export function EntrySheet({
   const [categoryPicker, setCategoryPicker] = useState<'main' | `split-${number}` | null>(null);
   const [shareExpense, setShareExpense] = useState(false);
   const [expenseSplitChoice, setExpenseSplitChoice] = useState('');
+  const [expenseSplitPickerOpen, setExpenseSplitPickerOpen] = useState(false);
   const [newSplitTitle, setNewSplitTitle] = useState('');
   const [newSplitCount, setNewSplitCount] = useState('2');
   const amountInputRef = useRef<TextInput>(null);
@@ -83,6 +84,7 @@ export function EntrySheet({
     setCategoryPicker(null);
     setShareExpense(false);
     setExpenseSplitChoice('');
+    setExpenseSplitPickerOpen(false);
     setNewSplitTitle('');
     setNewSplitCount('2');
   };
@@ -221,7 +223,15 @@ export function EntrySheet({
                     accessibilityRole="checkbox"
                     accessibilityLabel="Add to expense split"
                     accessibilityState={{ checked: shareExpense }}
-                    onPress={() => setShareExpense((current) => !current)}
+                    onPress={() => {
+                      if (shareExpense) {
+                        setShareExpense(false);
+                        setExpenseSplitPickerOpen(false);
+                      } else {
+                        setShareExpense(true);
+                        setExpenseSplitPickerOpen(true);
+                      }
+                    }}
                     style={styles.expenseSplitToggle}
                   >
                     <View
@@ -236,32 +246,15 @@ export function EntrySheet({
                     </View>
                     <Text style={styles.expenseSplitToggleTitle}>Split this expense</Text>
                   </Pressable>
-                  <View
-                    style={[
-                      styles.expenseSplitPickerShell,
-                      !shareExpense && styles.expenseSplitPickerDisabled,
-                    ]}
-                  >
-                    <Picker
-                      accessibilityLabel="Expense split"
-                      enabled={shareExpense}
-                      mode="dropdown"
-                      dropdownIconColor={colors.accentDark}
-                      selectedValue={expenseSplitChoice}
-                      style={styles.expenseSplitPicker}
-                      onValueChange={(value) => setExpenseSplitChoice(String(value))}
-                    >
-                      <Picker.Item label="Choose split" value="" />
-                      {expenseSplits.map((split) => (
-                        <Picker.Item
-                          key={split.id}
-                          label={`${split.title} · ${split.splitCount} people`}
-                          value={String(split.id)}
-                        />
-                      ))}
-                      <Picker.Item label="Create new split" value="__new__" />
-                    </Picker>
-                  </View>
+                  <ExpenseSplitPickerField
+                    value={expenseSplitChoice}
+                    options={expenseSplits}
+                    open={expenseSplitPickerOpen}
+                    disabled={!shareExpense}
+                    onRequestOpen={() => setExpenseSplitPickerOpen(true)}
+                    onChange={setExpenseSplitChoice}
+                    onDismiss={() => setExpenseSplitPickerOpen(false)}
+                  />
                 </View>
                 {shareExpense && expenseSplitChoice === '__new__' ? (
                   <View style={styles.expenseSplitFields}>
