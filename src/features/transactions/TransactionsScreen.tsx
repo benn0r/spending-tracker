@@ -102,7 +102,11 @@ export function TransactionsScreen({
         renderItem={({ item, index }) => (
           <View>
             {index === 0 || transactions[index - 1]?.date !== item.date ? (
-              <DateSectionHeader date={item.date} total={dayTotals[item.date] ?? 0} />
+              <DateSectionHeader
+                date={item.date}
+                total={dayTotals[item.date] ?? 0}
+                flushTop={index === 0}
+              />
             ) : null}
             <TransactionRow item={item} categories={categories} onDelete={onDelete} />
           </View>

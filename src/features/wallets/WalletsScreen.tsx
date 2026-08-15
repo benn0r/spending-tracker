@@ -108,7 +108,11 @@ export function WalletsScreen({
         renderItem={({ item, index }) => (
           <View>
             {index === 0 || items[index - 1]?.date !== item.date ? (
-              <DateSectionHeader date={item.date} total={dayTotals[item.date] ?? 0} />
+              <DateSectionHeader
+                date={item.date}
+                total={dayTotals[item.date] ?? 0}
+                flushTop={index === 0}
+              />
             ) : null}
             <TransactionRow
               item={item}
