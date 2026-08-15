@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, type StyleProp, type ViewStyle } from 'react-native';
 
 export function DrawerSheet({
@@ -18,6 +18,11 @@ export function DrawerSheet({
   delay?: number;
 }) {
   const [translateY] = useState(() => new Animated.Value(Dimensions.get('window').height));
+  const onHiddenRef = useRef(onHidden);
+
+  useEffect(() => {
+    onHiddenRef.current = onHidden;
+  }, [onHidden]);
 
   useEffect(() => {
     if (visible) translateY.setValue(Dimensions.get('window').height);
@@ -28,9 +33,9 @@ export function DrawerSheet({
       easing: visible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
-      if (finished && !visible) onHidden?.();
+      if (finished && !visible) onHiddenRef.current?.();
     });
-  }, [delay, onHidden, translateY, visible]);
+  }, [delay, translateY, visible]);
 
   return (
     <Animated.View style={[style, { transform: [{ translateY }] }]} testID={testID}>

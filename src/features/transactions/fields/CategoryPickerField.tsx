@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { FlatList, Modal, Pressable, Text, View } from 'react-native';
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
@@ -26,13 +26,17 @@ export function CategoryPickerField({
 }) {
   const selected = options.find(({ id }) => id === value);
   const [closing, setClosing] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const dismiss = () => {
     setClosing(true);
     onDismiss();
   };
-  const finishDismiss = useCallback(() => {
-    if (!open) setClosing(false);
-  }, [open]);
+  const finishDismiss = () => {
+    if (!open) {
+      setClosing(false);
+      setSheetVisible(false);
+    }
+  };
   return (
     <View style={styles.fieldGroup}>
       <Pressable
@@ -60,7 +64,13 @@ export function CategoryPickerField({
         )}
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
       </Pressable>
-      <Modal visible={open || closing} transparent animationType="none" onRequestClose={dismiss}>
+      <Modal
+        visible={open || closing}
+        transparent
+        animationType="none"
+        onShow={() => setSheetVisible(true)}
+        onRequestClose={dismiss}
+      >
         <View
           style={styles.nestedModalRoot}
           pointerEvents={open ? 'auto' : 'none'}
@@ -74,9 +84,8 @@ export function CategoryPickerField({
             onPress={dismiss}
           />
           <DrawerSheet
-            visible={open}
+            visible={open && sheetVisible}
             onHidden={finishDismiss}
-            delay={280}
             style={styles.categorySheet}
             testID="category-sheet"
           >
