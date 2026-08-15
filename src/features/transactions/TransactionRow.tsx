@@ -70,6 +70,15 @@ export function TransactionRow({
               >
                 <Ionicons name="wallet-outline" size={11} color={accountColor} />
               </View>
+              {item.cleared ? (
+                <View
+                  accessible
+                  accessibilityLabel="Verified in Actual Budget"
+                  style={styles.transactionClearedPill}
+                >
+                  <Ionicons name="checkmark" size={12} color={colors.green} />
+                </View>
+              ) : null}
               {(item.tags ?? []).map((tag) => (
                 <View key={tag} style={styles.transactionTagPill}>
                   <Text ellipsizeMode="tail" numberOfLines={1} style={styles.transactionTagText}>

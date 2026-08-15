@@ -19,6 +19,7 @@ const transaction = {
   category: 'Groceries',
   payee: 'Green Grocer',
   isSplit: false,
+  cleared: true,
 };
 
 test.beforeEach(async ({ page }) => {
@@ -74,6 +75,7 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
   await expect(page.getByText('Good morning')).toHaveCount(0);
   await expect(page.getByLabel('Refresh transactions')).toHaveCount(0);
   await expect(page.getByText('Green Grocer')).toBeVisible();
+  await expect(page.getByLabel('Verified in Actual Budget')).toBeVisible();
   await page.getByRole('button', { name: 'View details for Green Grocer' }).click();
   const details = page.getByTestId('transaction-details-sheet');
   await expect(details).toBeVisible();

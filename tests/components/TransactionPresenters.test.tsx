@@ -115,7 +115,7 @@ describe('transaction presentation', () => {
   });
 
   it('renders server category visuals, fallbacks, signed amounts, and deletion', () => {
-    const expense = transaction();
+    const expense = transaction({ cleared: true });
     const onDelete = jest.fn();
     const { rerender } = render(
       <TransactionRow
@@ -134,6 +134,7 @@ describe('transaction presentation', () => {
 
     expect(screen.getByText('Comet Rail')).toBeVisible();
     expect(screen.getByLabelText('Account Moonlight Wallet')).toBeVisible();
+    expect(screen.getByLabelText('Verified in Actual Budget')).toBeVisible();
     expect(screen.getByText('− CHF 25.50')).toBeVisible();
     expect(screen.getByTestId('icon-airplane-outline')).toBeVisible();
     fireEvent.press(screen.getByRole('button', { name: 'Delete Comet Rail' }));
@@ -150,6 +151,7 @@ describe('transaction presentation', () => {
     expect(screen.getByText('#holiday')).toBeVisible();
     expect(screen.getByText('#shared')).toBeVisible();
     expect(screen.getByLabelText('Account Moonlight Wallet')).toBeVisible();
+    expect(screen.queryByLabelText('Verified in Actual Budget')).toBeNull();
 
     rerender(
       <TransactionRow

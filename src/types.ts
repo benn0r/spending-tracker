@@ -18,6 +18,7 @@ export type ApiTransaction = {
   notes?: string;
   tags?: string[];
   isSplit: boolean;
+  cleared?: boolean;
 };
 
 export type TransactionPage = {

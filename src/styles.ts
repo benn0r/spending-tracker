@@ -269,6 +269,16 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  transactionClearedPill: {
+    height: 18,
+    minWidth: 22,
+    paddingHorizontal: 5,
+    borderRadius: 9,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E2F4E8',
+  },
   dateSectionHeader: {
     alignSelf: 'stretch',
     marginHorizontal: -22,
