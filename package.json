@@ -14,7 +14,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "expo lint . --max-warnings=0",
-    "build": "expo export --platform web --output-dir dist",
+    "build": "expo export --platform web --output-dir dist --max-workers 1",
     "test": "npm run test:unit && npm run test:components",
     "test:unit": "node --experimental-strip-types --test tests/unit/*.test.ts",
     "test:coverage": "npm run test:unit:coverage && npm run test:components:coverage",
