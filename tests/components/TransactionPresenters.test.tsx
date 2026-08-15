@@ -214,6 +214,45 @@ describe('transaction presentation', () => {
     expect(screen.getByText('Cloud Vault')).toBeVisible();
   });
 
+  it('nests Actual Budget split children beneath their parent transaction', () => {
+    render(
+      <TransactionRow
+        item={transaction({
+          id: 'expedition-split',
+          amount: -30,
+          isSplit: true,
+          children: [
+            {
+              id: 'split-food',
+              category: 'Food & Drink',
+              amount: -12,
+              notes: 'Trail snacks',
+              tags: ['shared'],
+            },
+            {
+              id: 'split-travel',
+              category: 'Skyship Travel',
+              amount: -18,
+              tags: [],
+            },
+          ],
+        })}
+        categories={[]}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('Split transaction')).toBeVisible();
+    expect(screen.getByLabelText(/Split entry 1 of 2: Food & Drink/)).toBeVisible();
+    expect(screen.getByLabelText(/Split entry 2 of 2: Skyship Travel/)).toBeVisible();
+    expect(screen.getByText('− CHF 12.00')).toBeVisible();
+    expect(screen.getByText('− CHF 18.00')).toBeVisible();
+    expect(screen.getByText('#shared')).toBeVisible();
+
+    fireEvent.press(screen.getByRole('button', { name: 'View details for Comet Rail' }));
+    expect(screen.getByText('Split entries')).toBeVisible();
+  });
+
   it('hides an empty queue and wires enabled retry and discard actions', () => {
     const onRetry = jest.fn();
     const onDiscard = jest.fn();

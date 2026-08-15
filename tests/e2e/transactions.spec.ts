@@ -37,6 +37,38 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test('shows split postings nested beneath their parent transaction', async ({ page }) => {
+  const split = {
+    ...transaction,
+    id: 'split-parent',
+    amount: -30,
+    isSplit: true,
+    children: [
+      {
+        id: 'split-food',
+        category: 'Groceries',
+        amount: -12,
+        notes: 'Trail snacks',
+        tags: ['shared'],
+      },
+      { id: 'split-home', category: 'Home', amount: -18, tags: [] },
+    ],
+  };
+  await page.route('**/api/transactions**', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: [split], total: 1, page: 1, pageSize: 200 }),
+    }),
+  );
+
+  await page.goto('/');
+  await expect(page.getByLabel('Split transaction')).toBeVisible();
+  await expect(page.getByLabel(/Split entry 1 of 2: Groceries/)).toBeVisible();
+  await expect(page.getByLabel(/Split entry 2 of 2: Home/)).toBeVisible();
+  await expect(page.getByText('− CHF 12.00')).toBeVisible();
+  await expect(page.getByText('− CHF 18.00')).toBeVisible();
+});
+
 test('loads API transactions and submits a new expense', async ({ page }) => {
   let items = [transaction];
   let submitted: Record<string, unknown> | undefined;

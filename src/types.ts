@@ -18,6 +18,13 @@ export type ApiTransaction = {
   notes?: string;
   tags?: string[];
   isSplit: boolean;
+  children?: {
+    id: string;
+    category: string;
+    amount: number;
+    notes?: string;
+    tags: string[];
+  }[];
   cleared?: boolean;
   type?: 'Expense' | 'Income' | 'Transfer';
   transferAccount?: string;

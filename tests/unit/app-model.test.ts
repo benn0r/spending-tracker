@@ -603,6 +603,10 @@ describe('transaction page and optimistic models', () => {
     assert.equal(split.account, 'Unknown account');
     assert.equal(split.category, 'Split transaction');
     assert.equal(split.isSplit, true);
+    assert.deepEqual(split.children, [
+      { id: 'split-split-1', category: 'food-id', amount: -12, tags: [] },
+      { id: 'split-split-2', category: 'home-id', amount: -8, tags: [] },
+    ]);
   });
 
   it('prepends a confirmed transaction and replaces every stale copy of its ID', () => {

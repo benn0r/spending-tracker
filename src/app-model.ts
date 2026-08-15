@@ -313,6 +313,16 @@ export function createConfirmedTransaction({
     payee: '—',
     notes: payload.notes,
     isSplit: mode === 'split',
+    ...(mode === 'split'
+      ? {
+          children: (payload.splits ?? []).map((split, index) => ({
+            id: `${id}-split-${index + 1}`,
+            category: split.category,
+            amount: split.amount,
+            tags: split.tags ?? [],
+          })),
+        }
+      : {}),
   };
 }
 
