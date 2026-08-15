@@ -74,6 +74,15 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
   await expect(page.getByText('Good morning')).toHaveCount(0);
   await expect(page.getByLabel('Refresh transactions')).toHaveCount(0);
   await expect(page.getByText('Green Grocer')).toBeVisible();
+  await page.getByRole('button', { name: 'View details for Green Grocer' }).click();
+  const details = page.getByTestId('transaction-details-sheet');
+  await expect(details).toBeVisible();
+  await expect(details.getByText('Everyday', { exact: true })).toBeVisible();
+  await expect(details.getByText('Groceries', { exact: true })).toBeVisible();
+  await expect(details.getByText('Expense', { exact: true })).toBeVisible();
+  await expect(details.getByText('− CHF 64.20', { exact: true })).toBeVisible();
+  await details.getByRole('button', { name: 'Close transaction details' }).click();
+  await expect(details).toHaveCount(0);
   await page.getByRole('button', { name: 'Add transaction' }).click();
   await expect(page.getByTestId('category-sheet')).toBeVisible();
   await page.getByRole('radio', { name: 'Groceries' }).click();
@@ -334,6 +343,7 @@ test('swipes transactions and receipts left to delete them', async ({ page }) =>
     steps: 10,
   });
   await page.mouse.up();
+  await expect(page.getByTestId('transaction-details-sheet')).toHaveCount(0);
   await page.touchscreen.tap(10, 10);
   await page.waitForTimeout(300);
   await page.mouse.move(transactionBox.x + transactionBox.width - 15, transactionBox.y + 25);
