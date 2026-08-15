@@ -656,14 +656,15 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     paddingHorizontal: 18,
     paddingTop: 10,
-    paddingBottom: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
   },
   datePickerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 14,
   },
+  datePickerSelection: { color: colors.muted, fontSize: 13, fontWeight: '600', marginTop: 3 },
   dateDoneButton: {
     minHeight: 38,
     paddingHorizontal: 15,
@@ -673,7 +674,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dateDoneText: { color: colors.accentDark, fontSize: 13, fontWeight: '800' },
-  datePicker: { width: '100%' },
+  datePicker: {
+    width: '89%',
+    alignSelf: 'center',
+    marginVertical: 17,
+    transform: [{ scale: 1.12 }],
+  },
   splitCard: {
     borderWidth: 1,
     borderColor: colors.line,

@@ -64,7 +64,10 @@ export function DatePickerField({
           <View style={styles.datePickerSheet}>
             <View style={styles.handle} />
             <View style={styles.datePickerHeader}>
-              <Text style={styles.categorySheetTitle}>Transaction date</Text>
+              <View>
+                <Text style={styles.categorySheetTitle}>Transaction date</Text>
+                <Text style={styles.datePickerSelection}>{formatDateHeader(selected)}</Text>
+              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Confirm date"
