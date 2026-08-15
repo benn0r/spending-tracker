@@ -97,12 +97,12 @@ test('explains that no wallets are available when references contain no accounts
 
   await page.goto('/');
   await expect(page.getByText('No transactions yet.', { exact: true })).toBeVisible();
-  await openTab(page, 'Wallets');
+  await openTab(page, 'Accounts');
 
-  await expect(page.getByText('No wallets are enabled.', { exact: true })).toBeVisible();
+  await expect(page.getByText('No accounts are enabled.', { exact: true })).toBeVisible();
   await expect(page.getByText('Wallet transactions', { exact: true })).toHaveCount(0);
-  const selector = page.getByRole('button', { name: 'Select wallet' });
-  await expect(selector).toContainText('Choose a wallet');
+  const selector = page.getByRole('button', { name: 'Select account' });
+  await expect(selector).toContainText('Choose an account');
   await selector.click();
   await expect(
     page.getByText('No accounts are enabled on the server.', { exact: true }),
@@ -123,12 +123,12 @@ test('shows the selected wallet empty state independently of dashboard transacti
 
   await page.goto('/');
   await expect(page.getByText('Cloud Castle Curios', { exact: true })).toBeVisible();
-  await openTab(page, 'Wallets');
+  await openTab(page, 'Accounts');
 
-  await expect(page.getByRole('button', { name: 'Select wallet' })).toContainText(
+  await expect(page.getByRole('button', { name: 'Select account' })).toContainText(
     'Moonlight Wallet',
   );
-  await expect(page.getByText('No transactions in this wallet.', { exact: true })).toBeVisible();
+  await expect(page.getByText('No transactions in this account.', { exact: true })).toBeVisible();
   await expect(page.getByText('Cloud Castle Curios', { exact: true })).toHaveCount(0);
 });
 
@@ -174,11 +174,11 @@ test('clears a wallet error and recovers when another wallet is selected', async
 
   await page.goto('/');
   await expect(page.getByText('Comet Tailor', { exact: true })).toBeVisible();
-  await openTab(page, 'Wallets');
+  await openTab(page, 'Accounts');
 
   await expect(page.getByText(/Moonlight ledger sealed/)).toBeVisible();
   await expect(page.getByText(/HTTP 503/)).toBeVisible();
-  await page.getByRole('button', { name: 'Select wallet' }).click();
+  await page.getByRole('button', { name: 'Select account' }).click();
   await page
     .getByTestId('account-sheet')
     .getByRole('radio')
@@ -212,7 +212,7 @@ test('loads additional wallet pages with the selected account filter', async ({ 
   await setupFantasyApi(page, { transactions });
 
   await page.goto('/');
-  await openTab(page, 'Wallets');
+  await openTab(page, 'Accounts');
   await expect(page.getByText('Astral Merchant 19', { exact: true })).toBeVisible();
   expect(walletRequests[0]).toEqual({
     account: 'moonlight-wallet',
@@ -281,10 +281,10 @@ test('ignores a stale wallet response after a rapid wallet switch', async ({ pag
 
   await page.goto('/');
   await expect(page.getByText('No transactions yet.', { exact: true })).toBeVisible();
-  await openTab(page, 'Wallets');
+  await openTab(page, 'Accounts');
   await expect.poll(() => moonlightRequestStarted).toBe(true);
 
-  await page.getByRole('button', { name: 'Select wallet' }).click();
+  await page.getByRole('button', { name: 'Select account' }).click();
   await page
     .getByTestId('account-sheet')
     .getByRole('radio')
@@ -304,7 +304,7 @@ test('ignores a stale wallet response after a rapid wallet switch', async ({ pag
   await staleResponse;
   await waitForUiCommit(page);
 
-  await expect(page.getByRole('button', { name: 'Select wallet' })).toContainText('Dragon Hoard');
+  await expect(page.getByRole('button', { name: 'Select account' })).toContainText('Dragon Hoard');
   await expect(page.getByText('Current Griffin Grocer', { exact: true })).toBeVisible();
   await expect(page.getByText('Outdated Observatory Shop', { exact: true })).toHaveCount(0);
 });
@@ -328,7 +328,7 @@ test('restores a wallet transaction when its optimistic delete fails', async ({ 
   });
 
   await page.goto('/');
-  await openTab(page, 'Wallets');
+  await openTab(page, 'Accounts');
   const row = page.getByTestId(`transaction-${transaction.id}`);
   await expect(row).toBeVisible();
   await revealDeleteAction(page, row);

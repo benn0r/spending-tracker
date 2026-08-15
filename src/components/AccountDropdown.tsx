@@ -37,7 +37,7 @@ export function AccountDropdown({
         {variant === 'header' ? (
           <>
             <Text style={styles.headerAccountValue} numberOfLines={1}>
-              {selected?.name ?? 'Choose a wallet'}
+              {selected?.name ?? 'Choose an account'}
             </Text>
             <Ionicons name="chevron-down" size={22} color={colors.ink} />
           </>

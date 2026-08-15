@@ -166,7 +166,7 @@ export async function setupFantasyApi(
   );
 }
 
-export type AppTabName = 'Transactions' | 'Wallets' | 'Receipts' | 'Settings';
+export type AppTabName = 'Transactions' | 'Accounts' | 'Receipts' | 'Settings';
 
 export async function openTab(page: Page, tab: AppTabName): Promise<void> {
   await page.getByRole('tab', { name: tab }).click();

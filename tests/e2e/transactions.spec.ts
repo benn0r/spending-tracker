@@ -274,10 +274,10 @@ test('opens wallets without an initial loading indicator while its data is delay
 
   await page.goto('/');
   await expect(page.getByText('Green Grocer')).toBeVisible();
-  await page.getByRole('tab', { name: 'Wallets' }).click();
+  await page.getByRole('tab', { name: 'Accounts' }).click();
   await expect.poll(() => walletRequestStarted).toBe(true);
 
-  await expect(page.getByRole('button', { name: 'Select wallet' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Select account' })).toBeVisible();
   await expect(page.getByRole('progressbar')).toHaveCount(0);
 
   releaseWalletResponse();
@@ -385,9 +385,9 @@ test('selects a wallet and shows only that wallet’s transactions', async ({ pa
   });
 
   await page.goto('/');
-  await page.getByRole('tab', { name: 'Wallets' }).click();
+  await page.getByRole('tab', { name: 'Accounts' }).click();
   await expect(page.getByText('Green Grocer')).toBeVisible();
-  await page.getByRole('button', { name: 'Select wallet' }).click();
+  await page.getByRole('button', { name: 'Select account' }).click();
   await page.getByRole('radio', { name: 'Savings' }).click();
 
   await expect(page.getByText('Savings interest')).toBeVisible();

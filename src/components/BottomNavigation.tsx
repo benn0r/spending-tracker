@@ -19,7 +19,7 @@ export function BottomNavigation({
   const insets = useSafeAreaInsets();
   const tabs: { id: AppTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: 'transactions', label: 'Transactions', icon: 'swap-horizontal-outline' },
-    { id: 'wallets', label: 'Wallets', icon: 'wallet-outline' },
+    { id: 'wallets', label: 'Accounts', icon: 'wallet-outline' },
     { id: 'receipts', label: 'Receipts', icon: 'receipt-outline' },
     { id: 'settings', label: 'Settings', icon: 'settings-outline' },
   ];

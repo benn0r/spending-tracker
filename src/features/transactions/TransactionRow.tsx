@@ -55,7 +55,7 @@ export function TransactionRow({
           <View style={styles.transactionMetaRow}>
             <View
               accessible
-              accessibilityLabel={`Wallet ${item.account}`}
+              accessibilityLabel={`Account ${item.account}`}
               accessibilityRole="image"
               style={[styles.transactionWalletPill, { backgroundColor: `${accountColor}1A` }]}
             >

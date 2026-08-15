@@ -53,7 +53,7 @@ export function WalletsScreen({
         setTotal(result.total);
       } catch (cause) {
         if (requestGeneration === generation.current)
-          setError(cause instanceof Error ? cause.message : 'Could not load wallet transactions.');
+          setError(cause instanceof Error ? cause.message : 'Could not load account transactions.');
       } finally {
         if (requestGeneration === generation.current) {
           setLoading(false);
@@ -96,8 +96,8 @@ export function WalletsScreen({
           value={selectedWallet}
           options={accounts}
           onChange={setWallet}
-          label="Wallet"
-          accessibilityLabel="Select wallet"
+          label="Account"
+          accessibilityLabel="Select account"
           variant="header"
         />
       </View>
@@ -131,7 +131,7 @@ export function WalletsScreen({
         ListEmptyComponent={
           loading ? null : (
             <Text style={styles.emptyText}>
-              {accounts.length ? 'No transactions in this wallet.' : 'No wallets are enabled.'}
+              {accounts.length ? 'No transactions in this account.' : 'No accounts are enabled.'}
             </Text>
           )
         }
