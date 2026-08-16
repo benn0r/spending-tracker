@@ -48,7 +48,7 @@ describe('EntrySheet', () => {
     );
     fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
     fireEvent.changeText(screen.getByLabelText('Amount'), '24');
-    fireEvent.press(screen.getByRole('checkbox', { name: 'Add to expense split' }));
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Add to shared expenses' }));
     fireEvent.press(screen.getByRole('radio', { name: 'Household · 2 people' }));
     fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
@@ -76,9 +76,9 @@ describe('EntrySheet', () => {
     );
     fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
     fireEvent.changeText(screen.getByLabelText('Amount'), '15');
-    fireEvent.press(screen.getByRole('checkbox', { name: 'Add to expense split' }));
-    fireEvent.press(screen.getByRole('radio', { name: 'Create new split' }));
-    expect(screen.getByPlaceholderText('Split from 15.08.2026')).toBeVisible();
+    fireEvent.press(screen.getByRole('checkbox', { name: 'Add to shared expenses' }));
+    fireEvent.press(screen.getByRole('radio', { name: 'Create shared expense' }));
+    expect(screen.getByLabelText('Split name')).toBeVisible();
     fireEvent.changeText(screen.getByLabelText('Number of people'), '3');
     fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));

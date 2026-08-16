@@ -27,14 +27,14 @@ export function ExpenseSplitPickerField({
   const [sheetVisible, setSheetVisible] = useState(false);
   const selected = options.find(({ id }) => String(id) === value);
   const selectedLabel =
-    value === '__new__' ? 'Create new split' : selected?.title || 'Choose split';
+    value === '__new__' ? 'Create shared expense' : selected?.title || 'Choose shared expense';
   const choices = [
     ...options.map((split) => ({
       value: String(split.id),
       label: split.title,
       detail: `${split.splitCount} people · ${split.transactionCount} transactions`,
     })),
-    { value: '__new__', label: 'Create new split', detail: 'Start a new shared expense' },
+    { value: '__new__', label: 'Create shared expense', detail: 'Start a new shared expense' },
   ];
   const dismiss = () => {
     setClosing(true);
@@ -51,7 +51,7 @@ export function ExpenseSplitPickerField({
     <>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Expense split"
+        accessibilityLabel="Shared expense"
         accessibilityState={{ disabled }}
         disabled={disabled}
         onPress={onRequestOpen}
@@ -81,7 +81,7 @@ export function ExpenseSplitPickerField({
         >
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Close expense split picker"
+            accessibilityLabel="Close shared expenses"
             style={styles.nestedScrim}
             onPress={dismiss}
           />
@@ -94,9 +94,9 @@ export function ExpenseSplitPickerField({
             <View style={styles.handle} />
             <View style={styles.categorySheetHeader}>
               <View>
-                <Text style={styles.categorySheetTitle}>Split this expense</Text>
+                <Text style={styles.categorySheetTitle}>Shared expenses</Text>
                 <Text style={styles.categorySheetSubtitle}>
-                  Add it to an existing split or create a new one.
+                  Add this transaction to an existing shared expense or create a new one.
                 </Text>
               </View>
             </View>

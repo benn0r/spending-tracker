@@ -221,7 +221,7 @@ export function EntrySheet({
                 <View style={styles.expenseSplitRow}>
                   <Pressable
                     accessibilityRole="checkbox"
-                    accessibilityLabel="Add to expense split"
+                    accessibilityLabel="Add to shared expenses"
                     accessibilityState={{ checked: shareExpense }}
                     onPress={() => {
                       if (shareExpense) {
@@ -244,7 +244,7 @@ export function EntrySheet({
                         <Ionicons name="checkmark" size={15} color={colors.white} />
                       ) : null}
                     </View>
-                    <Text style={styles.expenseSplitToggleTitle}>Split this expense</Text>
+                    <Text style={styles.expenseSplitToggleTitle}>Shared expenses</Text>
                   </Pressable>
                   <ExpenseSplitPickerField
                     value={expenseSplitChoice}

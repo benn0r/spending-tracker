@@ -783,7 +783,7 @@ test('adds a new transaction to an existing expense-sharing split', async ({ pag
   await page.getByRole('radio', { name: 'Groceries' }).click();
   await page.getByRole('radio', { name: 'Everyday' }).click();
   await page.getByLabel('Amount').fill('21');
-  await page.getByRole('checkbox', { name: 'Add to expense split' }).click();
+  await page.getByRole('checkbox', { name: 'Add to shared expenses' }).click();
   await page.getByRole('radio', { name: 'Household · 2 people' }).click();
   await page.getByRole('button', { name: 'Save expense' }).click();
 
