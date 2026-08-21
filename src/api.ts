@@ -4,6 +4,7 @@ import type {
   ApiReceipt,
   CashFlow,
   ExpenseSplitSummary,
+  ExpenseSplitDetail,
   References,
   TransactionPage,
   TransactionPayload,
@@ -187,6 +188,10 @@ export async function loadExpenseSplits(): Promise<ExpenseSplitSummary[]> {
   return Array.isArray(payload.splits) ? payload.splits : [];
 }
 
+export function loadExpenseSplit(id: number): Promise<ExpenseSplitDetail> {
+  return request(`/api/splits/${id}`);
+}
+
 export async function submitTransaction(
   payload: TransactionPayload,
 ): Promise<{ id: string; status: 'created' }> {
@@ -195,6 +200,16 @@ export async function submitTransaction(
 
 export function deleteTransaction(id: string): Promise<void> {
   return request(`/api/transactions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function updateTransaction(
+  id: string,
+  payload: TransactionPayload,
+): Promise<{ id: string; status: 'updated' }> {
+  return request(`/api/transactions/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
 }
 
 function normalizeReceipt(value: unknown): ApiReceipt | null {

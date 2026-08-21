@@ -34,6 +34,40 @@ const references: References = {
 };
 
 describe('EntrySheet', () => {
+  it('prefills every editable field and keeps shared-expense membership when editing', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    render(
+      <EntrySheet
+        visible
+        references={references}
+        expenseSplits={[{ id: 7, title: 'Dragon expedition', splitCount: 2, transactionCount: 1 }]}
+        defaultAccount="everyday"
+        initialDraft={{
+          account: 'savings',
+          category: 'groceries',
+          date: '2026-08-15',
+          amount: '42.50',
+          tags: ['weekly'],
+          comment: 'Market visit',
+          splits: [
+            { category: 'groceries', amount: '20', tags: [] },
+            { category: 'home', amount: '22.50', tags: ['weekly'] },
+          ],
+        }}
+        initialExpenseSplitId={7}
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+
+    expect(screen.getByText('Edit transaction')).toBeVisible();
+    expect(screen.getByLabelText('Amount')).toHaveDisplayValue('42.50');
+    expect(screen.getByLabelText('Comment')).toHaveDisplayValue('Market visit');
+    expect(screen.getByRole('checkbox', { name: 'Add to shared expenses' })).toBeChecked();
+    fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0]?.[2]).toEqual({ mode: 'existing', splitId: 7 });
+  });
   it('assigns an expense to an existing or newly created sharing split', async () => {
     const onSave = jest.fn().mockResolvedValue(undefined);
     const { rerender } = render(

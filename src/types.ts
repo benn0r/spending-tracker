@@ -28,6 +28,7 @@ export type ApiTransaction = {
   cleared?: boolean;
   type?: 'Expense' | 'Income' | 'Transfer';
   transferAccount?: string;
+  expenseSplitId?: number | null;
 };
 
 export type TransactionPage = {
@@ -62,6 +63,34 @@ export type ExpenseSplitSummary = {
   title: string;
   splitCount: number;
   transactionCount: number;
+  totalAmount?: number;
+  splitAmount?: number;
+  settlementAmount?: number;
+  balance?: number;
+  currency?: string;
+  entryCount?: number;
+  settlementCount?: number;
+};
+
+export type ExpenseSplitDetail = ExpenseSplitSummary & {
+  entries: {
+    id: number;
+    kind: 'transaction' | 'custom';
+    transactionId: string | null;
+    description: string;
+    amount: number;
+    date: string | null;
+    wallet: string | null;
+    categoryName: string | null;
+  }[];
+  settlements: {
+    id: number;
+    transactionId: string;
+    description: string;
+    amount: number;
+    date: string;
+    wallet: string;
+  }[];
 };
 
 export type ExpenseSplitSelection =

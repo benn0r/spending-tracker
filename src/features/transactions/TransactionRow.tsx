@@ -21,10 +21,12 @@ export function TransactionRow({
   item,
   categories,
   onDelete,
+  onEdit,
 }: {
   item: ApiTransaction;
   categories: CategoryReference[];
   onDelete: (item: ApiTransaction) => void;
+  onEdit?: (item: ApiTransaction) => void;
 }) {
   const isTransfer = item.type === 'Transfer';
   const title = isTransfer
@@ -289,6 +291,22 @@ export function TransactionRow({
                 </View>
               ) : null}
             </ScrollView>
+            {!isTransfer && item.amount < 0 && onEdit ? (
+              <View style={styles.sheetActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit transaction"
+                  onPress={() => {
+                    setDetailsOpen(false);
+                    onEdit(item);
+                  }}
+                  style={styles.saveButton}
+                >
+                  <Ionicons name="create-outline" size={18} color={colors.white} />
+                  <Text style={styles.saveText}>Edit transaction</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </DrawerSheet>
         </View>
       </Modal>

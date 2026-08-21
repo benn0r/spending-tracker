@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
-import { type ApiConfiguration, submitReceiptTransaction } from './src/api';
+import { type ApiConfiguration, submitReceiptTransaction, updateTransaction } from './src/api';
 import type { ConfirmedTransactionInput } from './src/app-model';
 import { BottomNavigation, type AppTab } from './src/components/BottomNavigation';
 import { DrawerSheet } from './src/components/DrawerSheet';
@@ -14,6 +14,7 @@ import { ServerSetupScreen } from './src/features/setup/ServerSetupScreen';
 import { EntrySheet } from './src/features/transactions/EntrySheet';
 import { TransactionsScreen } from './src/features/transactions/TransactionsScreen';
 import { WalletsScreen } from './src/features/wallets/WalletsScreen';
+import { SharedExpensesScreen } from './src/features/splits/SharedExpensesScreen';
 import { useDashboardTransactions } from './src/hooks/useDashboardTransactions';
 import { useDefaultAccount } from './src/hooks/useDefaultAccount';
 import { useExpenseSplits } from './src/hooks/useExpenseSplits';
@@ -22,7 +23,12 @@ import { useServerConfig } from './src/hooks/useServerConfig';
 import { useTransactionQueue } from './src/hooks/useTransactionQueue';
 import { styles } from './src/styles';
 import { createPayload } from './src/transactions';
-import type { DraftTransaction, EntryMode, ExpenseSplitSelection } from './src/types';
+import type {
+  ApiTransaction,
+  DraftTransaction,
+  EntryMode,
+  ExpenseSplitSelection,
+} from './src/types';
 
 export default function App() {
   const { configuration, hydrated, saveConfiguration } = useServerConfig();
@@ -84,6 +90,7 @@ function ConfiguredApp({
   const [setupOpen, setSetupOpen] = useState(false);
   const [transactionsActivationRequest, setTransactionsActivationRequest] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<ApiTransaction | null>(null);
   const [receiptEntry, setReceiptEntry] = useState<{
     id: number;
     draft: DraftTransaction;
@@ -130,6 +137,13 @@ function ConfiguredApp({
   ) => {
     const submittedReceipt = receiptEntry;
     const payload = { ...createPayload(draft, mode), ...(expenseSplit ? { expenseSplit } : {}) };
+    if (editingTransaction) {
+      await updateTransaction(editingTransaction.id, payload);
+      setEditingTransaction(null);
+      setSheetOpen(false);
+      await Promise.all([refresh(), refreshExpenseSplits()]);
+      return;
+    }
     const account = references.accounts.find(({ id }) => id === payload.account)?.name;
     const category =
       mode === 'split'
@@ -179,15 +193,27 @@ function ConfiguredApp({
                   onActivationRefresh={refreshSilently}
                   onLoadMore={loadMoreTransactions}
                   onDelete={removeTransaction}
+                  onEdit={(transaction) => {
+                    setReceiptEntry(null);
+                    setEditingTransaction(transaction);
+                    setSheetOpen(true);
+                  }}
                   onRetryQueued={(item) => void retryQueuedTransaction(item)}
                   onDiscardQueued={discardQueuedTransaction}
                   onAdd={() => {
                     setReceiptEntry(null);
+                    setEditingTransaction(null);
                     setSheetOpen(true);
                   }}
                 />
               ) : activeTab === 'wallets' ? (
                 <WalletsScreen accounts={references.accounts} categories={references.categories} />
+              ) : activeTab === 'shared' ? (
+                <SharedExpensesScreen
+                  splits={expenseSplits}
+                  loading={false}
+                  onRefresh={refreshExpenseSplits}
+                />
               ) : activeTab === 'receipts' ? (
                 <ReceiptsScreen
                   receipts={receipts}
@@ -198,6 +224,7 @@ function ConfiguredApp({
                   tags={references.tags}
                   defaultAccount={defaultAccount}
                   onAdd={(receipt, draft, mode) => {
+                    setEditingTransaction(null);
                     setReceiptEntry({ id: receipt.id, draft, mode });
                     setSheetOpen(true);
                   }}
@@ -229,11 +256,43 @@ function ConfiguredApp({
             references={references}
             expenseSplits={expenseSplits}
             defaultAccount={defaultAccount}
-            initialDraft={receiptEntry?.draft}
-            initialMode={receiptEntry?.mode}
+            initialDraft={
+              receiptEntry?.draft ??
+              (editingTransaction
+                ? {
+                    account:
+                      references.accounts.find(({ name }) => name === editingTransaction.account)
+                        ?.id ?? '',
+                    category:
+                      references.categories.find(({ name }) => name === editingTransaction.category)
+                        ?.id ?? '',
+                    date: editingTransaction.date,
+                    amount: String(Math.abs(editingTransaction.amount)),
+                    tags: (editingTransaction.tags ?? []).flatMap((name) => {
+                      const tag = references.tags.find((candidate) => candidate.name === name);
+                      return tag ? [tag.id] : [];
+                    }),
+                    comment: editingTransaction.notes ?? '',
+                    splits: (editingTransaction.children ?? []).map((child) => ({
+                      category:
+                        references.categories.find(({ name }) => name === child.category)?.id ?? '',
+                      amount: String(Math.abs(child.amount)),
+                      tags: (child.tags ?? []).flatMap((name) => {
+                        const tag = references.tags.find((candidate) => candidate.name === name);
+                        return tag ? [tag.id] : [];
+                      }),
+                    })),
+                  }
+                : undefined)
+            }
+            initialMode={
+              receiptEntry?.mode ?? (editingTransaction?.isSplit ? 'split' : 'transaction')
+            }
+            initialExpenseSplitId={editingTransaction?.expenseSplitId}
             onClose={() => {
               setSheetOpen(false);
               setReceiptEntry(null);
+              setEditingTransaction(null);
             }}
             onSave={addTransaction}
           />

@@ -30,6 +30,7 @@ type TransactionsScreenProps = {
   onActivationRefresh: () => Promise<void>;
   onLoadMore: () => Promise<void>;
   onDelete: (transaction: ApiTransaction) => void;
+  onEdit: (transaction: ApiTransaction) => void;
   onRetryQueued: (transaction: QueuedTransaction) => void;
   onDiscardQueued: (transaction: QueuedTransaction) => void;
   onAdd: () => void;
@@ -49,6 +50,7 @@ export function TransactionsScreen({
   onActivationRefresh,
   onLoadMore,
   onDelete,
+  onEdit,
   onRetryQueued,
   onDiscardQueued,
   onAdd,
@@ -126,7 +128,12 @@ export function TransactionsScreen({
           ) : item.kind === 'spacing' ? (
             <View style={styles.transactionSectionSpacing} />
           ) : (
-            <TransactionRow item={item.transaction} categories={categories} onDelete={onDelete} />
+            <TransactionRow
+              item={item.transaction}
+              categories={categories}
+              onDelete={onDelete}
+              onEdit={onEdit}
+            />
           )
         }
         ListHeaderComponent={

@@ -77,11 +77,14 @@ describe('navigation and settings presentation', () => {
 
     expect(screen.getByRole('tab', { name: 'Receipts' })).toBeSelected();
     expect(screen.getByRole('tab', { name: 'Transactions' })).not.toBeSelected();
+    expect(screen.getByRole('tab', { name: 'Shared' })).toBeVisible();
     expect(screen.getByTestId('receipt-tab-badge')).toHaveTextContent('99+');
     expect(screen.getByLabelText('120 receipts need attention')).toBeVisible();
 
     fireEvent.press(screen.getByRole('tab', { name: 'Settings' }));
     expect(onChange).toHaveBeenCalledWith('settings');
+    fireEvent.press(screen.getByRole('tab', { name: 'Shared' }));
+    expect(onChange).toHaveBeenCalledWith('shared');
 
     rerender(<BottomNavigation active="settings" receiptCount={3} onChange={onChange} />);
     expect(screen.getByTestId('receipt-tab-badge')).toHaveTextContent('3');

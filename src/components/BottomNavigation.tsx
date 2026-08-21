@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from '../styles';
 import { colors } from '../theme';
 
-export type AppTab = 'transactions' | 'wallets' | 'receipts' | 'settings';
+export type AppTab = 'transactions' | 'wallets' | 'shared' | 'receipts' | 'settings';
 
 export function BottomNavigation({
   active,
@@ -20,6 +20,7 @@ export function BottomNavigation({
   const tabs: { id: AppTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: 'transactions', label: 'Transactions', icon: 'swap-horizontal-outline' },
     { id: 'wallets', label: 'Accounts', icon: 'wallet-outline' },
+    { id: 'shared', label: 'Shared', icon: 'people-outline' },
     { id: 'receipts', label: 'Receipts', icon: 'receipt-outline' },
     { id: 'settings', label: 'Settings', icon: 'settings-outline' },
   ];
