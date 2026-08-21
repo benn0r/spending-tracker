@@ -138,7 +138,7 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
   await weeklyTag.click();
   await expect(weeklyTag).toBeChecked();
   await page.getByLabel('Comment').fill('Book shop');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save transaction' }).click();
   await expect(page.getByTestId('entry-sheet')).toBeHidden();
   await expect
     .poll(() => submitted)
@@ -151,6 +151,45 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
       tags: ['weekly-id'],
     });
   await expect(page.getByText('− CHF 28.90')).toBeVisible();
+});
+
+test('creates an income with a positive Actual Budget amount', async ({ page }) => {
+  let submitted: Record<string, unknown> | undefined;
+  let items: typeof transaction[] = [];
+  await page.route('**/api/transactions**', (route) => {
+    if (route.request().method() === 'POST') {
+      submitted = route.request().postDataJSON();
+      items = [
+        {
+          ...transaction,
+          id: 'income-1',
+          amount: 125.5,
+          payee: 'Income',
+        },
+      ];
+      return route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'income-1', status: 'created' }),
+      });
+    }
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ transactions: items, total: items.length, page: 1, pageSize: 200 }),
+    });
+  });
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  await page.getByRole('radio', { name: 'Groceries' }).click();
+  await page.getByRole('radio', { name: 'Everyday' }).click();
+  await page.getByRole('tab', { name: 'Income' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Add to shared expenses' })).toHaveCount(0);
+  await page.getByLabel('Amount').fill('125.50');
+  await page.getByRole('button', { name: 'Save transaction' }).click();
+
+  await expect.poll(() => submitted?.amount).toBe(125.5);
+  await expect(page.getByTestId('transaction-income-1').getByText('+ CHF 125.50')).toBeVisible();
 });
 
 test('loads 20 transactions initially and fetches the next page on scroll', async ({ page }) => {
@@ -516,7 +555,7 @@ test('opens a processed receipt as a prefilled transaction', async ({ page }) =>
   await expect(page.getByLabel('Date')).toHaveValue('2026-08-08');
   await expect(page.getByLabel('Comment')).toHaveValue('Corner Market · Weekly groceries');
   await expect(page.getByRole('button', { name: 'Select category' })).toContainText('Groceries');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByTestId('receipt-tab-badge')).toHaveCount(0);
 
   await expect
@@ -614,7 +653,7 @@ test('corrects an unbalanced processed receipt before submitting it', async ({ p
   await expect(splitAmounts.nth(0)).toHaveValue('18');
   await expect(splitAmounts.nth(1)).toHaveValue('7');
 
-  const save = entrySheet.getByRole('button', { name: 'Save expense' });
+  const save = entrySheet.getByRole('button', { name: 'Save changes' });
   await expect(save).toBeDisabled();
   await expect.poll(() => submitted).toBeUndefined();
 
@@ -669,7 +708,7 @@ test('submits a balanced split transaction', async ({ page }) => {
   const amounts = page.getByLabel('Split amount');
   await amounts.nth(0).fill('12');
   await amounts.nth(1).fill('8');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save transaction' }).click();
   await expect
     .poll(() => submitted)
     .toEqual(
@@ -748,7 +787,7 @@ test('queues a failed transaction and retries it later', async ({ page }) => {
   await page.getByRole('radio', { name: 'Groceries' }).click();
   await page.getByRole('radio', { name: 'Everyday' }).click();
   await page.getByLabel('Amount').fill('18');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save transaction' }).click();
 
   await expect(page.getByTestId('entry-sheet')).toBeHidden();
   await expect(page.getByText('Waiting to sync')).toBeVisible();
@@ -785,7 +824,7 @@ test('adds a new transaction to an existing expense-sharing split', async ({ pag
   await page.getByLabel('Amount').fill('21');
   await page.getByRole('checkbox', { name: 'Add to shared expenses' }).click();
   await page.getByRole('radio', { name: 'Household · 2 people' }).click();
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save transaction' }).click();
 
   await expect
     .poll(() => submitted)
@@ -820,7 +859,7 @@ test('persists a new transaction before its network request completes', async ({
   await page.getByRole('radio', { name: 'Groceries' }).click();
   await page.getByRole('radio', { name: 'Everyday' }).click();
   await page.getByLabel('Amount').fill('19');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save transaction' }).click();
 
   await expect(page.getByTestId('transaction-queue')).toBeVisible();
   await expect(page.getByTestId('transaction-transaction-1')).toBeVisible();
@@ -892,7 +931,7 @@ test('restores a queued transaction after reload and retries the exact payload',
   await page.getByLabel('Date').fill('2026-08-07');
   await page.getByTestId('entry-sheet').getByRole('checkbox', { name: 'Weekly' }).click();
   await page.getByLabel('Comment').fill('Persist this expense');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save transaction' }).click();
 
   await expect(page.getByTestId('transaction-queue')).toBeVisible();
   await expect.poll(() => submittedPayloads).toEqual([expectedPayload]);
@@ -1033,7 +1072,7 @@ test('shows server diagnostics when a transaction is rejected', async ({ page })
   await page.getByRole('radio', { name: 'Groceries' }).click();
   await page.getByRole('radio', { name: 'Everyday' }).click();
   await page.getByLabel('Amount').fill('18');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save transaction' }).click();
 
   await expect(page.getByTestId('entry-sheet')).toBeVisible();
   await expect(page.getByText(/HTTP 422/)).toBeVisible();
@@ -1063,7 +1102,7 @@ test('dismisses a transaction that was already submitted despite a sync error', 
   await page.getByRole('radio', { name: 'Groceries' }).click();
   await page.getByRole('radio', { name: 'Everyday' }).click();
   await page.getByLabel('Amount').fill('17.50');
-  await page.getByRole('button', { name: 'Save expense' }).click();
+  await page.getByRole('button', { name: 'Save transaction' }).click();
 
   await expect(page.getByTestId('transaction-queue')).toBeVisible();
   await page.getByRole('button', { name: 'Remove Groceries from queue' }).click();

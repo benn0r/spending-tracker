@@ -22,6 +22,7 @@ import type {
   ExpenseSplitSelection,
   ExpenseSplitSummary,
   References,
+  TransactionDirection,
 } from '../../types';
 import { CategoryPickerField } from './fields/CategoryPickerField';
 import { ChoiceField } from './fields/ChoiceField';
@@ -37,6 +38,7 @@ export function EntrySheet({
   initialDraft,
   initialMode = 'transaction',
   initialExpenseSplitId,
+  initialDirection = 'expense',
   onClose,
   onSave,
 }: {
@@ -47,14 +49,17 @@ export function EntrySheet({
   initialDraft?: DraftTransaction | null;
   initialMode?: EntryMode;
   initialExpenseSplitId?: number | null;
+  initialDirection?: TransactionDirection;
   onClose: () => void;
   onSave: (
     draft: DraftTransaction,
     mode: EntryMode,
     expenseSplit?: ExpenseSplitSelection,
+    direction?: TransactionDirection,
   ) => Promise<void>;
 }) {
   const [mode, setMode] = useState<EntryMode>('transaction');
+  const [direction, setDirection] = useState<TransactionDirection>('expense');
   const [draft, setDraft] = useState<DraftTransaction>(emptyDraft);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -82,6 +87,7 @@ export function EntrySheet({
   const reset = () => {
     setDraft(emptyDraft);
     setMode('transaction');
+    setDirection('expense');
     setError('');
     setCategoryPicker(null);
     setShareExpense(false);
@@ -113,8 +119,7 @@ export function EntrySheet({
               splitCount: Number(newSplitCount),
             }
           : { mode: 'existing' as const, splitId: Number(expenseSplitChoice) };
-      if (expenseSplit) await onSave(draft, mode, expenseSplit);
-      else await onSave(draft, mode);
+      await onSave(draft, mode, expenseSplit, direction);
       reset();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not save the transaction.');
@@ -132,12 +137,13 @@ export function EntrySheet({
         },
       );
       setMode(initialMode);
+      setDirection(initialDirection);
       setShareExpense(Boolean(initialExpenseSplitId));
       setExpenseSplitChoice(initialExpenseSplitId ? String(initialExpenseSplitId) : '');
       setCategoryPicker(initialDraft?.category ? null : 'main');
     }
     wasVisible.current = visible;
-  }, [defaultAccount, initialDraft, initialExpenseSplitId, initialMode, visible]);
+  }, [defaultAccount, initialDirection, initialDraft, initialExpenseSplitId, initialMode, visible]);
   const expenseSplitValid =
     !shareExpense ||
     (expenseSplitChoice === '__new__'
@@ -167,7 +173,7 @@ export function EntrySheet({
                 <Ionicons name="card-outline" size={20} color={colors.accent} />
               </View>
               <Text style={styles.sheetTitle}>
-                {initialDraft ? 'Edit transaction' : 'New expense'}
+                {initialDraft ? 'Edit transaction' : 'New transaction'}
               </Text>
             </View>
             <View style={styles.sheetHeadingActions}>
@@ -216,6 +222,41 @@ export function EntrySheet({
               options={references.accounts}
               onChange={(value) => update('account', value)}
             />
+            <View accessibilityRole="tablist" style={styles.directionToggle}>
+              {(['expense', 'income'] as const).map((value) => {
+                const selected = direction === value;
+                return (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="tab"
+                    accessibilityLabel={value === 'expense' ? 'Expense' : 'Income'}
+                    accessibilityState={{ selected }}
+                    onPress={() => {
+                      setDirection(value);
+                      if (value === 'income') {
+                        setShareExpense(false);
+                        setExpenseSplitPickerOpen(false);
+                      }
+                    }}
+                    style={[styles.directionButton, selected && styles.activeDirectionButton]}
+                  >
+                    <Ionicons
+                      name={value === 'expense' ? 'arrow-up-outline' : 'arrow-down-outline'}
+                      size={17}
+                      color={selected ? colors.white : colors.muted}
+                    />
+                    <Text
+                      style={[
+                        styles.directionButtonText,
+                        selected && styles.activeDirectionButtonText,
+                      ]}
+                    >
+                      {value === 'expense' ? 'Expense' : 'Income'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <TextField
               label="Amount"
               value={draft.amount}
@@ -226,68 +267,70 @@ export function EntrySheet({
               inputRef={amountInputRef}
             />
             <DatePickerField value={draft.date} onChange={(value) => update('date', value)} />
-            <>
-              <View style={styles.expenseSplitRow}>
-                <Pressable
-                  accessibilityRole="checkbox"
-                  accessibilityLabel="Add to shared expenses"
-                  accessibilityState={{ checked: shareExpense }}
-                  onPress={() => {
-                    if (shareExpense) {
-                      setShareExpense(false);
-                      setExpenseSplitPickerOpen(false);
-                    } else {
-                      setShareExpense(true);
-                      setExpenseSplitPickerOpen(true);
-                    }
-                  }}
-                  style={styles.expenseSplitToggle}
-                >
-                  <View
-                    style={[
-                      styles.expenseSplitCheckbox,
-                      shareExpense && styles.expenseSplitCheckboxChecked,
-                    ]}
+            {direction === 'expense' ? (
+              <>
+                <View style={styles.expenseSplitRow}>
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityLabel="Add to shared expenses"
+                    accessibilityState={{ checked: shareExpense }}
+                    onPress={() => {
+                      if (shareExpense) {
+                        setShareExpense(false);
+                        setExpenseSplitPickerOpen(false);
+                      } else {
+                        setShareExpense(true);
+                        setExpenseSplitPickerOpen(true);
+                      }
+                    }}
+                    style={styles.expenseSplitToggle}
                   >
-                    {shareExpense ? (
-                      <Ionicons name="checkmark" size={15} color={colors.white} />
-                    ) : null}
-                  </View>
-                  <Text style={styles.expenseSplitToggleTitle}>Shared expenses</Text>
-                </Pressable>
-                <ExpenseSplitPickerField
-                  value={expenseSplitChoice}
-                  options={expenseSplits}
-                  open={expenseSplitPickerOpen}
-                  disabled={!shareExpense}
-                  onRequestOpen={() => setExpenseSplitPickerOpen(true)}
-                  onChange={setExpenseSplitChoice}
-                  onDismiss={() => setExpenseSplitPickerOpen(false)}
-                />
-              </View>
-              {shareExpense && expenseSplitChoice === '__new__' ? (
-                <View style={styles.expenseSplitFields}>
-                  <TextField
-                    label="Split name"
-                    value={newSplitTitle}
-                    onChangeText={setNewSplitTitle}
-                    placeholder={`Split from ${(draft.date || formatLocalDate(new Date()))
-                      .split('-')
-                      .reverse()
-                      .join('.')}`}
-                    icon="people-outline"
-                  />
-                  <TextField
-                    label="Number of people"
-                    value={newSplitCount}
-                    onChangeText={setNewSplitCount}
-                    placeholder="2"
-                    icon="person-add-outline"
-                    keyboardType="number-pad"
+                    <View
+                      style={[
+                        styles.expenseSplitCheckbox,
+                        shareExpense && styles.expenseSplitCheckboxChecked,
+                      ]}
+                    >
+                      {shareExpense ? (
+                        <Ionicons name="checkmark" size={15} color={colors.white} />
+                      ) : null}
+                    </View>
+                    <Text style={styles.expenseSplitToggleTitle}>Shared expenses</Text>
+                  </Pressable>
+                  <ExpenseSplitPickerField
+                    value={expenseSplitChoice}
+                    options={expenseSplits}
+                    open={expenseSplitPickerOpen}
+                    disabled={!shareExpense}
+                    onRequestOpen={() => setExpenseSplitPickerOpen(true)}
+                    onChange={setExpenseSplitChoice}
+                    onDismiss={() => setExpenseSplitPickerOpen(false)}
                   />
                 </View>
-              ) : null}
-            </>
+                {shareExpense && expenseSplitChoice === '__new__' ? (
+                  <View style={styles.expenseSplitFields}>
+                    <TextField
+                      label="Split name"
+                      value={newSplitTitle}
+                      onChangeText={setNewSplitTitle}
+                      placeholder={`Split from ${(draft.date || formatLocalDate(new Date()))
+                        .split('-')
+                        .reverse()
+                        .join('.')}`}
+                      icon="people-outline"
+                    />
+                    <TextField
+                      label="Number of people"
+                      value={newSplitCount}
+                      onChangeText={setNewSplitCount}
+                      placeholder="2"
+                      icon="person-add-outline"
+                      keyboardType="number-pad"
+                    />
+                  </View>
+                ) : null}
+              </>
+            ) : null}
             {mode === 'transaction' ? (
               <>
                 <CategoryPickerField
@@ -357,7 +400,7 @@ export function EntrySheet({
             </Pressable>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={initialDraft ? 'Save changes' : 'Save expense'}
+              accessibilityLabel={initialDraft ? 'Save changes' : 'Save transaction'}
               accessibilityState={{ disabled: !formValid || saving }}
               disabled={!formValid || saving}
               onPress={save}
@@ -368,7 +411,7 @@ export function EntrySheet({
               ) : (
                 <>
                   <Text style={styles.saveText}>
-                    {initialDraft ? 'Save changes' : 'Save expense'}
+                    {initialDraft ? 'Save changes' : 'Save transaction'}
                   </Text>
                   <Ionicons name="arrow-forward" size={18} color={colors.white} />
                 </>

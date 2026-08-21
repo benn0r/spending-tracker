@@ -107,7 +107,7 @@ describe('EntrySheet', () => {
     fireEvent.changeText(screen.getByLabelText('Amount'), '24');
     fireEvent.press(screen.getByRole('checkbox', { name: 'Add to shared expenses' }));
     fireEvent.press(screen.getByRole('radio', { name: 'Household · 2 people' }));
-    fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Save transaction' }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave.mock.calls[0]?.[2]).toEqual({ mode: 'existing', splitId: 7 });
 
@@ -137,7 +137,7 @@ describe('EntrySheet', () => {
     fireEvent.press(screen.getByRole('radio', { name: 'Create shared expense' }));
     expect(screen.getByLabelText('Split name')).toBeVisible();
     fireEvent.changeText(screen.getByLabelText('Number of people'), '3');
-    fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Save transaction' }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
     expect(onSave.mock.calls[1]?.[2]).toEqual({
       mode: 'new',
@@ -161,7 +161,7 @@ describe('EntrySheet', () => {
     fireEvent.changeText(screen.getByLabelText('Amount'), '12,50');
     fireEvent.press(screen.getByRole('checkbox', { name: 'Weekly' }));
     fireEvent.changeText(screen.getByLabelText('Comment'), '  Market visit  ');
-    fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Save transaction' }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     expect(onSave).toHaveBeenCalledWith(
@@ -173,7 +173,29 @@ describe('EntrySheet', () => {
         comment: '  Market visit  ',
       }),
       'transaction',
+      undefined,
+      'expense',
     );
+  });
+
+  it('creates income and hides shared-expense controls for it', async () => {
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    render(
+      <EntrySheet
+        visible
+        references={references}
+        defaultAccount="everyday"
+        onClose={jest.fn()}
+        onSave={onSave}
+      />,
+    );
+    fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
+    fireEvent.changeText(screen.getByLabelText('Amount'), '250');
+    fireEvent.press(screen.getByRole('tab', { name: 'Income' }));
+    expect(screen.queryByRole('checkbox', { name: 'Add to shared expenses' })).toBeNull();
+    fireEvent.press(screen.getByRole('button', { name: 'Save transaction' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0]?.[3]).toBe('income');
   });
 
   it('keeps save disabled for unbalanced splits', () => {
@@ -198,9 +220,9 @@ describe('EntrySheet', () => {
     const splitAmounts = screen.getAllByLabelText('Split amount');
     fireEvent.changeText(splitAmounts[0]!, '12');
     fireEvent.changeText(splitAmounts[1]!, '7');
-    expect(screen.getByRole('button', { name: 'Save expense' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save transaction' })).toBeDisabled();
     fireEvent.changeText(splitAmounts[1]!, '8');
-    expect(screen.getByRole('button', { name: 'Save expense' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save transaction' })).toBeEnabled();
   });
 
   it('commits searched tags only when Done is pressed', () => {
@@ -279,7 +301,7 @@ describe('EntrySheet', () => {
     );
     fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
     fireEvent.changeText(screen.getByLabelText('Amount'), '10');
-    fireEvent.press(screen.getByRole('button', { name: 'Save expense' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Save transaction' }));
     expect(await screen.findByText('Server rejected the expense')).toBeVisible();
     expect(screen.getByTestId('entry-sheet')).toBeVisible();
   });

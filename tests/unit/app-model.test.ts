@@ -294,10 +294,6 @@ describe('queued transaction cache and reducers', () => {
         { ...queuedTransaction, payload: { ...transactionPayload, amount: 0 } },
       ],
       [
-        'positive payload amount',
-        { ...queuedTransaction, payload: { ...transactionPayload, amount: 1 } },
-      ],
-      [
         'non-number payload amount',
         { ...queuedTransaction, payload: { ...transactionPayload, amount: '-1' } },
       ],

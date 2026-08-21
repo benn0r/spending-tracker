@@ -291,7 +291,7 @@ export function TransactionRow({
                 </View>
               ) : null}
             </ScrollView>
-            {!isTransfer && item.amount < 0 && onEdit ? (
+            {!isTransfer && onEdit ? (
               <View style={styles.sheetActions}>
                 <Pressable
                   accessibilityRole="button"

@@ -65,7 +65,7 @@ test('persists a dismissed settings selection, prefills it, and prevents double 
   await sheet.getByLabel('Date', { exact: true }).fill('2026-08-10');
   await sheet.getByLabel('Comment', { exact: true }).fill('Stardust provisions');
 
-  const save = sheet.getByRole('button', { name: 'Save expense' });
+  const save = sheet.getByRole('button', { name: 'Save transaction' });
   await save.click();
   await expect.poll(() => submitted.length).toBe(1);
   await expect(save).toBeDisabled();
@@ -113,7 +113,7 @@ test('shows empty account settings and keeps an otherwise complete expense disab
   const sheet = page.getByTestId('entry-sheet');
   await sheet.getByLabel('Amount', { exact: true }).fill('12.50');
   await sheet.getByLabel('Date', { exact: true }).fill('2026-08-11');
-  await expect(sheet.getByRole('button', { name: 'Save expense' })).toBeDisabled();
+  await expect(sheet.getByRole('button', { name: 'Save transaction' })).toBeDisabled();
   await expect(sheet.getByRole('radio')).toHaveCount(0);
 });
 
@@ -183,7 +183,7 @@ test('rejects an invalid local date and submits the corrected exact date', async
     amount: '19.95',
     date: '2026-02-29',
   });
-  const save = sheet.getByRole('button', { name: 'Save expense' });
+  const save = sheet.getByRole('button', { name: 'Save transaction' });
   await expect(save).toBeDisabled();
 
   await sheet.getByLabel('Date', { exact: true }).fill('2028-02-29');
@@ -237,7 +237,7 @@ test('commits tag search choices only with Done and submits exact tag IDs', asyn
   await tagSearch.getByRole('button', { name: 'Done selecting tags' }).click();
   await expect(guildTag).toBeChecked();
 
-  await sheet.getByRole('button', { name: 'Save expense' }).click();
+  await sheet.getByRole('button', { name: 'Save transaction' }).click();
   await expect(sheet).toBeHidden();
   expect(submitted).toEqual([
     {

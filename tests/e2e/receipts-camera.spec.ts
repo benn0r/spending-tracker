@@ -300,7 +300,7 @@ test('keeps a failed receipt submission open and never moves it to the offline q
 
   const sheet = page.getByTestId('entry-sheet');
   await expect(sheet).toBeVisible();
-  await sheet.getByRole('button', { name: 'Save expense' }).click();
+  await sheet.getByRole('button', { name: 'Save changes' }).click();
 
   await expect(sheet).toBeVisible();
   await expect(sheet.getByText(/POST \/api\/receipts\/40\/submit failed/)).toBeVisible();

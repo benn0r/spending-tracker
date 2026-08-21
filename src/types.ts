@@ -1,4 +1,5 @@
 export type EntryMode = 'transaction' | 'split';
+export type TransactionDirection = 'expense' | 'income';
 
 export type Reference = { id: string; name: string };
 export type CategoryReference = Reference & {
@@ -29,6 +30,8 @@ export type ApiTransaction = {
   type?: 'Expense' | 'Income' | 'Transfer';
   transferAccount?: string;
   expenseSplitId?: number | null;
+  expenseSplitCount?: number;
+  sharedExpenseCategory?: string;
 };
 
 export type TransactionPage = {

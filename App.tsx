@@ -28,6 +28,8 @@ import type {
   DraftTransaction,
   EntryMode,
   ExpenseSplitSelection,
+  References,
+  TransactionDirection,
 } from './src/types';
 
 export default function App() {
@@ -134,9 +136,26 @@ function ConfiguredApp({
     draft: DraftTransaction,
     mode: EntryMode,
     expenseSplit?: ExpenseSplitSelection,
+    direction: TransactionDirection = 'expense',
   ) => {
     const submittedReceipt = receiptEntry;
-    const payload = { ...createPayload(draft, mode), ...(expenseSplit ? { expenseSplit } : {}) };
+    const createdPayload = createPayload(draft, mode);
+    const signedPayload =
+      direction === 'income'
+        ? {
+            ...createdPayload,
+            amount: Math.abs(createdPayload.amount),
+            ...(createdPayload.splits
+              ? {
+                  splits: createdPayload.splits.map((split) => ({
+                    ...split,
+                    amount: Math.abs(split.amount),
+                  })),
+                }
+              : {}),
+          }
+        : createdPayload;
+    const payload = { ...signedPayload, ...(expenseSplit ? { expenseSplit } : {}) };
     if (editingTransaction) {
       await updateTransaction(editingTransaction.id, payload);
       setEditingTransaction(null);
@@ -168,6 +187,9 @@ function ConfiguredApp({
     void refresh();
     if (submittedReceipt) void refreshReceipts().catch(() => undefined);
   };
+  const preparedEditing = editingTransaction
+    ? prepareTransactionEdit(editingTransaction, references)
+    : null;
   return (
     <SafeAreaProvider>
       <SwipeProvider>
@@ -256,39 +278,12 @@ function ConfiguredApp({
             references={references}
             expenseSplits={expenseSplits}
             defaultAccount={defaultAccount}
-            initialDraft={
-              receiptEntry?.draft ??
-              (editingTransaction
-                ? {
-                    account:
-                      references.accounts.find(({ name }) => name === editingTransaction.account)
-                        ?.id ?? '',
-                    category:
-                      references.categories.find(({ name }) => name === editingTransaction.category)
-                        ?.id ?? '',
-                    date: editingTransaction.date,
-                    amount: String(Math.abs(editingTransaction.amount)),
-                    tags: (editingTransaction.tags ?? []).flatMap((name) => {
-                      const tag = references.tags.find((candidate) => candidate.name === name);
-                      return tag ? [tag.id] : [];
-                    }),
-                    comment: editingTransaction.notes ?? '',
-                    splits: (editingTransaction.children ?? []).map((child) => ({
-                      category:
-                        references.categories.find(({ name }) => name === child.category)?.id ?? '',
-                      amount: String(Math.abs(child.amount)),
-                      tags: (child.tags ?? []).flatMap((name) => {
-                        const tag = references.tags.find((candidate) => candidate.name === name);
-                        return tag ? [tag.id] : [];
-                      }),
-                    })),
-                  }
-                : undefined)
-            }
-            initialMode={
-              receiptEntry?.mode ?? (editingTransaction?.isSplit ? 'split' : 'transaction')
-            }
+            initialDraft={receiptEntry?.draft ?? preparedEditing?.draft}
+            initialMode={receiptEntry?.mode ?? preparedEditing?.mode}
             initialExpenseSplitId={editingTransaction?.expenseSplitId}
+            initialDirection={
+              editingTransaction && editingTransaction.amount > 0 ? 'income' : 'expense'
+            }
             onClose={() => {
               setSheetOpen(false);
               setReceiptEntry(null);
@@ -327,4 +322,58 @@ function ConfiguredApp({
       </SwipeProvider>
     </SafeAreaProvider>
   );
+}
+
+function prepareTransactionEdit(
+  transaction: ApiTransaction,
+  references: References,
+): { draft: DraftTransaction; mode: EntryMode } {
+  const categoryId = (name: string) =>
+    references.categories.find((candidate) => candidate.name === name)?.id ?? '';
+  const tagIds = (names: string[] = []) =>
+    names.flatMap((name) => {
+      const tag = references.tags.find((candidate) => candidate.name === name);
+      return tag ? [tag.id] : [];
+    });
+  const sharedChildren = transaction.expenseSplitId
+    ? (transaction.children ?? []).filter(
+        ({ category }) => category !== transaction.sharedExpenseCategory,
+      )
+    : (transaction.children ?? []);
+  const mode: EntryMode = sharedChildren.length > 1 ? 'split' : 'transaction';
+  const splitCount = transaction.expenseSplitCount ?? 1;
+  const targetCents = Math.round(Math.abs(transaction.amount) * 100);
+  let allocatedCents = 0;
+  const splits = sharedChildren.map((child, index) => {
+    const cents = transaction.expenseSplitId
+      ? index === sharedChildren.length - 1
+        ? targetCents - allocatedCents
+        : Math.round(Math.abs(child.amount) * 100 * splitCount)
+      : Math.round(Math.abs(child.amount) * 100);
+    allocatedCents += cents;
+    return {
+      category: categoryId(child.category),
+      amount: String(cents / 100),
+      tags: tagIds(child.tags),
+    };
+  });
+  const primary = sharedChildren[0];
+  return {
+    mode,
+    draft: {
+      account: references.accounts.find(({ name }) => name === transaction.account)?.id ?? '',
+      category: categoryId(primary?.category ?? transaction.category),
+      date: transaction.date,
+      amount: String(Math.abs(transaction.amount)),
+      tags: tagIds(primary?.tags ?? transaction.tags),
+      comment: transaction.notes ?? '',
+      splits:
+        mode === 'split'
+          ? splits
+          : [
+              { category: '', amount: '', tags: [] },
+              { category: '', amount: '', tags: [] },
+            ],
+    },
+  };
 }

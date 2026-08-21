@@ -161,7 +161,7 @@ function parseQueuedPayload(value: unknown, mode: EntryMode): TransactionPayload
     !isLocalDate(value.date) ||
     typeof value.amount !== 'number' ||
     !Number.isFinite(value.amount) ||
-    value.amount >= 0 ||
+    value.amount === 0 ||
     (value.notes !== undefined && typeof value.notes !== 'string')
   ) {
     return null;
@@ -216,7 +216,7 @@ function parseQueuedPayload(value: unknown, mode: EntryMode): TransactionPayload
       !isNonEmptyString(candidate.category) ||
       typeof candidate.amount !== 'number' ||
       !Number.isFinite(candidate.amount) ||
-      candidate.amount >= 0
+      candidate.amount === 0
     ) {
       return null;
     }
