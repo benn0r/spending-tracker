@@ -155,7 +155,11 @@ export function EntrySheet({
           style={styles.scrim}
           onPress={close}
         />
-        <DrawerSheet style={styles.sheet} testID="entry-sheet">
+        <DrawerSheet
+          key={visible ? 'entry-sheet-open' : 'entry-sheet-closed'}
+          style={styles.sheet}
+          testID="entry-sheet"
+        >
           <View style={styles.handle} />
           <View style={styles.sheetHeading}>
             <View style={styles.sheetTitleGroup}>

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { Animated } from 'react-native';
 
 import { EntrySheet } from '../../src/features/transactions/EntrySheet';
 import type { References } from '../../src/types';
@@ -34,6 +35,28 @@ const references: References = {
 };
 
 describe('EntrySheet', () => {
+  it('restarts the bottom-up drawer animation every time the form opens', () => {
+    const timing = jest.spyOn(Animated, 'timing');
+    const props = {
+      references,
+      defaultAccount: 'everyday',
+      onClose: jest.fn(),
+      onSave: jest.fn().mockResolvedValue(undefined),
+    };
+    const { rerender } = render(<EntrySheet {...props} visible={false} />);
+    const callsWhileClosed = timing.mock.calls.length;
+
+    rerender(<EntrySheet {...props} visible />);
+
+    expect(timing.mock.calls.length).toBeGreaterThan(callsWhileClosed);
+    expect(
+      timing.mock.calls
+        .slice(callsWhileClosed)
+        .some(([, configuration]) => configuration.toValue === 0),
+    ).toBe(true);
+    timing.mockRestore();
+  });
+
   it('prefills every editable field and keeps shared-expense membership when editing', async () => {
     const onSave = jest.fn().mockResolvedValue(undefined);
     render(
