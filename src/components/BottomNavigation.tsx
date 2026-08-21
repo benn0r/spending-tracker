@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from '../styles';
 import { colors } from '../theme';
 
-export type AppTab = 'transactions' | 'wallets' | 'shared' | 'receipts' | 'settings';
+export type AppTab = 'transactions' | 'wallets' | 'more' | 'settings';
 
 export function BottomNavigation({
   active,
@@ -20,8 +20,7 @@ export function BottomNavigation({
   const tabs: { id: AppTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { id: 'transactions', label: 'Transactions', icon: 'swap-horizontal-outline' },
     { id: 'wallets', label: 'Accounts', icon: 'wallet-outline' },
-    { id: 'shared', label: 'Shared', icon: 'people-outline' },
-    { id: 'receipts', label: 'Receipts', icon: 'receipt-outline' },
+    { id: 'more', label: 'More', icon: 'ellipsis-horizontal-circle-outline' },
     { id: 'settings', label: 'Settings', icon: 'settings-outline' },
   ];
   return (
@@ -43,7 +42,7 @@ export function BottomNavigation({
           >
             <View style={[styles.bottomTabIcon, selected && styles.activeBottomTabIcon]}>
               <Ionicons name={tab.icon} size={22} color={selected ? colors.accent : colors.muted} />
-              {tab.id === 'receipts' && receiptCount > 0 ? (
+              {tab.id === 'more' && receiptCount > 0 ? (
                 <View
                   accessibilityLabel={`${receiptCount} receipts need attention`}
                   testID="receipt-tab-badge"

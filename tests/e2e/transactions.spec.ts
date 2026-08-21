@@ -442,7 +442,9 @@ test('swipes transactions and receipts left to delete them', async ({ page }) =>
   await expect(transactionRow).toHaveCount(0);
   expect(transactionDeleted).toBe(true);
 
-  await page.getByRole('tab', { name: 'Receipts' }).click();
+  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('button', { name: 'Receipts' }).click();
+  await page.waitForTimeout(300);
   const receiptRow = page.getByTestId('receipt-8');
   const receiptBox = await receiptRow.boundingBox();
   if (!receiptBox) throw new Error('Receipt row has no bounds');
@@ -539,7 +541,8 @@ test('opens a processed receipt as a prefilled transaction', async ({ page }) =>
 
   await page.goto('/');
   await expect(page.getByTestId('receipt-tab-badge')).toHaveText('1');
-  await page.getByRole('tab', { name: 'Receipts' }).click();
+  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('button', { name: 'Receipts' }).click();
   await expect(page.getByRole('button', { name: 'Scan receipt' })).toBeVisible();
   await page.getByRole('button', { name: 'View details for Corner Market' }).click();
   await page.getByRole('button', { name: 'View Corner Market' }).click();
@@ -631,7 +634,8 @@ test('corrects an unbalanced processed receipt before submitting it', async ({ p
   );
 
   await page.goto('/');
-  await page.getByRole('tab', { name: 'Receipts' }).click();
+  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('button', { name: 'Receipts' }).click();
   await page.getByRole('button', { name: 'View details for Split Cafe' }).click();
   const addReceipt = page.getByRole('button', { name: 'Add Split Cafe' });
   await expect(addReceipt).toBeVisible();
@@ -732,7 +736,8 @@ test('navigates tabs and persists the default account', async ({ page }) => {
   );
   await page.goto('/');
 
-  await page.getByRole('tab', { name: 'Receipts' }).click();
+  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('button', { name: 'Receipts' }).click();
   await expect(page.getByText('No receipts yet')).toBeVisible();
 
   await page.getByRole('tab', { name: 'Settings' }).click();

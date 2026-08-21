@@ -33,6 +33,7 @@ type TransactionsScreenProps = {
   onEdit: (transaction: ApiTransaction) => void;
   onRetryQueued: (transaction: QueuedTransaction) => void;
   onDiscardQueued: (transaction: QueuedTransaction) => void;
+  onScanReceipt: () => Promise<void>;
   onAdd: () => void;
 };
 
@@ -53,6 +54,7 @@ export function TransactionsScreen({
   onEdit,
   onRetryQueued,
   onDiscardQueued,
+  onScanReceipt,
   onAdd,
 }: TransactionsScreenProps) {
   const listRef = useRef<FlatList<TransactionListItem>>(null);
@@ -64,6 +66,22 @@ export function TransactionsScreen({
   );
   const [cashFlowHeight, setCashFlowHeight] = useState(0);
   const [showScrolledDivider, setShowScrolledDivider] = useState(false);
+  const [scanningReceipt, setScanningReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState('');
+
+  const scanReceipt = async () => {
+    setScanningReceipt(true);
+    setReceiptError('');
+    try {
+      await onScanReceipt();
+    } catch (cause) {
+      setReceiptError(
+        cause instanceof Error ? cause.message : 'Could not open the camera or upload receipt.',
+      );
+    } finally {
+      setScanningReceipt(false);
+    }
+  };
 
   useEffect(() => {
     if (activationRequest === 0) return;
@@ -196,14 +214,34 @@ export function TransactionsScreen({
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
       {showScrolledDivider ? <View pointerEvents="none" style={styles.scrolledTopDivider} /> : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Add transaction"
-        onPress={onAdd}
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-      >
-        <Ionicons name="add" size={32} color={colors.white} />
-      </Pressable>
+      {receiptError ? (
+        <View style={styles.homeReceiptError}>
+          <Text style={styles.homeReceiptErrorText}>{receiptError}</Text>
+        </View>
+      ) : null}
+      <View style={styles.homeActionGroup}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Scan receipt"
+          disabled={scanningReceipt}
+          onPress={() => void scanReceipt()}
+          style={({ pressed }) => [styles.homeCameraFab, pressed && styles.homeCameraFabPressed]}
+        >
+          {scanningReceipt ? (
+            <ActivityIndicator color={colors.accent} />
+          ) : (
+            <Ionicons name="camera-outline" size={25} color={colors.accent} />
+          )}
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add transaction"
+          onPress={onAdd}
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        >
+          <Ionicons name="add" size={32} color={colors.white} />
+        </Pressable>
+      </View>
     </>
   );
 }

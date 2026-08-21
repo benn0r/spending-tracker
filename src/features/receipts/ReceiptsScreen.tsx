@@ -67,6 +67,7 @@ export function ReceiptsScreen({
   defaultAccount,
   onAdd,
   onDelete,
+  onBack,
 }: {
   receipts: ApiReceipt[];
   loading: boolean;
@@ -77,6 +78,7 @@ export function ReceiptsScreen({
   defaultAccount: string;
   onAdd: (receipt: ApiReceipt, draft: DraftTransaction, mode: EntryMode) => void;
   onDelete: (receipt: ApiReceipt) => void;
+  onBack?: () => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -196,9 +198,21 @@ export function ReceiptsScreen({
   return (
     <View style={styles.receiptsScreen}>
       <View style={styles.receiptsHeader}>
-        <View>
-          <Text style={styles.secondaryEyebrow}>DOCUMENTS</Text>
-          <Text style={styles.secondaryTitle}>Receipts</Text>
+        <View style={styles.nestedHeaderContent}>
+          {onBack ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Back to More"
+              onPress={onBack}
+              style={styles.nestedBackButton}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.ink} />
+            </Pressable>
+          ) : null}
+          <View>
+            <Text style={styles.secondaryEyebrow}>MORE</Text>
+            <Text style={styles.secondaryTitle}>Receipts</Text>
+          </View>
         </View>
         <View style={styles.receiptHeaderActions}>
           <Pressable

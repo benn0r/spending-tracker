@@ -14,10 +14,12 @@ export function SharedExpensesScreen({
   splits,
   loading,
   onRefresh,
+  onBack,
 }: {
   splits: ExpenseSplitSummary[];
   loading: boolean;
   onRefresh: () => Promise<void>;
+  onBack?: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<ExpenseSplitDetail | null>(null);
@@ -33,9 +35,21 @@ export function SharedExpensesScreen({
   return (
     <View style={styles.sharedExpensesScreen}>
       <View style={styles.secondaryHeader}>
-        <View>
-          <Text style={styles.secondaryEyebrow}>SHARED</Text>
-          <Text style={styles.secondaryTitle}>Shared expenses</Text>
+        <View style={styles.nestedHeaderContent}>
+          {onBack ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Back to More"
+              onPress={onBack}
+              style={styles.nestedBackButton}
+            >
+              <Ionicons name="chevron-back" size={24} color={colors.ink} />
+            </Pressable>
+          ) : null}
+          <View>
+            <Text style={styles.secondaryEyebrow}>MORE</Text>
+            <Text style={styles.secondaryTitle}>Shared expenses</Text>
+          </View>
         </View>
       </View>
       <FlatList

@@ -172,6 +172,11 @@ export async function setupFantasyApi(
 export type AppTabName = 'Transactions' | 'Accounts' | 'Receipts' | 'Settings';
 
 export async function openTab(page: Page, tab: AppTabName): Promise<void> {
+  if (tab === 'Receipts') {
+    await page.getByRole('tab', { name: 'More' }).click();
+    await page.getByRole('button', { name: 'Receipts' }).click();
+    return;
+  }
   await page.getByRole('tab', { name: tab }).click();
 }
 

@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { QueuedTransaction } from '../../src/app-model';
 import { SummaryCard } from '../../src/features/transactions/SummaryCard';
 import { DateSectionHeader } from '../../src/features/transactions/DateSectionHeader';
 import { TransactionQueue } from '../../src/features/transactions/TransactionQueue';
 import { TransactionRow } from '../../src/features/transactions/TransactionRow';
+import { TransactionsScreen } from '../../src/features/transactions/TransactionsScreen';
 import type { ApiTransaction } from '../../src/types';
 
 jest.mock('@expo/vector-icons/Ionicons', () => {
@@ -92,6 +93,36 @@ const queuedTravel: QueuedTransaction = {
 };
 
 describe('transaction presentation', () => {
+  it('offers receipt capture beside the new transaction action', async () => {
+    const onScanReceipt = jest.fn().mockResolvedValue(undefined);
+    render(
+      <TransactionsScreen
+        transactions={[transaction()]}
+        cashFlow={null}
+        categories={[]}
+        queuedTransactions={[]}
+        retryingTransaction={null}
+        loading={false}
+        loadingMore={false}
+        error=""
+        activationRequest={0}
+        onRefresh={jest.fn().mockResolvedValue(undefined)}
+        onActivationRefresh={jest.fn().mockResolvedValue(undefined)}
+        onLoadMore={jest.fn().mockResolvedValue(undefined)}
+        onDelete={jest.fn()}
+        onEdit={jest.fn()}
+        onRetryQueued={jest.fn()}
+        onDiscardQueued={jest.fn()}
+        onScanReceipt={onScanReceipt}
+        onAdd={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Add transaction' })).toBeVisible();
+    fireEvent.press(screen.getByRole('button', { name: 'Scan receipt' }));
+    await waitFor(() => expect(onScanReceipt).toHaveBeenCalledTimes(1));
+  });
+
   it('shows a signed daily total in the full-width date header', () => {
     render(<DateSectionHeader date="2026-08-12" total={-37.5} />);
 

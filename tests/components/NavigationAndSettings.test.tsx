@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Modal } from 'react-native';
+import { Modal, Text } from 'react-native';
 
 import { AccountDropdown } from '../../src/components/AccountDropdown';
 import { BottomNavigation } from '../../src/components/BottomNavigation';
 import { SettingsScreen } from '../../src/features/settings/SettingsScreen';
+import { MoreNavigator } from '../../src/features/more/MoreNavigator';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('react-native-safe-area-context', () => ({
@@ -72,19 +73,18 @@ describe('navigation and settings presentation', () => {
   it('marks the active tab, caps the receipt badge, and delegates navigation', () => {
     const onChange = jest.fn();
     const { rerender } = render(
-      <BottomNavigation active="receipts" receiptCount={120} onChange={onChange} />,
+      <BottomNavigation active="more" receiptCount={120} onChange={onChange} />,
     );
 
-    expect(screen.getByRole('tab', { name: 'Receipts' })).toBeSelected();
+    expect(screen.getByRole('tab', { name: 'More' })).toBeSelected();
     expect(screen.getByRole('tab', { name: 'Transactions' })).not.toBeSelected();
-    expect(screen.getByRole('tab', { name: 'Shared' })).toBeVisible();
     expect(screen.getByTestId('receipt-tab-badge')).toHaveTextContent('99+');
     expect(screen.getByLabelText('120 receipts need attention')).toBeVisible();
 
     fireEvent.press(screen.getByRole('tab', { name: 'Settings' }));
     expect(onChange).toHaveBeenCalledWith('settings');
-    fireEvent.press(screen.getByRole('tab', { name: 'Shared' }));
-    expect(onChange).toHaveBeenCalledWith('shared');
+    fireEvent.press(screen.getByRole('tab', { name: 'More' }));
+    expect(onChange).toHaveBeenCalledWith('more');
 
     rerender(<BottomNavigation active="settings" receiptCount={3} onChange={onChange} />);
     expect(screen.getByTestId('receipt-tab-badge')).toHaveTextContent('3');
@@ -92,5 +92,28 @@ describe('navigation and settings presentation', () => {
     rerender(<BottomNavigation active="settings" receiptCount={0} onChange={onChange} />);
     expect(screen.getByRole('tab', { name: 'Settings' })).toBeSelected();
     expect(screen.queryByTestId('receipt-tab-badge')).toBeNull();
+  });
+
+  it('opens More destinations as a page sliding in from the right', () => {
+    const onSelect = jest.fn();
+    const { rerender } = render(
+      <MoreNavigator selected={null} receiptCount={3} onSelect={onSelect}>
+        <></>
+      </MoreNavigator>,
+    );
+
+    expect(screen.getByText('More')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Shared expenses' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Receipts' })).toBeVisible();
+    fireEvent.press(screen.getByRole('button', { name: 'Receipts' }));
+    expect(onSelect).toHaveBeenCalledWith('receipts');
+
+    rerender(
+      <MoreNavigator selected="receipts" receiptCount={3} onSelect={onSelect}>
+        <Text>Receipt page</Text>
+      </MoreNavigator>,
+    );
+    expect(screen.getByTestId('more-detail-page')).toBeVisible();
+    expect(screen.getByText('Receipt page')).toBeVisible();
   });
 });

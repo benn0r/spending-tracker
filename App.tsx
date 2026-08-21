@@ -1,8 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
+import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
-import { type ApiConfiguration, submitReceiptTransaction, updateTransaction } from './src/api';
+import {
+  type ApiConfiguration,
+  submitReceiptTransaction,
+  updateTransaction,
+  uploadReceipt,
+} from './src/api';
 import type { ConfirmedTransactionInput } from './src/app-model';
 import { BottomNavigation, type AppTab } from './src/components/BottomNavigation';
 import { DrawerSheet } from './src/components/DrawerSheet';
@@ -15,6 +21,7 @@ import { EntrySheet } from './src/features/transactions/EntrySheet';
 import { TransactionsScreen } from './src/features/transactions/TransactionsScreen';
 import { WalletsScreen } from './src/features/wallets/WalletsScreen';
 import { SharedExpensesScreen } from './src/features/splits/SharedExpensesScreen';
+import { MoreNavigator, type MorePage } from './src/features/more/MoreNavigator';
 import { useDashboardTransactions } from './src/hooks/useDashboardTransactions';
 import { useDefaultAccount } from './src/hooks/useDefaultAccount';
 import { useExpenseSplits } from './src/hooks/useExpenseSplits';
@@ -89,6 +96,12 @@ function ConfiguredApp({
   onChangeConfiguration: (configuration: ApiConfiguration) => void;
 }) {
   const [activeTab, setActiveTab] = useState<AppTab>('transactions');
+  const [morePage, setMorePage] = useState<MorePage | null>(null);
+  const [morePageLeaving, setMorePageLeaving] = useState(false);
+  const finishClosingMorePage = useCallback(() => {
+    setMorePage(null);
+    setMorePageLeaving(false);
+  }, []);
   const [setupOpen, setSetupOpen] = useState(false);
   const [transactionsActivationRequest, setTransactionsActivationRequest] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -222,6 +235,21 @@ function ConfiguredApp({
                   }}
                   onRetryQueued={(item) => void retryQueuedTransaction(item)}
                   onDiscardQueued={discardQueuedTransaction}
+                  onScanReceipt={async () => {
+                    const account = defaultAccount || references.accounts[0]?.id;
+                    if (!account) throw new Error('Enable an account before scanning a receipt.');
+                    const permission = await ImagePicker.requestCameraPermissionsAsync();
+                    if (!permission.granted)
+                      throw new Error('Camera access is required to scan a receipt.');
+                    const capture = await ImagePicker.launchCameraAsync({
+                      mediaTypes: ['images'],
+                      quality: 0.85,
+                      allowsEditing: false,
+                    });
+                    if (capture.canceled || !capture.assets[0]) return;
+                    await uploadReceipt(capture.assets[0], account);
+                    await refreshReceipts();
+                  }}
                   onAdd={() => {
                     setReceiptEntry(null);
                     setEditingTransaction(null);
@@ -230,28 +258,41 @@ function ConfiguredApp({
                 />
               ) : activeTab === 'wallets' ? (
                 <WalletsScreen accounts={references.accounts} categories={references.categories} />
-              ) : activeTab === 'shared' ? (
-                <SharedExpensesScreen
-                  splits={expenseSplits}
-                  loading={false}
-                  onRefresh={refreshExpenseSplits}
-                />
-              ) : activeTab === 'receipts' ? (
-                <ReceiptsScreen
-                  receipts={receipts}
-                  loading={receiptsLoading}
-                  refresh={refreshReceipts}
-                  accounts={references.accounts}
-                  categories={references.categories}
-                  tags={references.tags}
-                  defaultAccount={defaultAccount}
-                  onAdd={(receipt, draft, mode) => {
-                    setEditingTransaction(null);
-                    setReceiptEntry({ id: receipt.id, draft, mode });
-                    setSheetOpen(true);
-                  }}
-                  onDelete={removeReceipt}
-                />
+              ) : activeTab === 'more' ? (
+                <MoreNavigator
+                  key={morePage ?? 'menu'}
+                  selected={morePage}
+                  receiptCount={receiptCount}
+                  onSelect={setMorePage}
+                  leaving={morePageLeaving}
+                  onExitComplete={finishClosingMorePage}
+                >
+                  {morePage === 'shared' ? (
+                    <SharedExpensesScreen
+                      splits={expenseSplits}
+                      loading={false}
+                      onRefresh={refreshExpenseSplits}
+                      onBack={() => setMorePageLeaving(true)}
+                    />
+                  ) : morePage === 'receipts' ? (
+                    <ReceiptsScreen
+                      receipts={receipts}
+                      loading={receiptsLoading}
+                      refresh={refreshReceipts}
+                      accounts={references.accounts}
+                      categories={references.categories}
+                      tags={references.tags}
+                      defaultAccount={defaultAccount}
+                      onAdd={(receipt, draft, mode) => {
+                        setEditingTransaction(null);
+                        setReceiptEntry({ id: receipt.id, draft, mode });
+                        setSheetOpen(true);
+                      }}
+                      onDelete={removeReceipt}
+                      onBack={() => setMorePageLeaving(true)}
+                    />
+                  ) : null}
+                </MoreNavigator>
               ) : (
                 <SettingsScreen
                   defaultAccount={defaultAccount}
@@ -267,6 +308,8 @@ function ConfiguredApp({
               receiptCount={receiptCount}
               onChange={(tab) => {
                 setActiveTab(tab);
+                setMorePage(null);
+                setMorePageLeaving(false);
                 if (tab === 'transactions') {
                   setTransactionsActivationRequest((current) => current + 1);
                 }
