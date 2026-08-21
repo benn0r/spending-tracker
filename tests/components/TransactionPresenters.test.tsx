@@ -257,6 +257,41 @@ describe('transaction presentation', () => {
     expect(screen.getByText('Split entries')).toBeVisible();
   });
 
+  it('labels split parents instead of showing Uncategorized', () => {
+    const { rerender } = render(
+      <TransactionRow
+        item={transaction({
+          id: 'plain-split',
+          category: 'Uncategorized',
+          payee: '—',
+          isSplit: true,
+        })}
+        categories={[]}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Split transaction')).toBeVisible();
+    expect(screen.queryByText('Uncategorized')).toBeNull();
+
+    rerender(
+      <TransactionRow
+        item={transaction({
+          id: 'shared-split',
+          category: 'Uncategorized',
+          payee: '—',
+          isSplit: true,
+          expenseSplitId: 7,
+        })}
+        categories={[]}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Shared expense')).toBeVisible();
+    expect(screen.queryByText('Uncategorized')).toBeNull();
+  });
+
   it('hides an empty queue and wires enabled retry and discard actions', () => {
     const onRetry = jest.fn();
     const onDiscard = jest.fn();

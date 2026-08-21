@@ -29,11 +29,16 @@ export function TransactionRow({
   onEdit?: (item: ApiTransaction) => void;
 }) {
   const isTransfer = item.type === 'Transfer';
+  const categoryLabel = item.expenseSplitId
+    ? 'Shared expense'
+    : item.isSplit
+      ? 'Split transaction'
+      : item.category;
   const title = isTransfer
     ? 'Transfer'
     : item.payee && item.payee !== '—'
       ? item.payee
-      : item.category;
+      : categoryLabel;
   const transferDescription = item.transferAccount
     ? `${item.amount < 0 ? 'To' : 'From'} ${item.transferAccount}`
     : null;
@@ -249,7 +254,7 @@ export function TransactionRow({
               <View style={styles.transactionDetailsRow}>
                 <Text style={styles.transactionDetailsLabel}>Category</Text>
                 <Text style={styles.transactionDetailsValue}>
-                  {isTransfer ? 'Transfer' : item.category}
+                  {isTransfer ? 'Transfer' : categoryLabel}
                 </Text>
               </View>
               {item.transferAccount ? (
@@ -265,11 +270,13 @@ export function TransactionRow({
                 <Text style={styles.transactionDetailsValue}>
                   {isTransfer
                     ? 'Transfer'
-                    : item.isSplit
-                      ? 'Split transaction'
-                      : item.amount > 0
-                        ? 'Income'
-                        : 'Expense'}
+                    : item.expenseSplitId
+                      ? 'Shared expense'
+                      : item.isSplit
+                        ? 'Split transaction'
+                        : item.amount > 0
+                          ? 'Income'
+                          : 'Expense'}
                 </Text>
               </View>
               {item.tags?.length ? (

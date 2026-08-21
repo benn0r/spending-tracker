@@ -155,7 +155,7 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
 
 test('creates an income with a positive Actual Budget amount', async ({ page }) => {
   let submitted: Record<string, unknown> | undefined;
-  let items: typeof transaction[] = [];
+  let items: (typeof transaction)[] = [];
   await page.route('**/api/transactions**', (route) => {
     if (route.request().method() === 'POST') {
       submitted = route.request().postDataJSON();
