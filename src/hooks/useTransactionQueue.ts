@@ -1,7 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { ApiError, describeSubmissionError, submitTransaction } from '../api';
+import {
+  ApiError,
+  describeSubmissionError,
+  submitReceiptTransaction,
+  submitTransaction,
+} from '../api';
 import {
   enqueueQueuedTransaction,
   parseTransactionQueue,
@@ -67,7 +72,9 @@ export function useTransactionQueue({
     async (item: QueuedTransaction, discardClientErrors = false) => {
       setRetryingId(item.id);
       try {
-        const created = await submitTransaction(item.payload);
+        const created = item.receiptId
+          ? await submitReceiptTransaction(item.receiptId, item.payload)
+          : await submitTransaction(item.payload);
         await commit(removeQueuedTransaction(itemsRef.current, item.id));
         onConfirmed({
           id: created.id,
@@ -75,6 +82,7 @@ export function useTransactionQueue({
           mode: item.mode,
           account: item.account,
           category: item.category,
+          ...(item.receiptId ? { receiptId: item.receiptId } : {}),
         });
         void onRefresh();
       } catch (cause) {

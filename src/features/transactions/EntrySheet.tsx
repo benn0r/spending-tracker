@@ -222,51 +222,116 @@ export function EntrySheet({
               options={references.accounts}
               onChange={(value) => update('account', value)}
             />
-            <View accessibilityRole="tablist" style={styles.directionToggle}>
-              {(['expense', 'income'] as const).map((value) => {
-                const selected = direction === value;
-                return (
-                  <Pressable
-                    key={value}
-                    accessibilityRole="tab"
-                    accessibilityLabel={value === 'expense' ? 'Expense' : 'Income'}
-                    accessibilityState={{ selected }}
-                    onPress={() => {
-                      setDirection(value);
-                      if (value === 'income') {
-                        setShareExpense(false);
-                        setExpenseSplitPickerOpen(false);
-                      }
-                    }}
-                    style={[styles.directionButton, selected && styles.activeDirectionButton]}
-                  >
-                    <Ionicons
-                      name={value === 'expense' ? 'arrow-up-outline' : 'arrow-down-outline'}
-                      size={17}
-                      color={selected ? colors.white : colors.muted}
-                    />
-                    <Text
+            <View style={styles.amountDirectionRow}>
+              <View style={styles.amountFieldColumn}>
+                <TextField
+                  label="Amount"
+                  value={draft.amount}
+                  onChangeText={(value) => update('amount', value)}
+                  placeholder="0.00"
+                  icon="cash-outline"
+                  keyboardType="decimal-pad"
+                  inputRef={amountInputRef}
+                />
+              </View>
+              <View accessibilityRole="tablist" style={styles.directionToggle}>
+                {(['expense', 'income'] as const).map((value) => {
+                  const selected = direction === value;
+                  return (
+                    <Pressable
+                      key={value}
+                      accessibilityRole="tab"
+                      accessibilityLabel={value === 'expense' ? 'Expense' : 'Income'}
+                      accessibilityState={{ selected }}
+                      onPress={() => {
+                        setDirection(value);
+                        if (value === 'income') {
+                          setShareExpense(false);
+                          setExpenseSplitPickerOpen(false);
+                        }
+                      }}
                       style={[
-                        styles.directionButtonText,
-                        selected && styles.activeDirectionButtonText,
+                        styles.directionButton,
+                        selected &&
+                          (value === 'expense'
+                            ? styles.activeExpenseDirectionButton
+                            : styles.activeIncomeDirectionButton),
                       ]}
                     >
-                      {value === 'expense' ? 'Expense' : 'Income'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+                      <Ionicons
+                        name={value === 'expense' ? 'log-out-outline' : 'log-in-outline'}
+                        size={20}
+                        color={
+                          selected ? colors.white : value === 'expense' ? '#C94B4B' : colors.green
+                        }
+                      />
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-            <TextField
-              label="Amount"
-              value={draft.amount}
-              onChangeText={(value) => update('amount', value)}
-              placeholder="0.00"
-              icon="cash-outline"
-              keyboardType="decimal-pad"
-              inputRef={amountInputRef}
-            />
             <DatePickerField value={draft.date} onChange={(value) => update('date', value)} />
+            {mode === 'transaction' ? (
+              <>
+                <CategoryPickerField
+                  key={`main-category-${visible}`}
+                  value={draft.category}
+                  options={references.categories}
+                  onChange={(value) => update('category', value)}
+                  open={categoryPicker === 'main'}
+                  onRequestOpen={() => setCategoryPicker('main')}
+                  onDismiss={closeCategoryAndFocusAmount}
+                />
+                <ChoiceField
+                  label="Tags"
+                  value={draft.tags}
+                  options={references.tags}
+                  multiple
+                  onChange={(value) => update('tags', value)}
+                />
+              </>
+            ) : (
+              <>
+                {draft.splits.map((split, index) => (
+                  <View key={index} style={styles.splitCard}>
+                    <Text style={styles.splitTitle}>Split {index + 1}</Text>
+                    <CategoryPickerField
+                      key={`split-category-${index}-${visible}`}
+                      value={split.category}
+                      options={references.categories}
+                      onChange={(value) => updateSplit(index, 'category', value)}
+                      open={categoryPicker === `split-${index}`}
+                      onRequestOpen={() => setCategoryPicker(`split-${index}`)}
+                      onDismiss={closeCategoryAndFocusAmount}
+                      accessibilityLabel={`Select category for Split ${index + 1}`}
+                    />
+                    <TextField
+                      label="Split amount"
+                      value={split.amount}
+                      onChangeText={(value) => updateSplit(index, 'amount', value)}
+                      placeholder="0.00"
+                      icon="pie-chart-outline"
+                      keyboardType="decimal-pad"
+                    />
+                    <ChoiceField
+                      label="Tags"
+                      value={split.tags}
+                      options={references.tags}
+                      multiple
+                      onChange={(value) => updateSplit(index, 'tags', value)}
+                    />
+                  </View>
+                ))}
+              </>
+            )}
+            <TextField
+              label="Comment"
+              value={draft.comment}
+              onChangeText={(value) => update('comment', value)}
+              placeholder="What was this for?"
+              icon="chatbubble-ellipses-outline"
+              multiline
+            />
             {direction === 'expense' ? (
               <>
                 <View style={styles.expenseSplitRow}>
@@ -331,67 +396,6 @@ export function EntrySheet({
                 ) : null}
               </>
             ) : null}
-            {mode === 'transaction' ? (
-              <>
-                <CategoryPickerField
-                  key={`main-category-${visible}`}
-                  value={draft.category}
-                  options={references.categories}
-                  onChange={(value) => update('category', value)}
-                  open={categoryPicker === 'main'}
-                  onRequestOpen={() => setCategoryPicker('main')}
-                  onDismiss={closeCategoryAndFocusAmount}
-                />
-                <ChoiceField
-                  label="Tags"
-                  value={draft.tags}
-                  options={references.tags}
-                  multiple
-                  onChange={(value) => update('tags', value)}
-                />
-              </>
-            ) : (
-              <>
-                {draft.splits.map((split, index) => (
-                  <View key={index} style={styles.splitCard}>
-                    <Text style={styles.splitTitle}>Split {index + 1}</Text>
-                    <CategoryPickerField
-                      key={`split-category-${index}-${visible}`}
-                      value={split.category}
-                      options={references.categories}
-                      onChange={(value) => updateSplit(index, 'category', value)}
-                      open={categoryPicker === `split-${index}`}
-                      onRequestOpen={() => setCategoryPicker(`split-${index}`)}
-                      onDismiss={closeCategoryAndFocusAmount}
-                      accessibilityLabel={`Select category for Split ${index + 1}`}
-                    />
-                    <TextField
-                      label="Split amount"
-                      value={split.amount}
-                      onChangeText={(value) => updateSplit(index, 'amount', value)}
-                      placeholder="0.00"
-                      icon="pie-chart-outline"
-                      keyboardType="decimal-pad"
-                    />
-                    <ChoiceField
-                      label="Tags"
-                      value={split.tags}
-                      options={references.tags}
-                      multiple
-                      onChange={(value) => updateSplit(index, 'tags', value)}
-                    />
-                  </View>
-                ))}
-              </>
-            )}
-            <TextField
-              label="Comment"
-              value={draft.comment}
-              onChangeText={(value) => update('comment', value)}
-              placeholder="What was this for?"
-              icon="chatbubble-ellipses-outline"
-              multiline
-            />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </ScrollView>
           <View style={styles.sheetActions}>

@@ -32,6 +32,7 @@ export type QueuedTransaction = {
   account: string;
   category: string;
   error: string;
+  receiptId?: number;
 };
 
 export type QueuedTransactionInput = Omit<QueuedTransaction, 'id'>;
@@ -42,6 +43,7 @@ export type ConfirmedTransactionInput = {
   mode: EntryMode;
   account?: string;
   category?: string;
+  receiptId?: number;
 };
 
 export type PreparedReceiptDraft = {
@@ -244,6 +246,12 @@ function parseQueuedTransaction(value: unknown): QueuedTransaction | null {
   ) {
     return null;
   }
+  if (
+    value.receiptId !== undefined &&
+    (!Number.isInteger(value.receiptId) || (value.receiptId as number) < 1)
+  ) {
+    return null;
+  }
   const payload = parseQueuedPayload(value.payload, value.mode);
   if (!payload) return null;
   return {
@@ -253,6 +261,7 @@ function parseQueuedTransaction(value: unknown): QueuedTransaction | null {
     account: value.account,
     category: value.category,
     error: value.error,
+    ...(value.receiptId === undefined ? {} : { receiptId: value.receiptId as number }),
   };
 }
 

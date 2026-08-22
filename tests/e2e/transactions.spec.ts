@@ -866,6 +866,7 @@ test('persists a new transaction before its network request completes', async ({
   await page.getByLabel('Amount').fill('19');
   await page.getByRole('button', { name: 'Save transaction' }).click();
 
+  await expect(page.getByTestId('entry-sheet')).toHaveCount(0);
   await expect(page.getByTestId('transaction-queue')).toBeVisible();
   await expect(page.getByTestId('transaction-transaction-1')).toBeVisible();
   await expect

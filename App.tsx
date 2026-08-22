@@ -3,12 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
-import {
-  type ApiConfiguration,
-  submitReceiptTransaction,
-  updateTransaction,
-  uploadReceipt,
-} from './src/api';
+import { type ApiConfiguration, updateTransaction, uploadReceipt } from './src/api';
 import type { ConfirmedTransactionInput } from './src/app-model';
 import { BottomNavigation, type AppTab } from './src/components/BottomNavigation';
 import { DrawerSheet } from './src/components/DrawerSheet';
@@ -129,11 +124,12 @@ function ConfiguredApp({
   const { receipts, receiptsLoading, receiptCount, refreshReceipts, removeReceipt } = useReceipts();
   const { expenseSplits, refreshExpenseSplits } = useExpenseSplits();
   const confirmQueuedTransaction = useCallback(
-    ({ id, payload, mode, account, category }: ConfirmedTransactionInput) => {
+    ({ id, payload, mode, account, category, receiptId }: ConfirmedTransactionInput) => {
       addConfirmedTransaction(id, payload, mode, account, category);
       if (payload.expenseSplit) void refreshExpenseSplits().catch(() => undefined);
+      if (receiptId) void refreshReceipts().catch(() => undefined);
     },
-    [addConfirmedTransaction, refreshExpenseSplits],
+    [addConfirmedTransaction, refreshExpenseSplits, refreshReceipts],
   );
   const {
     items: queuedTransactions,
@@ -151,7 +147,6 @@ function ConfiguredApp({
     expenseSplit?: ExpenseSplitSelection,
     direction: TransactionDirection = 'expense',
   ) => {
-    const submittedReceipt = receiptEntry;
     const createdPayload = createPayload(draft, mode);
     const signedPayload =
       direction === 'income'
@@ -181,24 +176,17 @@ function ConfiguredApp({
       mode === 'split'
         ? 'Split transaction'
         : references.categories.find(({ id }) => id === payload.category)?.name;
-    if (!receiptEntry) {
-      const queued = await enqueueTransaction({
-        payload,
-        mode,
-        account: account ?? 'Unknown account',
-        category: category ?? 'Uncategorized',
-        error: 'Saved on this device. Waiting to sync.',
-      });
-      await retryQueuedTransaction(queued, true);
-      setSheetOpen(false);
-      return;
-    }
-    const created = await submitReceiptTransaction(receiptEntry.id, payload);
+    const queued = await enqueueTransaction({
+      payload,
+      mode,
+      account: account ?? 'Unknown account',
+      category: category ?? 'Uncategorized',
+      error: 'Saved on this device. Waiting to sync.',
+      ...(receiptEntry ? { receiptId: receiptEntry.id } : {}),
+    });
     setSheetOpen(false);
     setReceiptEntry(null);
-    addConfirmedTransaction(created.id, payload, mode, account, category);
-    void refresh();
-    if (submittedReceipt) void refreshReceipts().catch(() => undefined);
+    void retryQueuedTransaction(queued).catch(() => undefined);
   };
   const preparedEditing = editingTransaction
     ? prepareTransactionEdit(editingTransaction, references)

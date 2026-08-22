@@ -5,12 +5,14 @@ import type { QueuedTransaction } from '../../src/app-model';
 import { useTransactionQueue } from '../../src/hooks/useTransactionQueue';
 
 const mockSubmitTransaction = jest.fn();
+const mockSubmitReceiptTransaction = jest.fn();
 const mockDescribeSubmissionError = jest.fn((cause: unknown) =>
   cause instanceof Error ? cause.message : String(cause),
 );
 
 jest.mock('../../src/api', () => ({
   submitTransaction: (...args: unknown[]) => mockSubmitTransaction(...args),
+  submitReceiptTransaction: (...args: unknown[]) => mockSubmitReceiptTransaction(...args),
   describeSubmissionError: (cause: unknown) => mockDescribeSubmissionError(cause),
 }));
 
@@ -81,6 +83,28 @@ describe('useTransactionQueue', () => {
     expect(result.current.retryingId).toBeNull();
     await waitFor(() =>
       expect(AsyncStorage.removeItem).toHaveBeenCalledWith('spending-tracker.transaction-queue'),
+    );
+  });
+
+  it('persists and retries receipt-backed transactions through the receipt endpoint', async () => {
+    const receiptQueued = { ...queued, receiptId: 8 };
+    await AsyncStorage.setItem(
+      'spending-tracker.transaction-queue',
+      JSON.stringify([receiptQueued]),
+    );
+    mockSubmitReceiptTransaction.mockResolvedValue({ id: 'receipt-transaction' });
+    const onConfirmed = jest.fn();
+    const { result } = renderHook(() =>
+      useTransactionQueue({ onConfirmed, onRefresh: jest.fn().mockResolvedValue(undefined) }),
+    );
+    await waitFor(() => expect(result.current.items).toEqual([receiptQueued]));
+
+    await act(async () => result.current.retry(receiptQueued));
+
+    expect(mockSubmitReceiptTransaction).toHaveBeenCalledWith(8, queued.payload);
+    expect(mockSubmitTransaction).not.toHaveBeenCalled();
+    expect(onConfirmed).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'receipt-transaction', receiptId: 8 }),
     );
   });
 
