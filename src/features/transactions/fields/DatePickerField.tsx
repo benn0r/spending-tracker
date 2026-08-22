@@ -8,6 +8,7 @@ import { styles } from '../../../styles';
 import { colors } from '../../../theme';
 import { formatDateHeader } from '../../../transactions';
 import { DrawerSheet } from '../../../components/DrawerSheet';
+import { useDrawerTransition } from '../../../components/useDrawerTransition';
 
 export function DatePickerField({
   value,
@@ -17,6 +18,7 @@ export function DatePickerField({
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const drawer = useDrawerTransition(open && Platform.OS === 'ios', () => setOpen(false));
   const today = formatLocalDate(new Date());
   const selected = value || today;
   const locale = nativeDeviceLocale();
@@ -59,14 +61,19 @@ export function DatePickerField({
         />
       ) : null}
       <Modal
-        visible={open && Platform.OS === 'ios'}
+        visible={drawer.mounted}
         transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
+        animationType="none"
+        onShow={drawer.onShow}
+        onRequestClose={drawer.dismiss}
       >
         <View style={styles.nestedModalRoot}>
-          <Pressable style={styles.nestedScrim} onPress={() => setOpen(false)} />
-          <DrawerSheet style={styles.datePickerSheet}>
+          <Pressable style={styles.nestedScrim} onPress={drawer.dismiss} />
+          <DrawerSheet
+            visible={drawer.sheetVisible}
+            onHidden={drawer.onHidden}
+            style={styles.datePickerSheet}
+          >
             <View style={styles.handle} />
             <View style={styles.datePickerHeader}>
               <View>
@@ -78,7 +85,7 @@ export function DatePickerField({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Confirm date"
-                onPress={() => setOpen(false)}
+                onPress={drawer.dismiss}
                 style={styles.dateDoneButton}
               >
                 <Text style={styles.dateDoneText}>Done</Text>

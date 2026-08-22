@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { deleteTransaction, loadDashboard, loadTransactionPage } from '../api';
+import { createTag, deleteTransaction, loadDashboard, loadTransactionPage } from '../api';
 import {
   emptyReferences,
   cashFlowCacheStorageKey,
@@ -12,7 +12,14 @@ import {
   transactionCacheStorageKey,
 } from '../app-model';
 import { limitTransactionCache, parseTransactionCache } from '../transactions';
-import type { ApiTransaction, CashFlow, EntryMode, References, TransactionPayload } from '../types';
+import type {
+  ApiTransaction,
+  CashFlow,
+  EntryMode,
+  Reference,
+  References,
+  TransactionPayload,
+} from '../types';
 
 export type DashboardTransactionsController = {
   transactions: ApiTransaction[];
@@ -24,6 +31,7 @@ export type DashboardTransactionsController = {
   refresh: () => Promise<void>;
   refreshSilently: () => Promise<void>;
   loadMoreTransactions: () => Promise<void>;
+  addTag: (name: string) => Promise<Reference>;
   addConfirmedTransaction: (
     id: string,
     payload: TransactionPayload,
@@ -198,6 +206,21 @@ export function useDashboardTransactions(
     [persistTransactionCache, refresh],
   );
 
+  const addTag = useCallback(async (name: string) => {
+    const tag = await createTag(name);
+    setReferences((current) => {
+      const tags = current.tags.some(({ id }) => id === tag.id)
+        ? current.tags
+        : [...current.tags, tag].sort((left, right) => left.name.localeCompare(right.name));
+      const next = { ...current, tags };
+      void AsyncStorage.setItem(referenceCacheStorageKey, JSON.stringify(next)).catch(
+        () => undefined,
+      );
+      return next;
+    });
+    return tag;
+  }, []);
+
   return {
     transactions,
     references,
@@ -208,6 +231,7 @@ export function useDashboardTransactions(
     refresh,
     refreshSilently,
     loadMoreTransactions,
+    addTag,
     addConfirmedTransaction,
     removeTransaction,
   };

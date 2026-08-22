@@ -229,7 +229,7 @@ describe('ReceiptsScreen', () => {
     );
   });
 
-  it('refreshes on pull and shows grouped line items in a bottom drawer', () => {
+  it('refreshes on pull and shows grouped line items in a bottom drawer', async () => {
     renderReceipts({
       receipts: [
         receipt({
@@ -271,10 +271,10 @@ describe('ReceiptsScreen', () => {
     expect(screen.getAllByText('CHF 7.50')).toHaveLength(2);
     expect(screen.getAllByText('CHF 12.50')).toHaveLength(2);
     fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt details' })[0]);
-    expect(screen.queryByText('Apples')).toBeNull();
+    await waitFor(() => expect(screen.queryByText('Apples')).toBeNull());
   });
 
-  it('renders image and non-image preview states and closes them', () => {
+  it('renders image and non-image preview states and closes them', async () => {
     const image = receipt();
     const document = receipt({
       id: 8,
@@ -292,7 +292,7 @@ describe('ReceiptsScreen', () => {
     fireEvent(photo, 'load');
     expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
     fireEvent.press(screen.getByRole('button', { name: 'Close receipt photo' }));
-    expect(screen.queryByTestId('receipt-preview')).toBeNull();
+    await waitFor(() => expect(screen.queryByTestId('receipt-preview')).toBeNull());
 
     fireEvent.press(screen.getByRole('button', { name: 'View details for statement.pdf' }));
     fireEvent.press(screen.getByRole('button', { name: 'View statement.pdf' }));

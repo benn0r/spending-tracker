@@ -250,3 +250,38 @@ test('commits tag search choices only with Done and submits exact tag IDs', asyn
     },
   ]);
 });
+
+test('creates a missing Actual Budget tag and submits its returned ID', async ({ page }) => {
+  const submitted: Record<string, unknown>[] = [];
+  const createdTags: string[] = [];
+  await setupFantasyApi(page);
+  await routeApi(page, 'POST', '/api/references/tags', (route) => {
+    const { name } = route.request().postDataJSON() as { name: string };
+    createdTags.push(name);
+    return fulfillJson(route, { id: 'starlight-id', name }, { status: 201 });
+  });
+  await routeApi(page, 'POST', '/api/transactions', (route) => {
+    submitted.push(route.request().postDataJSON() as Record<string, unknown>);
+    return fulfillJson(route, { id: 'new-tag-expense', status: 'created' }, { status: 201 });
+  });
+  await openFantasyApp(page);
+
+  const sheet = await openAndFillExpense(page, {
+    account: 'Moonlight Wallet',
+    category: 'Skyship Travel',
+    amount: '18',
+    date: '2026-08-13',
+    comment: 'Starlight map',
+  });
+  await sheet.getByRole('button', { name: 'Search tags' }).click();
+  const tagSearch = page.getByTestId('tag-search-sheet');
+  await tagSearch.getByRole('textbox', { name: 'Search tags' }).fill('starlight');
+  await tagSearch.getByRole('button', { name: 'Create tag starlight' }).click();
+  await expect(tagSearch.getByRole('textbox', { name: 'Search tags' })).toHaveValue('');
+  await tagSearch.getByRole('button', { name: 'Done selecting tags' }).click();
+  await sheet.getByRole('button', { name: 'Save transaction' }).click();
+  await expect(sheet).toBeHidden();
+
+  expect(createdTags).toEqual(['starlight']);
+  expect(submitted[0]?.tags).toEqual(['starlight-id']);
+});

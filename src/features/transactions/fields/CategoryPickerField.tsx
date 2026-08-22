@@ -1,11 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
 import { FlatList, Modal, Pressable, Text, View } from 'react-native';
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
 import type { CategoryReference } from '../../../types';
 import { categoryVisual } from '../../categories/categoryVisual';
 import { DrawerSheet } from '../../../components/DrawerSheet';
+import { useDrawerTransition } from '../../../components/useDrawerTransition';
 
 export function CategoryPickerField({
   value,
@@ -25,18 +25,7 @@ export function CategoryPickerField({
   accessibilityLabel?: string;
 }) {
   const selected = options.find(({ id }) => id === value);
-  const [closing, setClosing] = useState(false);
-  const [sheetVisible, setSheetVisible] = useState(false);
-  const dismiss = () => {
-    setClosing(true);
-    onDismiss();
-  };
-  const finishDismiss = () => {
-    if (!open) {
-      setClosing(false);
-      setSheetVisible(false);
-    }
-  };
+  const drawer = useDrawerTransition(open, onDismiss);
   return (
     <View style={styles.fieldGroup}>
       <Pressable
@@ -65,11 +54,11 @@ export function CategoryPickerField({
         <Ionicons name="chevron-forward" size={20} color={colors.muted} />
       </Pressable>
       <Modal
-        visible={open || closing}
+        visible={drawer.mounted}
         transparent
         animationType="none"
-        onShow={() => setSheetVisible(true)}
-        onRequestClose={dismiss}
+        onShow={drawer.onShow}
+        onRequestClose={drawer.dismiss}
       >
         <View
           style={styles.nestedModalRoot}
@@ -81,11 +70,11 @@ export function CategoryPickerField({
             accessibilityRole="button"
             accessibilityLabel="Close category picker"
             style={styles.nestedScrim}
-            onPress={dismiss}
+            onPress={drawer.dismiss}
           />
           <DrawerSheet
-            visible={open && sheetVisible}
-            onHidden={finishDismiss}
+            visible={drawer.sheetVisible}
+            onHidden={drawer.onHidden}
             style={styles.categorySheet}
             testID="category-sheet"
           >
@@ -117,7 +106,7 @@ export function CategoryPickerField({
                     aria-checked={active}
                     onPress={() => {
                       onChange(item.id);
-                      dismiss();
+                      drawer.dismiss();
                     }}
                     style={styles.categoryTile}
                   >

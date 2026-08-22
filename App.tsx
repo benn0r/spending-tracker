@@ -7,6 +7,7 @@ import { type ApiConfiguration, updateTransaction, uploadReceipt } from './src/a
 import type { ConfirmedTransactionInput } from './src/app-model';
 import { BottomNavigation, type AppTab } from './src/components/BottomNavigation';
 import { DrawerSheet } from './src/components/DrawerSheet';
+import { useDrawerTransition } from './src/components/useDrawerTransition';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { SwipeProvider } from './src/components/SwipeToDelete';
 import { ReceiptsScreen } from './src/features/receipts/ReceiptsScreen';
@@ -98,6 +99,7 @@ function ConfiguredApp({
     setMorePageLeaving(false);
   }, []);
   const [setupOpen, setSetupOpen] = useState(false);
+  const setupDrawer = useDrawerTransition(setupOpen, () => setSetupOpen(false));
   const [transactionsActivationRequest, setTransactionsActivationRequest] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<ApiTransaction | null>(null);
@@ -118,6 +120,7 @@ function ConfiguredApp({
     refresh,
     refreshSilently,
     loadMoreTransactions,
+    addTag,
     addConfirmedTransaction,
     removeTransaction,
   } = useDashboardTransactions(validateDefaultAccount);
@@ -307,6 +310,7 @@ function ConfiguredApp({
           <EntrySheet
             visible={sheetOpen}
             references={references}
+            onCreateTag={addTag}
             expenseSplits={expenseSplits}
             defaultAccount={defaultAccount}
             initialDraft={receiptEntry?.draft ?? preparedEditing?.draft}
@@ -323,25 +327,26 @@ function ConfiguredApp({
             onSave={addTransaction}
           />
           <Modal
-            animationType="fade"
+            animationType="none"
             transparent
-            visible={setupOpen}
-            onRequestClose={() => setSetupOpen(false)}
+            visible={setupDrawer.mounted}
+            onShow={setupDrawer.onShow}
+            onRequestClose={setupDrawer.dismiss}
           >
             <View style={styles.setupModalRoot}>
               <Pressable
                 accessibilityLabel="Close server connection settings"
                 style={styles.receiptDetailsScrim}
-                onPress={() => setSetupOpen(false)}
+                onPress={setupDrawer.dismiss}
               />
-              <DrawerSheet>
+              <DrawerSheet visible={setupDrawer.sheetVisible} onHidden={setupDrawer.onHidden}>
                 <ServerSetupScreen
                   sheet
                   initialValue={configuration}
-                  onCancel={() => setSetupOpen(false)}
+                  onCancel={setupDrawer.dismiss}
                   onSave={(next) => {
                     onChangeConfiguration(next);
-                    setSetupOpen(false);
+                    setupDrawer.dismiss();
                     void refresh();
                     void refreshReceipts().catch(() => undefined);
                   }}

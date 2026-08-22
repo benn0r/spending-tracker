@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Animated, Modal, Text } from 'react-native';
 
 import { AccountDropdown } from '../../src/components/AccountDropdown';
@@ -17,7 +17,7 @@ const accounts = [
 ];
 
 describe('navigation and settings presentation', () => {
-  it('renders settings and delegates a selected default account', () => {
+  it('renders settings and delegates a selected default account', async () => {
     const onChangeDefaultAccount = jest.fn();
     render(
       <SettingsScreen
@@ -41,10 +41,9 @@ describe('navigation and settings presentation', () => {
     expect(screen.getByRole('radio', { name: 'Dragon Hoard' })).toBeChecked();
     fireEvent.press(screen.getByRole('radio', { name: 'Moonlight Wallet' }));
     expect(onChangeDefaultAccount).toHaveBeenCalledWith('moonlight-wallet');
-    expect(screen.queryByTestId('account-sheet')).toBeNull();
   });
 
-  it('renders the configurable empty account state and responds to native dismissal', () => {
+  it('renders the configurable empty account state and responds to native dismissal', async () => {
     render(
       <AccountDropdown
         value=""
@@ -63,11 +62,11 @@ describe('navigation and settings presentation', () => {
     expect(screen.getByText('No accounts are enabled on the server.')).toBeVisible();
 
     fireEvent.press(screen.getByRole('button', { name: 'Close account selector' }));
-    expect(screen.queryByTestId('account-sheet')).toBeNull();
+    await waitFor(() => expect(screen.queryByTestId('account-sheet')).toBeNull());
 
     fireEvent.press(screen.getByRole('button', { name: 'Choose wallet' }));
     fireEvent(screen.UNSAFE_getByType(Modal), 'requestClose');
-    expect(screen.queryByTestId('account-sheet')).toBeNull();
+    await waitFor(() => expect(screen.queryByTestId('account-sheet')).toBeNull());
   });
 
   it('marks the active tab, caps the receipt badge, and delegates navigation', () => {

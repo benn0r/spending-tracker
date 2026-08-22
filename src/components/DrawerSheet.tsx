@@ -25,6 +25,7 @@ export function DrawerSheet({
   }, [onHidden]);
 
   useEffect(() => {
+    translateY.stopAnimation();
     if (visible) translateY.setValue(Dimensions.get('window').height);
     Animated.timing(translateY, {
       toValue: visible ? 0 : Dimensions.get('window').height,

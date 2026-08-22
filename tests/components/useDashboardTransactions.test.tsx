@@ -7,11 +7,13 @@ import type { ApiTransaction, CashFlow, References, TransactionPage } from '../.
 const mockLoadDashboard = jest.fn();
 const mockLoadTransactionPage = jest.fn();
 const mockDeleteTransaction = jest.fn();
+const mockCreateTag = jest.fn();
 
 jest.mock('../../src/api', () => ({
   loadDashboard: () => mockLoadDashboard(),
   loadTransactionPage: (...args: unknown[]) => mockLoadTransactionPage(...args),
   deleteTransaction: (id: string) => mockDeleteTransaction(id),
+  createTag: (name: string) => mockCreateTag(name),
 }));
 
 const references: References = {
@@ -113,6 +115,23 @@ describe('useDashboardTransactions', () => {
 
     await act(async () => result.current.loadMoreTransactions());
     expect(mockLoadTransactionPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds a created tag to references and the offline cache', async () => {
+    mockLoadDashboard.mockResolvedValue({ references, page: page([]), cashFlow });
+    mockCreateTag.mockResolvedValue({ id: 'starlight-id', name: 'starlight' });
+    const onReferencesLoaded = jest.fn();
+    const { result } = renderHook(() => useDashboardTransactions(onReferencesLoaded));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.addTag('starlight');
+    });
+    expect(result.current.references.tags).toEqual([{ id: 'starlight-id', name: 'starlight' }]);
+    await waitFor(async () => {
+      const stored = await AsyncStorage.getItem('spending-tracker.references-v1');
+      expect(JSON.parse(stored ?? '{}').tags).toEqual([{ id: 'starlight-id', name: 'starlight' }]);
+    });
   });
 
   it('prepends confirmations and restores an optimistic deletion after API failure', async () => {

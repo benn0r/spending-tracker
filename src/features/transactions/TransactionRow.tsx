@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { DrawerSheet } from '../../components/DrawerSheet';
+import { useDrawerTransition } from '../../components/useDrawerTransition';
 import { nativeDeviceLocale } from '../../device-locale';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
@@ -60,6 +61,7 @@ export function TransactionRow({
       : `${iconColor}1A`;
   const accountColor = walletColor(item.account);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsDrawer = useDrawerTransition(detailsOpen, () => setDetailsOpen(false));
   return (
     <>
       <SwipeToDelete
@@ -186,18 +188,24 @@ export function TransactionRow({
         </View>
       </SwipeToDelete>
       <Modal
-        visible={detailsOpen}
+        visible={detailsDrawer.mounted}
         transparent
-        animationType="fade"
-        onRequestClose={() => setDetailsOpen(false)}
+        animationType="none"
+        onShow={detailsDrawer.onShow}
+        onRequestClose={detailsDrawer.dismiss}
       >
         <View style={styles.receiptDetailsModalRoot}>
           <Pressable
             accessibilityLabel="Close transaction details"
             style={styles.receiptDetailsScrim}
-            onPress={() => setDetailsOpen(false)}
+            onPress={detailsDrawer.dismiss}
           />
-          <DrawerSheet style={styles.receiptDetailsSheet} testID="transaction-details-sheet">
+          <DrawerSheet
+            visible={detailsDrawer.sheetVisible}
+            onHidden={detailsDrawer.onHidden}
+            style={styles.receiptDetailsSheet}
+            testID="transaction-details-sheet"
+          >
             <View style={styles.handle} />
             <View style={styles.receiptDetailsHeading}>
               <View style={styles.sheetTitleGroup}>
@@ -211,7 +219,7 @@ export function TransactionRow({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close transaction details"
-                onPress={() => setDetailsOpen(false)}
+                onPress={detailsDrawer.dismiss}
                 style={styles.closeButton}
               >
                 <Ionicons name="close" size={22} color={colors.ink} />
@@ -304,7 +312,7 @@ export function TransactionRow({
                   accessibilityRole="button"
                   accessibilityLabel="Edit transaction"
                   onPress={() => {
-                    setDetailsOpen(false);
+                    detailsDrawer.dismiss();
                     onEdit(item);
                   }}
                   style={styles.saveButton}

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { formatLocalDate } from '../../app-model';
 import { DrawerSheet } from '../../components/DrawerSheet';
+import { useDrawerTransition } from '../../components/useDrawerTransition';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import { emptyDraft, isDraftValid } from '../../transactions';
@@ -21,6 +22,7 @@ import type {
   EntryMode,
   ExpenseSplitSelection,
   ExpenseSplitSummary,
+  Reference,
   References,
   TransactionDirection,
 } from '../../types';
@@ -40,6 +42,7 @@ export function EntrySheet({
   initialExpenseSplitId,
   initialDirection = 'expense',
   onClose,
+  onCreateTag,
   onSave,
 }: {
   visible: boolean;
@@ -51,6 +54,7 @@ export function EntrySheet({
   initialExpenseSplitId?: number | null;
   initialDirection?: TransactionDirection;
   onClose: () => void;
+  onCreateTag?: (name: string) => Promise<Reference>;
   onSave: (
     draft: DraftTransaction,
     mode: EntryMode,
@@ -100,11 +104,12 @@ export function EntrySheet({
     setCategoryPicker(null);
     setTimeout(() => amountInputRef.current?.focus(), 300);
   };
+  const drawer = useDrawerTransition(visible, () => {
+    reset();
+    onClose();
+  });
   const close = () => {
-    if (!saving) {
-      reset();
-      onClose();
-    }
+    if (!saving) drawer.dismiss();
   };
   const save = async () => {
     setSaving(true);
@@ -151,7 +156,13 @@ export function EntrySheet({
       : Number.isInteger(Number(expenseSplitChoice)) && Number(expenseSplitChoice) > 0);
   const formValid = isDraftValid(draft, mode) && expenseSplitValid;
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
+    <Modal
+      visible={drawer.mounted}
+      transparent
+      animationType="none"
+      onShow={drawer.onShow}
+      onRequestClose={close}
+    >
       <KeyboardAvoidingView
         style={styles.modalRoot}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -162,7 +173,8 @@ export function EntrySheet({
           onPress={close}
         />
         <DrawerSheet
-          key={visible ? 'entry-sheet-open' : 'entry-sheet-closed'}
+          visible={drawer.sheetVisible}
+          onHidden={drawer.onHidden}
           style={styles.sheet}
           testID="entry-sheet"
         >
@@ -288,6 +300,7 @@ export function EntrySheet({
                   options={references.tags}
                   multiple
                   onChange={(value) => update('tags', value)}
+                  onCreateOption={onCreateTag}
                 />
               </>
             ) : (
@@ -319,6 +332,7 @@ export function EntrySheet({
                       options={references.tags}
                       multiple
                       onChange={(value) => updateSplit(index, 'tags', value)}
+                      onCreateOption={onCreateTag}
                     />
                   </View>
                 ))}

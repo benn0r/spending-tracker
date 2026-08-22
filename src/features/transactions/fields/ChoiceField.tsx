@@ -1,14 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRef, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
 import type { Reference } from '../../../types';
 import { DrawerSheet } from '../../../components/DrawerSheet';
+import { useDrawerTransition } from '../../../components/useDrawerTransition';
 
 type ChoiceFieldProps = {
   label: string;
   options: Reference[];
+  onCreateOption?: (name: string) => Promise<Reference>;
 } & (
   | {
       value: string;
@@ -28,6 +30,9 @@ export function ChoiceField(props: ChoiceFieldProps) {
   const [tagSearchOpen, setTagSearchOpen] = useState(false);
   const [tagQuery, setTagQuery] = useState('');
   const [pendingTags, setPendingTags] = useState<string[]>([]);
+  const [creatingTag, setCreatingTag] = useState(false);
+  const [createTagError, setCreateTagError] = useState('');
+  const tagDrawer = useDrawerTransition(tagSearchOpen, () => setTagSearchOpen(false));
   const choiceScrollRef = useRef<ScrollView>(null);
   const orderedOptions = [
     ...options.filter(({ id }) => selected.includes(id)),
@@ -36,6 +41,10 @@ export function ChoiceField(props: ChoiceFieldProps) {
   const filteredOptions = options.filter(({ name }) =>
     name.toLocaleLowerCase().includes(tagQuery.trim().toLocaleLowerCase()),
   );
+  const newTagName = tagQuery.trim();
+  const canCreateTag =
+    Boolean(props.onCreateOption && newTagName) &&
+    !options.some(({ name }) => name.toLocaleLowerCase() === newTagName.toLocaleLowerCase());
   const toggleOption = (option: Reference) => {
     const active = selected.includes(option.id);
     if (props.multiple) {
@@ -79,6 +88,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
             accessibilityLabel="Search tags"
             onPress={() => {
               setTagQuery('');
+              setCreateTagError('');
               setPendingTags(selected);
               setTagSearchOpen(true);
             }}
@@ -88,20 +98,26 @@ export function ChoiceField(props: ChoiceFieldProps) {
           </Pressable>
         ) : null}
       </View>
-      {props.multiple ? (
+      {props.multiple && tagDrawer.mounted ? (
         <Modal
-          visible={tagSearchOpen}
+          visible={tagDrawer.mounted}
           transparent
-          animationType={Platform.OS === 'web' ? 'none' : 'fade'}
-          onRequestClose={() => setTagSearchOpen(false)}
+          animationType="none"
+          onShow={tagDrawer.onShow}
+          onRequestClose={tagDrawer.dismiss}
         >
           <View style={styles.nestedModalRoot}>
             <Pressable
               accessibilityLabel="Close tag search"
-              onPress={() => setTagSearchOpen(false)}
+              onPress={tagDrawer.dismiss}
               style={styles.nestedScrim}
             />
-            <DrawerSheet style={styles.tagSearchSheet} testID="tag-search-sheet">
+            <DrawerSheet
+              visible={tagDrawer.sheetVisible}
+              onHidden={tagDrawer.onHidden}
+              style={styles.tagSearchSheet}
+              testID="tag-search-sheet"
+            >
               <View style={styles.handle} />
               <View style={styles.tagSearchHeader}>
                 <Text style={styles.categorySheetTitle}>Choose tags</Text>
@@ -111,6 +127,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
                   onPress={() => {
                     props.onChange(pendingTags);
                     setTagSearchOpen(false);
+                    tagDrawer.dismiss();
                     setTimeout(() => choiceScrollRef.current?.scrollTo({ x: 0, animated: true }));
                   }}
                   style={styles.dateDoneButton}
@@ -122,6 +139,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
                 <Ionicons name="search" size={20} color={colors.muted} />
                 <TextInput
                   accessibilityLabel="Search tags"
+                  autoFocus
                   value={tagQuery}
                   onChangeText={setTagQuery}
                   placeholder="Search tags"
@@ -162,6 +180,41 @@ export function ChoiceField(props: ChoiceFieldProps) {
                 {!filteredOptions.length ? (
                   <Text style={styles.emptyText}>No matching tags.</Text>
                 ) : null}
+                {canCreateTag ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Create tag ${newTagName}`}
+                    disabled={creatingTag}
+                    onPress={() => {
+                      if (!props.onCreateOption) return;
+                      setCreatingTag(true);
+                      setCreateTagError('');
+                      void props
+                        .onCreateOption(newTagName)
+                        .then((tag) => {
+                          setPendingTags((current) =>
+                            current.includes(tag.id) ? current : [...current, tag.id],
+                          );
+                          setTagQuery('');
+                        })
+                        .catch((cause) =>
+                          setCreateTagError(
+                            cause instanceof Error ? cause.message : 'Could not create tag.',
+                          ),
+                        )
+                        .finally(() => setCreatingTag(false));
+                    }}
+                    style={[styles.tagSearchOption, creatingTag && styles.disabledButton]}
+                  >
+                    <View style={styles.tagCheckbox}>
+                      <Ionicons name="add" size={16} color={colors.accent} />
+                    </View>
+                    <Text style={styles.tagSearchOptionText}>
+                      {creatingTag ? 'Creating…' : `Create “${newTagName}”`}
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {createTagError ? <Text style={styles.errorText}>{createTagError}</Text> : null}
               </ScrollView>
             </DrawerSheet>
           </View>

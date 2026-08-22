@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, Modal, Pressable, Text, View } from 'react
 
 import { loadExpenseSplit } from '../../api';
 import { DrawerSheet } from '../../components/DrawerSheet';
+import { useDrawerTransition } from '../../components/useDrawerTransition';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import { formatCurrency, formatTransactionDate } from '../../transactions';
@@ -24,6 +25,7 @@ export function SharedExpensesScreen({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<ExpenseSplitDetail | null>(null);
   const [error, setError] = useState('');
+  const detailsDrawer = useDrawerTransition(selectedId !== null, () => setSelectedId(null));
   useEffect(() => {
     if (!selectedId) return;
     void loadExpenseSplit(selectedId)
@@ -96,18 +98,23 @@ export function SharedExpensesScreen({
         )}
       />
       <Modal
-        visible={selectedId !== null}
+        visible={detailsDrawer.mounted}
         transparent
-        animationType="fade"
-        onRequestClose={() => setSelectedId(null)}
+        animationType="none"
+        onShow={detailsDrawer.onShow}
+        onRequestClose={detailsDrawer.dismiss}
       >
         <View style={styles.receiptDetailsModalRoot}>
           <Pressable
             style={styles.receiptDetailsScrim}
-            onPress={() => setSelectedId(null)}
+            onPress={detailsDrawer.dismiss}
             accessibilityLabel="Close shared expense details"
           />
-          <DrawerSheet style={styles.receiptDetailsSheet}>
+          <DrawerSheet
+            visible={detailsDrawer.sheetVisible}
+            onHidden={detailsDrawer.onHidden}
+            style={styles.receiptDetailsSheet}
+          >
             <View style={styles.handle} />
             <View style={styles.receiptDetailsHeading}>
               <Text numberOfLines={1} style={styles.receiptDetailsTitle}>
@@ -116,7 +123,7 @@ export function SharedExpensesScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close shared expense details"
-                onPress={() => setSelectedId(null)}
+                onPress={detailsDrawer.dismiss}
                 style={styles.closeButton}
               >
                 <Ionicons name="close" size={22} color={colors.ink} />

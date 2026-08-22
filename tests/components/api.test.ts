@@ -93,6 +93,21 @@ describe('API client', () => {
     );
   });
 
+  it('creates a tag through the references API and validates its response', async () => {
+    fetchMock.mockResolvedValueOnce(response({ id: 'starlight-id', name: 'starlight' }));
+    await expect(api.createTag('starlight')).resolves.toEqual({
+      id: 'starlight-id',
+      name: 'starlight',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.test/api/references/tags',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ name: 'starlight' }) }),
+    );
+
+    fetchMock.mockResolvedValueOnce(response({ name: 'missing-id' }));
+    await expect(api.createTag('broken')).rejects.toThrow('returned incompatible data');
+  });
+
   it('normalizes the new Spendee receipt envelope and field names', async () => {
     fetchMock.mockResolvedValueOnce(
       response({

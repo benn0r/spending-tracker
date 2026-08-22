@@ -5,6 +5,7 @@ import type {
   CashFlow,
   ExpenseSplitSummary,
   ExpenseSplitDetail,
+  Reference,
   References,
   TransactionPage,
   TransactionPayload,
@@ -163,6 +164,22 @@ export async function loadDashboard(): Promise<{
     page,
     cashFlow,
   };
+}
+
+export async function createTag(name: string): Promise<Reference> {
+  const value = await request<unknown>('/api/references/tags', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    typeof (value as Reference).id !== 'string' ||
+    typeof (value as Reference).name !== 'string'
+  ) {
+    throw contractError('/api/references/tags', 'object(id,name)', value);
+  }
+  return value as Reference;
 }
 
 export function loadTransactionPage(

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
 import { FlatList, Modal, Pressable, Text, View } from 'react-native';
 import { DrawerSheet } from '../../../components/DrawerSheet';
+import { useDrawerTransition } from '../../../components/useDrawerTransition';
 import { styles } from '../../../styles';
 import { colors } from '../../../theme';
 import type { ExpenseSplitSummary } from '../../../types';
@@ -23,8 +23,7 @@ export function ExpenseSplitPickerField({
   onChange: (value: string) => void;
   onDismiss: () => void;
 }) {
-  const [closing, setClosing] = useState(false);
-  const [sheetVisible, setSheetVisible] = useState(false);
+  const drawer = useDrawerTransition(open, onDismiss);
   const selected = options.find(({ id }) => String(id) === value);
   const selectedLabel =
     value === '__new__' ? 'Create shared expense' : selected?.title || 'Choose shared expense';
@@ -36,17 +35,6 @@ export function ExpenseSplitPickerField({
     })),
     { value: '__new__', label: 'Create shared expense', detail: 'Start a new shared expense' },
   ];
-  const dismiss = () => {
-    setClosing(true);
-    onDismiss();
-  };
-  const finishDismiss = () => {
-    if (!open) {
-      setClosing(false);
-      setSheetVisible(false);
-    }
-  };
-
   return (
     <>
       <Pressable
@@ -67,11 +55,11 @@ export function ExpenseSplitPickerField({
         <Ionicons name="chevron-forward" size={17} color={colors.muted} />
       </Pressable>
       <Modal
-        visible={open || closing}
+        visible={drawer.mounted}
         transparent
         animationType="none"
-        onShow={() => setSheetVisible(true)}
-        onRequestClose={dismiss}
+        onShow={drawer.onShow}
+        onRequestClose={drawer.dismiss}
       >
         <View
           style={styles.nestedModalRoot}
@@ -83,11 +71,11 @@ export function ExpenseSplitPickerField({
             accessibilityRole="button"
             accessibilityLabel="Close shared expenses"
             style={styles.nestedScrim}
-            onPress={dismiss}
+            onPress={drawer.dismiss}
           />
           <DrawerSheet
-            visible={open && sheetVisible}
-            onHidden={finishDismiss}
+            visible={drawer.sheetVisible}
+            onHidden={drawer.onHidden}
             style={styles.expenseSplitSheet}
             testID="expense-split-sheet"
           >
@@ -117,7 +105,7 @@ export function ExpenseSplitPickerField({
                     accessibilityState={{ checked: active }}
                     onPress={() => {
                       onChange(item.value);
-                      dismiss();
+                      drawer.dismiss();
                     }}
                     style={({ pressed }) => [
                       styles.expenseSplitOption,

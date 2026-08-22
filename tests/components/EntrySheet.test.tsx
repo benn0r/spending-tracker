@@ -225,7 +225,7 @@ describe('EntrySheet', () => {
     expect(screen.getByRole('button', { name: 'Save transaction' })).toBeEnabled();
   });
 
-  it('commits searched tags only when Done is pressed', () => {
+  it('commits searched tags only when Done is pressed', async () => {
     render(
       <EntrySheet
         visible
@@ -238,12 +238,48 @@ describe('EntrySheet', () => {
 
     fireEvent.press(screen.getByRole('button', { name: 'Search tags' }));
     const tagSearch = screen.getByTestId('tag-search-sheet');
-    fireEvent.changeText(within(tagSearch).getByLabelText('Search tags'), 'sha');
+    const tagSearchInput = within(tagSearch).getByLabelText('Search tags');
+    expect(tagSearchInput).toHaveProp('autoFocus', true);
+    fireEvent.changeText(tagSearchInput, 'sha');
     expect(within(tagSearch).getByRole('checkbox', { name: 'Shared' })).toBeVisible();
     expect(within(tagSearch).queryByRole('checkbox', { name: 'Weekly' })).toBeNull();
     fireEvent.press(within(tagSearch).getByRole('checkbox', { name: 'Shared' }));
     fireEvent.press(within(tagSearch).getByRole('button', { name: 'Done selecting tags' }));
-    expect(screen.getByRole('checkbox', { name: 'Shared' })).toBeChecked();
+    expect(
+      screen
+        .getAllByRole('checkbox', { name: 'Shared' })
+        .some((checkbox) => checkbox.props.accessibilityState?.checked),
+    ).toBe(true);
+  });
+
+  it('creates and selects a tag when search has no exact match', async () => {
+    const onCreateTag = jest.fn().mockResolvedValue({ id: 'starlight-id', name: 'starlight' });
+    const onSave = jest.fn().mockResolvedValue(undefined);
+    render(
+      <EntrySheet
+        visible
+        references={references}
+        defaultAccount="everyday"
+        onClose={jest.fn()}
+        onCreateTag={onCreateTag}
+        onSave={onSave}
+      />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'Search tags' }));
+    const tagSearch = screen.getByTestId('tag-search-sheet');
+    fireEvent.changeText(within(tagSearch).getByLabelText('Search tags'), 'starlight');
+    fireEvent.press(within(tagSearch).getByRole('button', { name: 'Create tag starlight' }));
+    await waitFor(() => expect(onCreateTag).toHaveBeenCalledWith('starlight'));
+    await waitFor(() =>
+      expect(within(tagSearch).getByLabelText('Search tags')).toHaveProp('value', ''),
+    );
+    fireEvent.press(within(tagSearch).getByRole('button', { name: 'Done selecting tags' }));
+    fireEvent.press(screen.getByRole('radio', { name: 'Groceries' }));
+    fireEvent.changeText(screen.getByLabelText('Amount'), '12');
+    fireEvent.press(screen.getByRole('button', { name: 'Save transaction' }));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0]?.[0].tags).toEqual(['starlight-id']);
   });
 
   it.each([
@@ -266,7 +302,7 @@ describe('EntrySheet', () => {
         ? screen.getByRole('button', { name: label })
         : screen.getByLabelText(label);
     fireEvent.press(close);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
 
     rerender(
       <EntrySheet

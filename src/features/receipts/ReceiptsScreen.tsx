@@ -15,6 +15,7 @@ import {
 import { loadReceiptFile, receiptFileSource, uploadReceipt } from '../../api';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { DrawerSheet } from '../../components/DrawerSheet';
+import { useDrawerTransition } from '../../components/useDrawerTransition';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import type {
@@ -87,6 +88,8 @@ export function ReceiptsScreen({
   const [previewError, setPreviewError] = useState(false);
   const [webPreviewUri, setWebPreviewUri] = useState<string | null>(null);
   const [detailsReceipt, setDetailsReceipt] = useState<ApiReceipt | null>(null);
+  const detailsDrawer = useDrawerTransition(detailsReceipt !== null, () => setDetailsReceipt(null));
+  const previewDrawer = useDrawerTransition(previewReceipt !== null, () => setPreviewReceipt(null));
   const receiptDates = useMemo(
     () => receipts.map((receipt) => receipt.suggestion?.date ?? receipt.createdAt.slice(0, 10)),
     [receipts],
@@ -340,18 +343,24 @@ export function ReceiptsScreen({
         )}
       </ScrollView>
       <Modal
-        visible={detailsReceipt !== null}
+        visible={detailsDrawer.mounted}
         transparent
-        animationType="fade"
-        onRequestClose={() => setDetailsReceipt(null)}
+        animationType="none"
+        onShow={detailsDrawer.onShow}
+        onRequestClose={detailsDrawer.dismiss}
       >
         <View style={styles.receiptDetailsModalRoot}>
           <Pressable
             accessibilityLabel="Close receipt details"
             style={styles.receiptDetailsScrim}
-            onPress={() => setDetailsReceipt(null)}
+            onPress={detailsDrawer.dismiss}
           />
-          <DrawerSheet style={styles.receiptDetailsSheet} testID="receipt-details-sheet">
+          <DrawerSheet
+            visible={detailsDrawer.sheetVisible}
+            onHidden={detailsDrawer.onHidden}
+            style={styles.receiptDetailsSheet}
+            testID="receipt-details-sheet"
+          >
             <View style={styles.handle} />
             <View style={styles.receiptDetailsHeading}>
               <View style={styles.sheetTitleGroup}>
@@ -365,7 +374,7 @@ export function ReceiptsScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close receipt details"
-                onPress={() => setDetailsReceipt(null)}
+                onPress={detailsDrawer.dismiss}
                 style={styles.closeButton}
               >
                 <Ionicons name="close" size={22} color={colors.ink} />
@@ -381,7 +390,7 @@ export function ReceiptsScreen({
                   setPreviewLoading(detailsReceipt.mimeType.startsWith('image/'));
                   setPreviewError(false);
                   setPreviewReceipt(detailsReceipt);
-                  setDetailsReceipt(null);
+                  detailsDrawer.dismiss();
                 }}
                 style={styles.receiptDetailsSecondaryAction}
               >
@@ -396,7 +405,7 @@ export function ReceiptsScreen({
                   accessibilityLabel={`Add ${detailsReceipt.suggestion?.merchant || 'receipt'}`}
                   onPress={() => {
                     onAdd(detailsReceipt, detailsPrepared.draft, detailsPrepared.mode);
-                    setDetailsReceipt(null);
+                    detailsDrawer.dismiss();
                   }}
                   style={styles.receiptDetailsPrimaryAction}
                 >
@@ -460,18 +469,23 @@ export function ReceiptsScreen({
         </View>
       </Modal>
       <Modal
-        animationType="fade"
+        animationType="none"
         transparent
-        visible={previewReceipt !== null}
-        onRequestClose={() => setPreviewReceipt(null)}
+        visible={previewDrawer.mounted}
+        onShow={previewDrawer.onShow}
+        onRequestClose={previewDrawer.dismiss}
       >
         <View style={styles.receiptPreviewBackdrop} testID="receipt-preview">
           <Pressable
             accessibilityLabel="Close receipt photo"
             style={styles.receiptPreviewScrim}
-            onPress={() => setPreviewReceipt(null)}
+            onPress={previewDrawer.dismiss}
           />
-          <DrawerSheet style={styles.receiptPreviewCard}>
+          <DrawerSheet
+            visible={previewDrawer.sheetVisible}
+            onHidden={previewDrawer.onHidden}
+            style={styles.receiptPreviewCard}
+          >
             <View style={styles.handle} />
             <View style={styles.receiptPreviewHeader}>
               <Text numberOfLines={1} style={styles.receiptPreviewTitle}>
@@ -480,7 +494,7 @@ export function ReceiptsScreen({
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Close receipt photo"
-                onPress={() => setPreviewReceipt(null)}
+                onPress={previewDrawer.dismiss}
                 style={styles.receiptPreviewClose}
               >
                 <Ionicons name="close" size={24} color={colors.ink} />

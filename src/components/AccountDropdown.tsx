@@ -6,6 +6,7 @@ import { styles } from '../styles';
 import { colors } from '../theme';
 import type { Reference } from '../types';
 import { DrawerSheet } from './DrawerSheet';
+import { useDrawerTransition } from './useDrawerTransition';
 
 export function AccountDropdown({
   value,
@@ -25,6 +26,7 @@ export function AccountDropdown({
   variant?: 'default' | 'header';
 }) {
   const [open, setOpen] = useState(false);
+  const drawer = useDrawerTransition(open, () => setOpen(false));
   const selected = options.find(({ id }) => id === value);
   return (
     <View style={variant === 'header' ? styles.headerAccountDropdown : undefined}>
@@ -58,15 +60,26 @@ export function AccountDropdown({
           </>
         )}
       </Pressable>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+      <Modal
+        visible={drawer.mounted}
+        transparent
+        animationType="none"
+        onShow={drawer.onShow}
+        onRequestClose={drawer.dismiss}
+      >
         <View style={styles.nestedModalRoot}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Close account selector"
             style={styles.nestedScrim}
-            onPress={() => setOpen(false)}
+            onPress={drawer.dismiss}
           />
-          <DrawerSheet style={styles.accountSheet} testID="account-sheet">
+          <DrawerSheet
+            visible={drawer.sheetVisible}
+            onHidden={drawer.onHidden}
+            style={styles.accountSheet}
+            testID="account-sheet"
+          >
             <View style={styles.handle} />
             <Text style={styles.categorySheetTitle}>{label}</Text>
             <Text style={styles.categorySheetSubtitle}>
@@ -84,6 +97,7 @@ export function AccountDropdown({
                     onPress={() => {
                       onChange(option.id);
                       setOpen(false);
+                      drawer.dismiss();
                     }}
                     style={[styles.accountOption, active && styles.activeAccountOption]}
                   >
