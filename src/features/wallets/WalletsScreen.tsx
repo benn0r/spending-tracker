@@ -25,9 +25,11 @@ function formatAccountAmount(value: number | undefined, currency: string | undef
 export function WalletsScreen({
   accounts,
   categories,
+  defaultAccount,
 }: {
   accounts: Reference[];
   categories: CategoryReference[];
+  defaultAccount: string;
 }) {
   const [wallet, setWallet] = useState('');
   const [items, setItems] = useState<ApiTransaction[]>([]);
@@ -40,7 +42,10 @@ export function WalletsScreen({
   const [cashFlow, setCashFlow] = useState<CashFlow | null>(null);
   const loadingMoreRef = useRef(false);
   const generation = useRef(0);
-  const selectedWallet = wallet || accounts[0]?.id || '';
+  const availableDefaultAccount = accounts.some(({ id }) => id === defaultAccount)
+    ? defaultAccount
+    : '';
+  const selectedWallet = wallet || availableDefaultAccount || accounts[0]?.id || '';
   const selectedWalletName = accounts.find(({ id }) => id === selectedWallet)?.name;
   const dayTotals = useMemo(() => transactionDayTotals(items), [items]);
   const listItems = useMemo(() => transactionListItems(items), [items]);

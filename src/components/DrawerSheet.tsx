@@ -29,7 +29,7 @@ export function DrawerSheet({
     if (visible) translateY.setValue(Dimensions.get('window').height);
     Animated.timing(translateY, {
       toValue: visible ? 0 : Dimensions.get('window').height,
-      duration: 280,
+      duration: 200,
       delay: visible ? delay : 0,
       easing: visible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
       useNativeDriver: true,

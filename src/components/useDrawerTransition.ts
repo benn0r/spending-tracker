@@ -30,7 +30,7 @@ export function useDrawerTransition(visible: boolean, onDismiss: () => void) {
     dismissRequested.current = true;
     setSheetVisible(false);
     if (fallbackTimer.current) clearTimeout(fallbackTimer.current);
-    fallbackTimer.current = setTimeout(onHidden, 320);
+    fallbackTimer.current = setTimeout(onHidden, 240);
   };
   const onShow = () => setSheetVisible(true);
   const onHidden = () => {

@@ -38,6 +38,10 @@ test('persists a dismissed settings selection, prefills it, and prevents double 
   await page.getByRole('radio', { name: 'Dragon Hoard' }).click();
   await expect(selector).toContainText('Dragon Hoard');
 
+  await openTab(page, 'Accounts');
+  await expect(page.getByRole('button', { name: 'Select account' })).toContainText('Dragon Hoard');
+  await openTab(page, 'Settings');
+
   await selector.click();
   await expect(page.getByRole('radio', { name: 'Dragon Hoard' })).toBeChecked();
   await page

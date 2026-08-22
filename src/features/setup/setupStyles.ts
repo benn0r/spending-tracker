@@ -8,7 +8,9 @@ export const setupStyles = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     backgroundColor: colors.surface,
+    overflow: 'hidden',
   },
+  setupSheetBody: { flexShrink: 1, backgroundColor: colors.surface },
   setupSheetContent: {
     paddingHorizontal: 22,
     paddingBottom: Platform.OS === 'ios' ? 34 : 24,

@@ -691,14 +691,19 @@ export const styles = StyleSheet.create({
   activeCategoryTileText: { color: colors.accentDark, fontWeight: '700' },
   categoryEmpty: { color: colors.muted, textAlign: 'center', paddingVertical: 40 },
   accountSheet: {
-    maxHeight: '62%',
+    height: '62%',
     backgroundColor: colors.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
+    overflow: 'hidden',
+  },
+  accountOptionsScroll: { flex: 1 },
+  accountOptions: {
+    gap: 11,
+    paddingTop: 20,
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
   },
-  accountOptions: { gap: 11, paddingTop: 20, paddingBottom: 10 },
   accountOption: {
     minHeight: 62,
     borderRadius: 14,

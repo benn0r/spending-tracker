@@ -32,7 +32,11 @@ export function ServerSetupDrawer({
           style={styles.receiptDetailsScrim}
           onPress={drawer.dismiss}
         />
-        <DrawerSheet visible={drawer.sheetVisible} onHidden={drawer.onHidden}>
+        <DrawerSheet
+          visible={drawer.sheetVisible}
+          onHidden={drawer.onHidden}
+          style={styles.setupSheet}
+        >
           <ServerSetupScreen
             sheet
             initialValue={configuration}

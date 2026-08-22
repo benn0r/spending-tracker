@@ -40,7 +40,7 @@ export function ServerSetupScreen({
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={sheet ? styles.setupSheet : styles.setupScreen}
+      style={sheet ? styles.setupSheetBody : styles.setupScreen}
     >
       <View style={sheet ? styles.setupSheetContent : styles.setupCard}>
         {sheet ? <View style={styles.handle} /> : null}

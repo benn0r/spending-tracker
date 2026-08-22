@@ -85,7 +85,10 @@ export function AccountDropdown({
             <Text style={styles.categorySheetSubtitle}>
               Choose from accounts enabled on the server.
             </Text>
-            <ScrollView contentContainerStyle={styles.accountOptions}>
+            <ScrollView
+              style={styles.accountOptionsScroll}
+              contentContainerStyle={styles.accountOptions}
+            >
               {options.map((option) => {
                 const active = option.id === value;
                 return (

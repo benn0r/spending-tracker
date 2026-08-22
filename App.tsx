@@ -246,7 +246,11 @@ function ConfiguredApp({
                   }}
                 />
               ) : activeTab === 'wallets' ? (
-                <WalletsScreen accounts={references.accounts} categories={references.categories} />
+                <WalletsScreen
+                  accounts={references.accounts}
+                  categories={references.categories}
+                  defaultAccount={defaultAccount}
+                />
               ) : activeTab === 'more' ? (
                 <MoreNavigator
                   key={morePage ?? 'menu'}
