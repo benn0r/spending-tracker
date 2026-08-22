@@ -3,27 +3,15 @@ import { isLocalDate } from './dates.ts';
 import type {
   ApiReceipt,
   ApiTransaction,
-  CategoryReference,
   DraftTransaction,
   EntryMode,
-  Reference,
   References,
   TransactionPayload,
 } from './types.ts';
 
-export const emptyReferences: References = { accounts: [], categories: [], tags: [] };
-
-export const defaultAccountStorageKey = 'spending-tracker.default-account';
-export const transactionQueueStorageKey = 'spending-tracker.transaction-queue';
-export const transactionCacheStorageKey = 'spending-tracker.transactions-v1';
-export const referenceCacheStorageKey = 'spending-tracker.references-v1';
-export const cashFlowCacheStorageKey = 'spending-tracker.cash-flow-v1';
-export const receiptCacheStorageKey = 'spending-tracker.receipts-v1';
-export const expenseSplitCacheStorageKey = 'spending-tracker.expense-splits-v1';
-export const accountCacheStorageKey = (accountId: string) =>
-  `spending-tracker.account-v1.${accountId}`;
-
 export { formatLocalDate, isLocalDate, parseLocalDate } from './dates.ts';
+export { emptyReferences, parseReferenceCache, sortCategoryReferences } from './reference-cache.ts';
+export * from './storage-keys.ts';
 
 export type QueuedTransaction = {
   id: string;
@@ -59,91 +47,6 @@ function isRecord(value: unknown): value is UnknownRecord {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
-}
-
-function parseReference(value: unknown): Reference | null {
-  if (!isRecord(value) || !isNonEmptyString(value.id) || !isNonEmptyString(value.name)) {
-    return null;
-  }
-  return { id: value.id, name: value.name };
-}
-
-function parseCategoryReference(value: unknown): CategoryReference | null {
-  const reference = parseReference(value);
-  if (!reference || !isRecord(value)) return null;
-  if (value.icon !== undefined && typeof value.icon !== 'string') return null;
-  if (
-    value.iconId !== undefined &&
-    value.iconId !== null &&
-    (!Number.isInteger(value.iconId) || (value.iconId as number) < 1)
-  )
-    return null;
-  if (value.color !== undefined && typeof value.color !== 'string') return null;
-  if (
-    value.sortOrder !== undefined &&
-    value.sortOrder !== null &&
-    (!Number.isInteger(value.sortOrder) || (value.sortOrder as number) < 1)
-  )
-    return null;
-  return {
-    ...reference,
-    ...(value.icon === undefined ? {} : { icon: value.icon }),
-    ...(value.iconId === undefined ? {} : { iconId: value.iconId as number | null }),
-    ...(value.color === undefined ? {} : { color: value.color }),
-    ...(value.sortOrder === undefined ? {} : { sortOrder: value.sortOrder as number | null }),
-  };
-}
-
-export function sortCategoryReferences(categories: CategoryReference[]): CategoryReference[] {
-  return [...categories].sort(
-    (left, right) =>
-      (left.sortOrder ?? Number.MAX_SAFE_INTEGER) - (right.sortOrder ?? Number.MAX_SAFE_INTEGER) ||
-      left.name.localeCompare(right.name),
-  );
-}
-
-function hasUniqueIds(items: Reference[]): boolean {
-  return new Set(items.map(({ id }) => id)).size === items.length;
-}
-
-export function parseReferenceCache(value: string | null): References | null {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    if (
-      !isRecord(parsed) ||
-      !Array.isArray(parsed.accounts) ||
-      !Array.isArray(parsed.categories) ||
-      !Array.isArray(parsed.tags)
-    ) {
-      return null;
-    }
-    const accounts = parsed.accounts.map(parseReference);
-    const categories = parsed.categories.map(parseCategoryReference);
-    const tags = parsed.tags.map(parseReference);
-    if (
-      accounts.some((item) => item === null) ||
-      categories.some((item) => item === null) ||
-      tags.some((item) => item === null)
-    ) {
-      return null;
-    }
-    const references: References = {
-      accounts: accounts as Reference[],
-      categories: sortCategoryReferences(categories as CategoryReference[]),
-      tags: tags as Reference[],
-    };
-    if (
-      !hasUniqueIds(references.accounts) ||
-      !hasUniqueIds(references.categories) ||
-      !hasUniqueIds(references.tags)
-    ) {
-      return null;
-    }
-    return references;
-  } catch {
-    return null;
-  }
 }
 
 type OptionalStringList =

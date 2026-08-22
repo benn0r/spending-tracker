@@ -31,6 +31,7 @@ import { ChoiceField } from './fields/ChoiceField';
 import { DatePickerField } from './fields/DatePickerField';
 import { ExpenseSplitPickerField } from './fields/ExpenseSplitPickerField';
 import { TextField } from './fields/TextField';
+import { EntrySheetHeader } from './EntrySheetHeader';
 
 export function EntrySheet({
   visible,
@@ -179,54 +180,12 @@ export function EntrySheet({
           testID="entry-sheet"
         >
           <View style={styles.handle} />
-          <View style={styles.sheetHeading}>
-            <View style={styles.sheetTitleGroup}>
-              <View style={styles.sheetTitleIcon}>
-                <Ionicons name="card-outline" size={20} color={colors.accent} />
-              </View>
-              <Text style={styles.sheetTitle}>
-                {initialDraft ? 'Edit transaction' : 'New transaction'}
-              </Text>
-            </View>
-            <View style={styles.sheetHeadingActions}>
-              <View accessibilityRole="tablist" style={styles.modeToggle}>
-                <Pressable
-                  accessibilityRole="tab"
-                  accessibilityLabel="Transaction"
-                  accessibilityState={{ selected: mode === 'transaction' }}
-                  onPress={() => setMode('transaction')}
-                  style={[styles.modeButton, mode === 'transaction' && styles.activeModeButton]}
-                >
-                  <Ionicons
-                    name="receipt-outline"
-                    size={18}
-                    color={mode === 'transaction' ? colors.white : colors.muted}
-                  />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="tab"
-                  accessibilityLabel="Split transaction"
-                  accessibilityState={{ selected: mode === 'split' }}
-                  onPress={() => setMode('split')}
-                  style={[styles.modeButton, mode === 'split' && styles.activeModeButton]}
-                >
-                  <Ionicons
-                    name="git-branch-outline"
-                    size={18}
-                    color={mode === 'split' ? colors.white : colors.muted}
-                  />
-                </Pressable>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close"
-                onPress={close}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={21} color={colors.ink} />
-              </Pressable>
-            </View>
-          </View>
+          <EntrySheetHeader
+            editing={Boolean(initialDraft)}
+            mode={mode}
+            onModeChange={setMode}
+            onClose={close}
+          />
           <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={styles.form}>
             <ChoiceField
               label="Account"

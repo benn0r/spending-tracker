@@ -2,19 +2,19 @@ import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Modal, Pressable, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { type ApiConfiguration, updateTransaction, uploadReceipt } from './src/api';
 import type { ConfirmedTransactionInput } from './src/app-model';
 import { BottomNavigation, type AppTab } from './src/components/BottomNavigation';
-import { DrawerSheet } from './src/components/DrawerSheet';
-import { useDrawerTransition } from './src/components/useDrawerTransition';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { SwipeProvider } from './src/components/SwipeToDelete';
 import { ReceiptsScreen } from './src/features/receipts/ReceiptsScreen';
 import { SettingsScreen } from './src/features/settings/SettingsScreen';
 import { ServerSetupScreen } from './src/features/setup/ServerSetupScreen';
+import { ServerSetupDrawer } from './src/features/setup/ServerSetupDrawer';
 import { EntrySheet } from './src/features/transactions/EntrySheet';
 import { TransactionsScreen } from './src/features/transactions/TransactionsScreen';
+import { prepareTransactionEdit } from './src/features/transactions/prepareTransactionEdit';
 import { WalletsScreen } from './src/features/wallets/WalletsScreen';
 import { SharedExpensesScreen } from './src/features/splits/SharedExpensesScreen';
 import { MoreNavigator, type MorePage } from './src/features/more/MoreNavigator';
@@ -31,7 +31,6 @@ import type {
   DraftTransaction,
   EntryMode,
   ExpenseSplitSelection,
-  References,
   TransactionDirection,
 } from './src/types';
 
@@ -99,7 +98,6 @@ function ConfiguredApp({
     setMorePageLeaving(false);
   }, []);
   const [setupOpen, setSetupOpen] = useState(false);
-  const setupDrawer = useDrawerTransition(setupOpen, () => setSetupOpen(false));
   const [transactionsActivationRequest, setTransactionsActivationRequest] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<ApiTransaction | null>(null);
@@ -326,90 +324,18 @@ function ConfiguredApp({
             }}
             onSave={addTransaction}
           />
-          <Modal
-            animationType="none"
-            transparent
-            visible={setupDrawer.mounted}
-            onShow={setupDrawer.onShow}
-            onRequestClose={setupDrawer.dismiss}
-          >
-            <View style={styles.setupModalRoot}>
-              <Pressable
-                accessibilityLabel="Close server connection settings"
-                style={styles.receiptDetailsScrim}
-                onPress={setupDrawer.dismiss}
-              />
-              <DrawerSheet visible={setupDrawer.sheetVisible} onHidden={setupDrawer.onHidden}>
-                <ServerSetupScreen
-                  sheet
-                  initialValue={configuration}
-                  onCancel={setupDrawer.dismiss}
-                  onSave={(next) => {
-                    onChangeConfiguration(next);
-                    setupDrawer.dismiss();
-                    void refresh();
-                    void refreshReceipts().catch(() => undefined);
-                  }}
-                />
-              </DrawerSheet>
-            </View>
-          </Modal>
+          <ServerSetupDrawer
+            visible={setupOpen}
+            configuration={configuration}
+            onClose={() => setSetupOpen(false)}
+            onSave={(next) => {
+              onChangeConfiguration(next);
+              void refresh();
+              void refreshReceipts().catch(() => undefined);
+            }}
+          />
         </SafeAreaView>
       </SwipeProvider>
     </SafeAreaProvider>
   );
-}
-
-function prepareTransactionEdit(
-  transaction: ApiTransaction,
-  references: References,
-): { draft: DraftTransaction; mode: EntryMode } {
-  const categoryId = (name: string) =>
-    references.categories.find((candidate) => candidate.name === name)?.id ?? '';
-  const tagIds = (names: string[] = []) =>
-    names.flatMap((name) => {
-      const tag = references.tags.find((candidate) => candidate.name === name);
-      return tag ? [tag.id] : [];
-    });
-  const sharedChildren = transaction.expenseSplitId
-    ? (transaction.children ?? []).filter(
-        ({ category }) => category !== transaction.sharedExpenseCategory,
-      )
-    : (transaction.children ?? []);
-  const mode: EntryMode = sharedChildren.length > 1 ? 'split' : 'transaction';
-  const splitCount = transaction.expenseSplitCount ?? 1;
-  const targetCents = Math.round(Math.abs(transaction.amount) * 100);
-  let allocatedCents = 0;
-  const splits = sharedChildren.map((child, index) => {
-    const cents = transaction.expenseSplitId
-      ? index === sharedChildren.length - 1
-        ? targetCents - allocatedCents
-        : Math.round(Math.abs(child.amount) * 100 * splitCount)
-      : Math.round(Math.abs(child.amount) * 100);
-    allocatedCents += cents;
-    return {
-      category: categoryId(child.category),
-      amount: String(cents / 100),
-      tags: tagIds(child.tags),
-    };
-  });
-  const primary = sharedChildren[0];
-  return {
-    mode,
-    draft: {
-      account: references.accounts.find(({ name }) => name === transaction.account)?.id ?? '',
-      category: categoryId(primary?.category ?? transaction.category),
-      date: transaction.date,
-      amount: String(Math.abs(transaction.amount)),
-      tags: tagIds(primary?.tags ?? transaction.tags),
-      comment: transaction.notes ?? '',
-      splits:
-        mode === 'split'
-          ? splits
-          : [
-              { category: '', amount: '', tags: [] },
-              { category: '', amount: '', tags: [] },
-            ],
-    },
-  };
 }
