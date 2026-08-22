@@ -203,6 +203,7 @@ export function TransactionRow({
       >
         <View style={styles.receiptDetailsModalRoot}>
           <Pressable
+            accessibilityRole="button"
             accessibilityLabel="Close transaction details"
             style={styles.receiptDetailsScrim}
             onPress={detailsDrawer.dismiss}

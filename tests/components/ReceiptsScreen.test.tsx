@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { ActivityIndicator, RefreshControl } from 'react-native';
 
@@ -257,7 +257,7 @@ describe('ReceiptsScreen', () => {
       ],
     });
     const refreshControl = screen.UNSAFE_getByType(RefreshControl);
-    refreshControl.props.onRefresh();
+    act(() => refreshControl.props.onRefresh());
     expect(refresh).toHaveBeenCalledTimes(1);
 
     expect(screen.queryByTestId('receipt-details-sheet')).toBeNull();
@@ -270,8 +270,11 @@ describe('ReceiptsScreen', () => {
     expect(screen.getAllByText('CHF 5.00')).toHaveLength(2);
     expect(screen.getAllByText('CHF 7.50')).toHaveLength(2);
     expect(screen.getAllByText('CHF 12.50')).toHaveLength(2);
+    jest.useFakeTimers();
     fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt details' })[0]);
-    await waitFor(() => expect(screen.queryByText('Apples')).toBeNull());
+    act(() => jest.advanceTimersByTime(320));
+    expect(screen.queryByText('Apples')).toBeNull();
+    jest.useRealTimers();
   });
 
   it('renders image and non-image preview states and closes them', async () => {
@@ -291,7 +294,7 @@ describe('ReceiptsScreen', () => {
     expect(screen.UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
     fireEvent(photo, 'load');
     expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
-    fireEvent.press(screen.getByRole('button', { name: 'Close receipt photo' }));
+    fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt photo' }).at(-1)!);
     await waitFor(() => expect(screen.queryByTestId('receipt-preview')).toBeNull());
 
     fireEvent.press(screen.getByRole('button', { name: 'View details for statement.pdf' }));

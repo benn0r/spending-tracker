@@ -27,6 +27,7 @@ export function ServerSetupDrawer({
     >
       <View style={styles.setupModalRoot}>
         <Pressable
+          accessibilityRole="button"
           accessibilityLabel="Close server connection settings"
           style={styles.receiptDetailsScrim}
           onPress={drawer.dismiss}

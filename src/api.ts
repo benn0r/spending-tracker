@@ -15,6 +15,7 @@ import { sortCategoryReferences } from './app-model';
 let apiUrl =
   process.env.EXPO_PUBLIC_SPENDING_TRACKER_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
 let apiKey = process.env.EXPO_PUBLIC_SPENDING_TRACKER_API_KEY ?? '';
+export const apiRequestTimeoutMs = 15_000;
 
 export type ApiConfiguration = { serverUrl: string; apiToken: string };
 
@@ -88,10 +89,13 @@ async function fetchResponse(
   accept = 'application/json',
 ): Promise<Response> {
   const method = init?.method ?? 'GET';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), apiRequestTimeoutMs);
   let response: Response;
   try {
     response = await fetch(`${apiUrl}${path}`, {
       ...init,
+      signal: controller.signal,
       headers: {
         Accept: accept,
         ...(typeof init?.body === 'string' ? { 'Content-Type': 'application/json' } : {}),
@@ -100,7 +104,11 @@ async function fetchResponse(
       },
     });
   } catch (cause) {
-    const reason = cause instanceof Error ? cause.message : String(cause);
+    const reason = controller.signal.aborted
+      ? `Request timed out after ${apiRequestTimeoutMs / 1000} seconds.`
+      : cause instanceof Error
+        ? cause.message
+        : String(cause);
     console.error('Spending Tracker API network failure', {
       method,
       path,
@@ -115,6 +123,8 @@ async function fetchResponse(
       method,
       path,
     );
+  } finally {
+    clearTimeout(timeout);
   }
   if (!response.ok) {
     const responseText = await response.text();

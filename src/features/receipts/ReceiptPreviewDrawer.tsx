@@ -35,6 +35,7 @@ export function ReceiptPreviewDrawer({
     >
       <View style={styles.receiptPreviewBackdrop} testID="receipt-preview">
         <Pressable
+          accessibilityRole="button"
           accessibilityLabel="Close receipt photo"
           style={styles.receiptPreviewScrim}
           onPress={drawer.dismiss}

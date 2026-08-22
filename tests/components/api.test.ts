@@ -94,6 +94,7 @@ describe('API client', () => {
   });
 
   it('creates a tag through the references API and validates its response', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     fetchMock.mockResolvedValueOnce(response({ id: 'starlight-id', name: 'starlight' }));
     await expect(api.createTag('starlight')).resolves.toEqual({
       id: 'starlight-id',
@@ -106,6 +107,7 @@ describe('API client', () => {
 
     fetchMock.mockResolvedValueOnce(response({ name: 'missing-id' }));
     await expect(api.createTag('broken')).rejects.toThrow('returned incompatible data');
+    consoleError.mockRestore();
   });
 
   it('normalizes the new Spendee receipt envelope and field names', async () => {
@@ -170,6 +172,10 @@ describe('API client', () => {
     fetchMock
       .mockResolvedValueOnce(response(null))
       .mockResolvedValueOnce(response(null))
+      .mockResolvedValueOnce(response({ id: 'wallet-entry', status: 'updated' }))
+      .mockResolvedValueOnce(response({ splits: [] }))
+      .mockResolvedValueOnce(response({ id: 7, title: 'Holiday', entries: [] }))
+      .mockResolvedValueOnce(response({ currency: 'CHF', currentMonth: '2026-08', months: [] }))
       .mockResolvedValueOnce(response([]))
       .mockResolvedValueOnce(response(null))
       .mockResolvedValueOnce(response(null));
@@ -182,6 +188,10 @@ describe('API client', () => {
 
     await api.submitTransaction(payload);
     await api.deleteTransaction('id / with spaces');
+    await api.updateTransaction('wallet-entry', payload);
+    await api.loadExpenseSplits();
+    await api.loadExpenseSplit(7);
+    await api.loadCashFlow('wallet / one');
     await api.loadReceipts();
     await api.deleteReceipt(9);
     await api.submitReceiptTransaction(7, payload);
@@ -202,22 +212,70 @@ describe('API client', () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
+      'https://api.example.test/api/transactions/wallet-entry',
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify(payload) }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      'https://api.example.test/api/splits',
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      5,
+      'https://api.example.test/api/splits/7',
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      6,
+      'https://api.example.test/api/cash-flow?account=wallet%20%2F%20one',
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      7,
       'https://api.example.test/api/receipts',
       expect.any(Object),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
-      4,
+      8,
       'https://api.example.test/api/receipts/9',
       expect.objectContaining({ method: 'DELETE' }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
-      5,
+      9,
       'https://api.example.test/api/receipts/7/submit',
       expect.objectContaining({ method: 'POST', body: JSON.stringify(payload) }),
     );
   });
 
+  it('reports unavailable servers and aborts requests that never respond', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    fetchMock.mockRejectedValueOnce(new TypeError('Network request failed'));
+    await expect(api.loadReceipts()).rejects.toMatchObject({
+      name: 'ApiError',
+      method: 'GET',
+      path: '/api/receipts',
+      message: expect.stringContaining('Network request did not receive a response.'),
+    });
+
+    jest.useFakeTimers();
+    fetchMock.mockImplementationOnce(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        }),
+    );
+    const pending = api.loadReceipts();
+    const timeoutExpectation = expect(pending).rejects.toThrow(
+      'Request timed out after 15 seconds.',
+    );
+    await jest.advanceTimersByTimeAsync(api.apiRequestTimeoutMs);
+    await timeoutExpectation;
+    jest.useRealTimers();
+    consoleError.mockRestore();
+  });
+
   it('builds actionable diagnostics from JSON, plain text, and empty errors', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     fetchMock.mockResolvedValueOnce(
       response(
         { error: 'Rejected expense', detail: 'Rejected expense' },
@@ -247,6 +305,7 @@ describe('API client', () => {
 
     fetchMock.mockResolvedValueOnce(response(null, { ok: false, status: 500 }));
     await expect(api.loadReceipts()).rejects.toThrow('Server returned no error details.');
+    consoleError.mockRestore();
   });
 
   it('describes API and network submission failures without losing their cause', () => {

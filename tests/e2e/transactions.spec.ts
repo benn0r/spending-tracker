@@ -626,7 +626,7 @@ test('opens a processed receipt as a prefilled transaction', async ({ page }) =>
   await page.getByRole('button', { name: 'View Corner Market' }).click();
   await expect(page.getByTestId('receipt-preview')).toBeVisible();
   await expect(page.getByLabel('Receipt photo receipt.jpg')).toBeVisible();
-  await page.getByRole('button', { name: 'Close receipt photo' }).click();
+  await page.getByRole('button', { name: 'Close receipt photo' }).last().click();
   await expect(page.getByTestId('receipt-preview')).toHaveCount(0);
   await page.getByRole('button', { name: 'View details for Corner Market' }).click();
   await page.getByRole('button', { name: 'Add Corner Market' }).click();

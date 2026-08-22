@@ -68,7 +68,12 @@ export function DatePickerField({
         onRequestClose={drawer.dismiss}
       >
         <View style={styles.nestedModalRoot}>
-          <Pressable style={styles.nestedScrim} onPress={drawer.dismiss} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close date calendar"
+            style={styles.nestedScrim}
+            onPress={drawer.dismiss}
+          />
           <DrawerSheet
             visible={drawer.sheetVisible}
             onHidden={drawer.onHidden}

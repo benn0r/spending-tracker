@@ -108,6 +108,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
         >
           <View style={styles.nestedModalRoot}>
             <Pressable
+              accessibilityRole="button"
               accessibilityLabel="Close tag search"
               onPress={tagDrawer.dismiss}
               style={styles.nestedScrim}

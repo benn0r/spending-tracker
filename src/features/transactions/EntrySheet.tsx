@@ -169,6 +169,7 @@ export function EntrySheet({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <Pressable
+          accessibilityRole="button"
           accessibilityLabel="Close transaction form"
           style={styles.scrim}
           onPress={close}
@@ -372,7 +373,12 @@ export function EntrySheet({
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </ScrollView>
           <View style={styles.sheetActions}>
-            <Pressable onPress={close} style={styles.cancelButton}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel transaction"
+              onPress={close}
+              style={styles.cancelButton}
+            >
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
             <Pressable

@@ -64,6 +64,7 @@ export function ReceiptDetailsDrawer({
     >
       <View style={styles.receiptDetailsModalRoot}>
         <Pressable
+          accessibilityRole="button"
           accessibilityLabel="Close receipt details"
           style={styles.receiptDetailsScrim}
           onPress={drawer.dismiss}

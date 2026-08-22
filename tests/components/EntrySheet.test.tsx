@@ -7,6 +7,15 @@ import type { References } from '../../src/types';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
+jest.mock('../../src/components/useDrawerTransition', () => ({
+  useDrawerTransition: (_visible: boolean, onDismiss: () => void) => ({
+    mounted: _visible,
+    sheetVisible: _visible,
+    dismiss: onDismiss,
+    onShow: jest.fn(),
+    onHidden: onDismiss,
+  }),
+}));
 jest.mock('@react-native-picker/picker', () => {
   const { View } = jest.requireActual('react-native');
   function PickerMock({ children, ...props }: { children: ReactNode }) {

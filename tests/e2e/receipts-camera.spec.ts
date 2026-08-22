@@ -253,20 +253,20 @@ test('renders successful, failed, and non-image receipt previews', async ({ page
   expect(successfulImageRequests).toBeGreaterThan(0);
   expect(successfulImageAuthorization).toBe('Bearer e2e-api-key');
   await expect(page.getByText('Could not load this receipt photo.')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Close receipt photo' }).click();
+  await page.getByRole('button', { name: 'Close receipt photo' }).last().click();
 
   await page.getByRole('button', { name: 'View details for Broken Moon Map' }).click();
   await page.getByRole('button', { name: 'View Broken Moon Map' }).click();
   await expect(page.getByText('Could not load this receipt photo.')).toBeVisible();
   expect(brokenImageRequests).toBeGreaterThan(0);
-  await page.getByRole('button', { name: 'Close receipt photo' }).click();
+  await page.getByRole('button', { name: 'Close receipt photo' }).last().click();
 
   await page.getByRole('button', { name: 'View details for Guild Invoice' }).click();
   await page.getByRole('button', { name: 'View Guild Invoice' }).click();
   await expect(page.getByText('Photo preview is unavailable for this file.')).toBeVisible();
   await expect(page.getByLabel('Receipt photo guild-invoice.pdf')).toHaveCount(0);
   expect(documentFileRequests).toBe(0);
-  await page.getByRole('button', { name: 'Close receipt photo' }).click();
+  await page.getByRole('button', { name: 'Close receipt photo' }).last().click();
 });
 
 test('persists a failed receipt submission in the offline queue with its receipt link', async ({

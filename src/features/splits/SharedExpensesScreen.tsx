@@ -106,6 +106,7 @@ export function SharedExpensesScreen({
       >
         <View style={styles.receiptDetailsModalRoot}>
           <Pressable
+            accessibilityRole="button"
             style={styles.receiptDetailsScrim}
             onPress={detailsDrawer.dismiss}
             accessibilityLabel="Close shared expense details"
