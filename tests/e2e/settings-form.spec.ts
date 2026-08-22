@@ -280,7 +280,17 @@ test('creates a missing Actual Budget tag and submits its returned ID', async ({
   const noMatches = tagSearch.getByText('No matching tags.');
   await expect(createTag).toBeVisible();
   await expect(noMatches).toBeVisible();
-  expect((await createTag.boundingBox())?.y).toBeLessThan((await noMatches.boundingBox())?.y ?? 0);
+  expect(
+    await createTag.evaluate(
+      (createButton, emptyMessage) => {
+        if (!(emptyMessage instanceof Node)) return false;
+        return Boolean(
+          createButton.compareDocumentPosition(emptyMessage) & Node.DOCUMENT_POSITION_FOLLOWING,
+        );
+      },
+      await noMatches.elementHandle(),
+    ),
+  ).toBe(true);
   await createTag.click();
   await expect(tagSearch.getByRole('textbox', { name: 'Search tags' })).toHaveValue('');
   await tagSearch.getByRole('button', { name: 'Done selecting tags' }).click();

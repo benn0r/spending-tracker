@@ -194,10 +194,12 @@ export async function openAndFillExpense(
   await page.getByRole('button', { name: 'Add transaction' }).click();
   const sheet = page.getByTestId('entry-sheet');
   const categorySheet = page.getByTestId('category-sheet');
-  if ((await categorySheet.count()) === 0) {
+  try {
+    await expect(categorySheet).toBeVisible({ timeout: 2_000 });
+  } catch {
     await sheet.getByRole('button', { name: 'Select category' }).click();
+    await expect(categorySheet).toBeVisible();
   }
-  await expect(categorySheet).toBeVisible();
   await categorySheet.getByRole('radio', { name: input.category }).click();
   await sheet.getByRole('radio', { name: input.account }).click();
   await sheet.getByLabel('Amount', { exact: true }).fill(input.amount);
