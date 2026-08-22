@@ -1,4 +1,4 @@
-import type { Locator, Page, Route } from '@playwright/test';
+import { expect, type Locator, type Page, type Route } from '@playwright/test';
 
 import type {
   ApiReceipt,
@@ -194,9 +194,10 @@ export async function openAndFillExpense(
   await page.getByRole('button', { name: 'Add transaction' }).click();
   const sheet = page.getByTestId('entry-sheet');
   const categorySheet = page.getByTestId('category-sheet');
-  if (!(await categorySheet.isVisible())) {
+  if ((await categorySheet.count()) === 0) {
     await sheet.getByRole('button', { name: 'Select category' }).click();
   }
+  await expect(categorySheet).toBeVisible();
   await categorySheet.getByRole('radio', { name: input.category }).click();
   await sheet.getByRole('radio', { name: input.account }).click();
   await sheet.getByLabel('Amount', { exact: true }).fill(input.amount);
