@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { DrawerSheet } from '../../components/DrawerSheet';
@@ -61,7 +61,14 @@ export function TransactionRow({
       : `${iconColor}1A`;
   const accountColor = walletColor(item.account);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const detailsDrawer = useDrawerTransition(detailsOpen, () => setDetailsOpen(false));
+  const editAfterDismiss = useRef(false);
+  const detailsDrawer = useDrawerTransition(detailsOpen, () => {
+    setDetailsOpen(false);
+    if (editAfterDismiss.current) {
+      editAfterDismiss.current = false;
+      onEdit?.(item);
+    }
+  });
   return (
     <>
       <SwipeToDelete
@@ -312,8 +319,8 @@ export function TransactionRow({
                   accessibilityRole="button"
                   accessibilityLabel="Edit transaction"
                   onPress={() => {
+                    editAfterDismiss.current = true;
                     detailsDrawer.dismiss();
-                    onEdit(item);
                   }}
                   style={styles.saveButton}
                 >

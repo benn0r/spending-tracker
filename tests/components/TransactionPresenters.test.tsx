@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { QueuedTransaction } from '../../src/app-model';
 import { SummaryCard } from '../../src/features/transactions/SummaryCard';
@@ -93,6 +93,22 @@ const queuedTravel: QueuedTransaction = {
 };
 
 describe('transaction presentation', () => {
+  it('closes transaction details before handing off to the edit form', () => {
+    jest.useFakeTimers();
+    const onEdit = jest.fn();
+    render(
+      <TransactionRow item={transaction()} categories={[]} onDelete={jest.fn()} onEdit={onEdit} />,
+    );
+
+    fireEvent.press(screen.getByRole('button', { name: 'View details for Comet Rail' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Edit transaction' }));
+    expect(onEdit).not.toHaveBeenCalled();
+
+    act(() => jest.advanceTimersByTime(320));
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'skyship-ticket' }));
+    jest.useRealTimers();
+  });
+
   it('offers receipt capture beside the new transaction action', async () => {
     const onScanReceipt = jest.fn().mockResolvedValue(undefined);
     render(

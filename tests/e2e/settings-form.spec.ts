@@ -276,7 +276,12 @@ test('creates a missing Actual Budget tag and submits its returned ID', async ({
   await sheet.getByRole('button', { name: 'Search tags' }).click();
   const tagSearch = page.getByTestId('tag-search-sheet');
   await tagSearch.getByRole('textbox', { name: 'Search tags' }).fill('starlight');
-  await tagSearch.getByRole('button', { name: 'Create tag starlight' }).click();
+  const createTag = tagSearch.getByRole('button', { name: 'Create tag starlight' });
+  const noMatches = tagSearch.getByText('No matching tags.');
+  await expect(createTag).toBeVisible();
+  await expect(noMatches).toBeVisible();
+  expect((await createTag.boundingBox())?.y).toBeLessThan((await noMatches.boundingBox())?.y ?? 0);
+  await createTag.click();
   await expect(tagSearch.getByRole('textbox', { name: 'Search tags' })).toHaveValue('');
   await tagSearch.getByRole('button', { name: 'Done selecting tags' }).click();
   await sheet.getByRole('button', { name: 'Save transaction' }).click();

@@ -177,9 +177,6 @@ export function ChoiceField(props: ChoiceFieldProps) {
                     </Pressable>
                   );
                 })}
-                {!filteredOptions.length ? (
-                  <Text style={styles.emptyText}>No matching tags.</Text>
-                ) : null}
                 {canCreateTag ? (
                   <Pressable
                     accessibilityRole="button"
@@ -213,6 +210,9 @@ export function ChoiceField(props: ChoiceFieldProps) {
                       {creatingTag ? 'Creating…' : `Create “${newTagName}”`}
                     </Text>
                   </Pressable>
+                ) : null}
+                {!filteredOptions.length ? (
+                  <Text style={styles.emptyText}>No matching tags.</Text>
                 ) : null}
                 {createTagError ? <Text style={styles.errorText}>{createTagError}</Text> : null}
               </ScrollView>

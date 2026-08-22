@@ -45,6 +45,84 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
+test('edits a transaction after closing details and exercises every edit-form control', async ({
+  page,
+}) => {
+  let updated: Record<string, unknown> | undefined;
+  await page.route('**/api/transactions/transaction-1', async (route) => {
+    if (route.request().method() !== 'PATCH') {
+      await route.fallback();
+      return;
+    }
+    updated = route.request().postDataJSON() as Record<string, unknown>;
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'ok' }),
+    });
+  });
+  await page.route('**/api/transactions**', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({ transactions: [transaction], total: 1, page: 1, pageSize: 200 }),
+        })
+      : route.fallback(),
+  );
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'View details for Green Grocer' }).click();
+  const details = page.getByTestId('transaction-details-sheet');
+  await details.getByRole('button', { name: 'Edit transaction' }).click();
+  await expect(details).toBeHidden();
+
+  const sheet = page.getByTestId('entry-sheet');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByLabel('Amount', { exact: true })).toHaveValue('64.2');
+  await expect(sheet.getByLabel('Date', { exact: true })).toHaveValue('2026-08-09');
+  await expect(sheet.getByRole('radio', { name: 'Everyday' })).toBeChecked();
+  await expect(sheet.getByRole('button', { name: 'Select category' })).toContainText('Groceries');
+
+  await sheet.getByRole('tab', { name: 'Split transaction' }).click();
+  await expect(sheet.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+  await sheet.getByRole('tab', { name: 'Transaction', exact: true }).click();
+  await sheet.getByRole('radio', { name: 'Savings' }).click();
+  await sheet.getByRole('tab', { name: 'Income' }).click();
+  await expect(sheet.getByRole('checkbox', { name: 'Add to shared expenses' })).toHaveCount(0);
+  await sheet.getByRole('tab', { name: 'Expense' }).click();
+
+  await sheet.getByRole('button', { name: 'Select category' }).click();
+  await page.getByTestId('category-sheet').getByRole('radio', { name: 'Home' }).click();
+  await sheet.getByLabel('Amount', { exact: true }).fill('71.25');
+  await sheet.getByLabel('Date', { exact: true }).fill('2026-08-14');
+  await sheet.getByLabel('Comment', { exact: true }).fill('Updated moon garden supplies');
+
+  await sheet.getByRole('button', { name: 'Search tags' }).click();
+  const tags = page.getByTestId('tag-search-sheet');
+  await tags.getByLabel('Search tags').fill('week');
+  await tags.getByRole('checkbox', { name: 'Weekly' }).click();
+  await tags.getByRole('button', { name: 'Done selecting tags' }).click();
+
+  await sheet.getByRole('checkbox', { name: 'Add to shared expenses' }).click();
+  const shared = page.getByTestId('expense-split-sheet');
+  await shared.getByRole('radio', { name: 'Household · 2 people' }).click();
+  await sheet.getByRole('button', { name: 'Shared expense' }).click();
+  await page
+    .getByRole('button', { name: 'Close shared expenses' })
+    .click({ position: { x: 8, y: 8 } });
+
+  await sheet.getByRole('button', { name: 'Save changes' }).click();
+  await expect(sheet).toBeHidden();
+  expect(updated).toEqual({
+    account: 'account-2',
+    category: 'home-id',
+    date: '2026-08-14',
+    amount: -71.25,
+    notes: 'Updated moon garden supplies',
+    tags: ['weekly-id'],
+    expenseSplit: { mode: 'existing', splitId: 7 },
+  });
+});
+
 test('shows split postings nested beneath their parent transaction', async ({ page }) => {
   const split = {
     ...transaction,
