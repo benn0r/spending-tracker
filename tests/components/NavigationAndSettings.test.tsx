@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Modal, Text } from 'react-native';
+import { Animated, Modal, Text } from 'react-native';
 
 import { AccountDropdown } from '../../src/components/AccountDropdown';
 import { BottomNavigation } from '../../src/components/BottomNavigation';
@@ -115,5 +115,35 @@ describe('navigation and settings presentation', () => {
     );
     expect(screen.getByTestId('more-detail-page')).toBeVisible();
     expect(screen.getByText('Receipt page')).toBeVisible();
+  });
+
+  it('animates a More detail page back to the right before completing navigation', () => {
+    const timing = jest.spyOn(Animated, 'timing');
+    const onExitComplete = jest.fn();
+    const { rerender } = render(
+      <MoreNavigator selected="shared" receiptCount={0} onSelect={jest.fn()}>
+        <Text>Shared page</Text>
+      </MoreNavigator>,
+    );
+    const callsBeforeLeaving = timing.mock.calls.length;
+
+    rerender(
+      <MoreNavigator
+        selected="shared"
+        receiptCount={0}
+        leaving
+        onExitComplete={onExitComplete}
+        onSelect={jest.fn()}
+      >
+        <Text>Shared page</Text>
+      </MoreNavigator>,
+    );
+
+    expect(
+      timing.mock.calls
+        .slice(callsBeforeLeaving)
+        .some(([, configuration]) => configuration.toValue === 1),
+    ).toBe(true);
+    timing.mockRestore();
   });
 });

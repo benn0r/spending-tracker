@@ -208,6 +208,11 @@ describe('strict local dates', () => {
 
 describe('queued transaction cache and reducers', () => {
   it('restores valid transaction and balanced split entries', () => {
+    const receiptTransaction: QueuedTransaction = {
+      ...queuedTransaction,
+      id: 'receipt-transaction',
+      receiptId: 42,
+    };
     const split: QueuedTransaction = {
       ...queuedTransaction,
       id: 'split-1',
@@ -223,10 +228,10 @@ describe('queued transaction cache and reducers', () => {
         ],
       },
     };
-    assert.deepEqual(parseTransactionQueue(JSON.stringify([queuedTransaction, split])), [
-      queuedTransaction,
-      split,
-    ]);
+    assert.deepEqual(
+      parseTransactionQueue(JSON.stringify([queuedTransaction, receiptTransaction, split])),
+      [queuedTransaction, receiptTransaction, split],
+    );
   });
 
   it('returns an empty queue for missing, malformed, or non-array storage', () => {
@@ -280,6 +285,8 @@ describe('queued transaction cache and reducers', () => {
       ['blank outer category', { ...queuedTransaction, category: '' }],
       ['non-string error', { ...queuedTransaction, error: 500 }],
       ['unsupported mode', { ...queuedTransaction, mode: 'transfer' }],
+      ['zero receipt id', { ...queuedTransaction, receiptId: 0 }],
+      ['fractional receipt id', { ...queuedTransaction, receiptId: 1.5 }],
       ['non-object payload', { ...queuedTransaction, payload: null }],
       [
         'blank payload account',

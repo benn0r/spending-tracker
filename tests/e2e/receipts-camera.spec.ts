@@ -269,7 +269,7 @@ test('renders successful, failed, and non-image receipt previews', async ({ page
   await page.getByRole('button', { name: 'Close receipt photo' }).click();
 });
 
-test('keeps a failed receipt submission open and never moves it to the offline queue', async ({
+test('persists a failed receipt submission in the offline queue with its receipt link', async ({
   page,
 }) => {
   const receipt = makeFantasyReceipt({ id: 40, filename: 'comet-cafe.jpg' });
@@ -302,13 +302,18 @@ test('keeps a failed receipt submission open and never moves it to the offline q
   await expect(sheet).toBeVisible();
   await sheet.getByRole('button', { name: 'Save changes' }).click();
 
-  await expect(sheet).toBeVisible();
-  await expect(sheet.getByText(/POST \/api\/receipts\/40\/submit failed/)).toBeVisible();
-  await expect(sheet.getByText(/HTTP 503/)).toBeVisible();
-  await expect(sheet.getByText(/moon ledger is temporarily unavailable/)).toBeVisible();
+  await expect(sheet).toHaveCount(0);
+  await page.getByRole('tab', { name: 'Transactions' }).click();
+  await expect(page.getByTestId('transaction-queue')).toBeVisible();
+  await expect(page.getByText(/moon ledger is temporarily unavailable/)).toBeVisible();
   expect(receiptSubmissions).toBe(1);
   expect(transactionSubmissions).toBe(0);
   await expect
-    .poll(() => page.evaluate(() => localStorage.getItem('spending-tracker.transaction-queue')))
-    .toBeNull();
+    .poll(() =>
+      page.evaluate(() => {
+        const stored = localStorage.getItem('spending-tracker.transaction-queue');
+        return stored ? JSON.parse(stored)[0]?.receiptId : null;
+      }),
+    )
+    .toBe(40);
 });

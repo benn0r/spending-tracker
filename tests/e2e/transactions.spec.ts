@@ -1051,7 +1051,9 @@ test('uses cached dashboard data while offline and replaces it after retry', asy
   ).toHaveCount(0);
 });
 
-test('shows server diagnostics when a transaction is rejected', async ({ page }) => {
+test('keeps server diagnostics on a queued transaction when synchronization is rejected', async ({
+  page,
+}) => {
   await page.route('**/api/transactions**', async (route) => {
     if (route.request().method() === 'POST') {
       return route.fulfill({
@@ -1080,7 +1082,8 @@ test('shows server diagnostics when a transaction is rejected', async ({ page })
   await page.getByLabel('Amount').fill('18');
   await page.getByRole('button', { name: 'Save transaction' }).click();
 
-  await expect(page.getByTestId('entry-sheet')).toBeVisible();
+  await expect(page.getByTestId('entry-sheet')).toHaveCount(0);
+  await expect(page.getByTestId('transaction-queue')).toBeVisible();
   await expect(page.getByText(/HTTP 422/)).toBeVisible();
   await expect(page.getByText(/selected category is not available/)).toBeVisible();
   await expect(page.getByText(/Request ID: rejected-request-456/)).toBeVisible();
