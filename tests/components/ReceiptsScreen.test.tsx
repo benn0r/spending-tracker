@@ -206,7 +206,8 @@ describe('ReceiptsScreen', () => {
     expect(api.uploadReceipt).toHaveBeenCalledWith(asset, 'everyday');
   });
 
-  it('shows receipt status variants and prepares processed receipts for editing', () => {
+  it('closes receipt details before opening a prepared transaction', () => {
+    jest.useFakeTimers();
     const onAdd = jest.fn();
     renderReceipts({
       receipts: [
@@ -222,11 +223,14 @@ describe('ReceiptsScreen', () => {
     expect(screen.getByLabelText('Receipt added')).toBeVisible();
     fireEvent.press(screen.getAllByRole('button', { name: 'View details for Moon Market' })[1]);
     fireEvent.press(screen.getByRole('button', { name: 'Add Moon Market' }));
+    expect(onAdd).not.toHaveBeenCalled();
+    act(() => jest.advanceTimersByTime(240));
     expect(onAdd).toHaveBeenCalledWith(
       expect.objectContaining({ id: 4 }),
       expect.objectContaining({ account: 'savings', category: 'groceries', amount: '12.5' }),
       'transaction',
     );
+    jest.useRealTimers();
   });
 
   it('refreshes on pull and shows grouped line items in a bottom drawer', async () => {

@@ -194,7 +194,14 @@ test('polls a queued receipt until its processed suggestion is actionable', asyn
   await expect(page.getByTestId('receipt-30')).toContainText('Starlight Bakery');
   await expect(page.getByTestId('receipt-30')).toContainText('CHF 16.5');
   await page.getByRole('button', { name: 'View details for Starlight Bakery' }).click();
-  await expect(page.getByRole('button', { name: 'Add Starlight Bakery' })).toBeVisible();
+  await page.getByRole('button', { name: 'Add Starlight Bakery' }).click();
+
+  // The receipt Modal must finish closing before the transaction Modal opens.
+  // Mounting both at once freezes native input handling on iOS.
+  await expect(page.getByTestId('entry-sheet')).toHaveCount(0);
+  await expect(page.getByTestId('receipt-details-sheet')).toHaveCount(0);
+  await expect(page.getByTestId('entry-sheet')).toBeVisible();
+  await expect(page.getByLabel('Amount', { exact: true })).toHaveValue('16.5');
 });
 
 test('renders successful, failed, and non-image receipt previews', async ({ page }) => {

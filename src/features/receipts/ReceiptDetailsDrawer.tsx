@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRef } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import type { PreparedReceiptDraft } from '../../app-model';
 import { DrawerSheet } from '../../components/DrawerSheet';
@@ -52,7 +53,21 @@ export function ReceiptDetailsDrawer({
   onView: (receipt: ApiReceipt) => void;
   onClose: () => void;
 }) {
-  const drawer = useDrawerTransition(receipt !== null, onClose);
+  const pendingAdd = useRef<{
+    receipt: ApiReceipt;
+    draft: DraftTransaction;
+    mode: EntryMode;
+  } | null>(null);
+  const drawer = useDrawerTransition(receipt !== null, () => {
+    onClose();
+    const next = pendingAdd.current;
+    pendingAdd.current = null;
+    if (next) {
+      // Let React remove this native Modal before mounting the transaction Modal.
+      // Overlapping modal transitions can leave iOS input handling unresponsive.
+      setTimeout(() => onAdd(next.receipt, next.draft, next.mode), 0);
+    }
+  });
   const groups = receipt ? itemGroups(receipt, categories) : [];
   return (
     <Modal
@@ -112,7 +127,11 @@ export function ReceiptDetailsDrawer({
                 accessibilityRole="button"
                 accessibilityLabel={`Add ${receipt.suggestion?.merchant || 'receipt'}`}
                 onPress={() => {
-                  onAdd(receipt, prepared.draft, prepared.mode);
+                  pendingAdd.current = {
+                    receipt,
+                    draft: prepared.draft,
+                    mode: prepared.mode,
+                  };
                   drawer.dismiss();
                 }}
                 style={styles.receiptDetailsPrimaryAction}
