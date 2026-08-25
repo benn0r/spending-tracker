@@ -8,14 +8,14 @@ export function AppTabs({
 }) {
   return (
     <NativeTabs minimizeBehavior="never" tintColor="#77409A">
-      <NativeTabs.Trigger name="index">
+      <NativeTabs.Trigger name="index" disableAutomaticContentInsets>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'arrow.left.arrow.right', selected: 'arrow.left.arrow.right' }}
           md="swap_horiz"
         />
         <NativeTabs.Trigger.Label>Transactions</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="accounts">
+      <NativeTabs.Trigger name="accounts" disableAutomaticContentInsets>
         <NativeTabs.Trigger.Icon
           sf={{ default: 'wallet.bifold', selected: 'wallet.bifold.fill' }}
           md="account_balance_wallet"

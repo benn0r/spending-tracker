@@ -41,7 +41,7 @@ export function DrawerSheet({
 
   return (
     <Animated.View style={[style, { transform: [{ translateY }] }]} testID={testID}>
-      <GlassBackground intensity={82} />
+      <GlassBackground intensity={76} tintColor="rgba(255, 255, 255, 0.5)" />
       {children}
     </Animated.View>
   );

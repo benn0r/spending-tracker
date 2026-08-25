@@ -7,7 +7,7 @@ export const setupStyles = StyleSheet.create({
     maxHeight: '88%',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    backgroundColor: 'rgba(250, 249, 252, 0.76)',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   setupSheetBody: { flexShrink: 1, backgroundColor: 'transparent' },

@@ -24,11 +24,9 @@ function monthLabel(month: string, style: 'long' | 'short') {
 
 export function SummaryCard({
   cashFlow,
-  topInset = 0,
   onLayout,
 }: {
   cashFlow: CashFlow | null;
-  topInset?: number;
   onLayout?: (event: LayoutChangeEvent) => void;
 }) {
   const months = cashFlow?.months ?? [];
@@ -36,11 +34,7 @@ export function SummaryCard({
   const maximum = Math.max(1, ...months.flatMap(({ income, expenses }) => [income, expenses]));
 
   return (
-    <View
-      onLayout={onLayout}
-      style={[styles.summaryCard, { marginTop: -(8 + topInset), paddingTop: 24 }]}
-      testID="cash-flow-summary"
-    >
+    <View onLayout={onLayout} style={styles.summaryCard} testID="cash-flow-summary">
       <GlassBackground intensity={62} tintColor="rgba(255, 255, 255, 0.24)" />
       <Text style={styles.cashFlowEyebrow}>MONTHLY CASH FLOW</Text>
       <Text style={styles.cashFlowBalance}>{amount(current.net, cashFlow?.currency ?? 'CHF')}</Text>

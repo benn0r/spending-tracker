@@ -133,6 +133,7 @@ export function TransactionsScreen({
         ref={listRef}
         testID="transactions-list"
         data={listItems}
+        contentInsetAdjustmentBehavior="never"
         removeClippedSubviews={false}
         keyExtractor={(item) => (item.kind === 'date' ? `date-${item.date}` : `group-${item.date}`)}
         renderItem={({ item, index }) =>
@@ -172,7 +173,7 @@ export function TransactionsScreen({
               listHeaderEnd.current = nativeEvent.layout.y + nativeEvent.layout.height;
             }}
           >
-            <SummaryCard cashFlow={cashFlow} topInset={topInset} />
+            <SummaryCard cashFlow={cashFlow} />
             {error ? (
               <Pressable
                 accessibilityRole="button"
@@ -235,6 +236,7 @@ export function TransactionsScreen({
             tintColor={colors.accent}
             colors={[colors.accent]}
             progressBackgroundColor={colors.white}
+            progressViewOffset={topInset + 8}
           />
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}

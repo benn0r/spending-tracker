@@ -239,13 +239,12 @@ function ConfiguredApp({
       />
     ),
     accounts: (
-      <SafeAreaView edges={['top']} style={styles.tabContent}>
-        <WalletsScreen
-          accounts={references.accounts}
-          categories={references.categories}
-          defaultAccount={defaultAccount}
-        />
-      </SafeAreaView>
+      <WalletsScreen
+        accounts={references.accounts}
+        categories={references.categories}
+        defaultAccount={defaultAccount}
+        topInset={insets.top}
+      />
     ),
     more: (
       <SafeAreaView edges={['top']} style={styles.tabContent}>

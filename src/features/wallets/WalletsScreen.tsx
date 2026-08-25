@@ -1,6 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  RefreshControl,
+  Text,
+  View,
+} from 'react-native';
 import { deleteTransaction, loadCashFlow, loadTransactionPage } from '../../api';
 import { accountCacheStorageKey, mergeTransactionPages } from '../../app-model';
 import { AccountDropdown } from '../../components/AccountDropdown';
@@ -27,10 +35,12 @@ export function WalletsScreen({
   accounts,
   categories,
   defaultAccount,
+  topInset = 0,
 }: {
   accounts: Reference[];
   categories: CategoryReference[];
   defaultAccount: string;
+  topInset?: number;
 }) {
   const [wallet, setWallet] = useState('');
   const [items, setItems] = useState<ApiTransaction[]>([]);
@@ -41,6 +51,13 @@ export function WalletsScreen({
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [cashFlow, setCashFlow] = useState<CashFlow | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(132);
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const headerPullDown = scrollY.interpolate({
+    inputRange: [-240, 0, 1],
+    outputRange: [240, 0, 0],
+    extrapolate: 'clamp',
+  });
   const loadingMoreRef = useRef(false);
   const generation = useRef(0);
   const availableDefaultAccount = accounts.some(({ id }) => id === defaultAccount)
@@ -50,10 +67,6 @@ export function WalletsScreen({
   const selectedWalletName = accounts.find(({ id }) => id === selectedWallet)?.name;
   const dayTotals = useMemo(() => transactionDayTotals(items), [items]);
   const listItems = useMemo(() => transactionListItems(items), [items]);
-  const stickyHeaderIndices = useMemo(
-    () => listItems.flatMap((item, index) => (item.kind === 'date' ? [index + 1] : [])),
-    [listItems],
-  );
 
   const persistAccountCache = useCallback(
     (transactions: ApiTransaction[], nextCashFlow: CashFlow | null, nextTotal: number) => {
@@ -172,10 +185,37 @@ export function WalletsScreen({
     total,
   ]);
 
+  const handleScroll = useCallback(
+    ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+      const distanceFromEnd =
+        nativeEvent.contentSize.height -
+        nativeEvent.layoutMeasurement.height -
+        nativeEvent.contentOffset.y;
+      if (distanceFromEnd < 240) void loadMore();
+    },
+    [loadMore],
+  );
+  const animatedScrollHandler = useMemo(
+    () =>
+      // Animated.event treats its mapping node as configuration; it does not read the value here.
+      // eslint-disable-next-line react-hooks/refs
+      Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+        useNativeDriver: true,
+        listener: handleScroll,
+      }),
+    [handleScroll, scrollY],
+  );
+
   return (
-    <View style={styles.secondaryFixedScreen}>
-      <View style={styles.secondaryHeader}>
-        <GlassBackground />
+    <View style={styles.accountScreen}>
+      <Animated.View
+        onLayout={({ nativeEvent }) => setHeaderHeight(nativeEvent.layout.height)}
+        style={[
+          styles.accountStickyHeader,
+          { top: topInset + 16, transform: [{ translateY: headerPullDown }] },
+        ]}
+      >
+        <GlassBackground intensity={62} tintColor="rgba(255, 255, 255, 0.24)" />
         <Text style={styles.secondaryEyebrow}>ACCOUNTS</Text>
         <AccountDropdown
           value={selectedWallet}
@@ -200,11 +240,11 @@ export function WalletsScreen({
             </Text>
           </View>
         </View>
-      </View>
-      <FlatList
+      </Animated.View>
+      <Animated.FlatList
         testID="wallets-list"
         data={listItems}
-        stickyHeaderIndices={stickyHeaderIndices}
+        contentInsetAdjustmentBehavior="never"
         keyExtractor={(item) => (item.kind === 'date' ? `date-${item.date}` : `group-${item.date}`)}
         renderItem={({ item, index }) =>
           item.kind === 'date' ? (
@@ -212,7 +252,6 @@ export function WalletsScreen({
               date={item.date}
               total={dayTotals[item.date] ?? 0}
               flushTop={index === 0}
-              sticky
             />
           ) : (
             <View style={styles.dailyTransactionGroup}>
@@ -237,7 +276,10 @@ export function WalletsScreen({
             </View>
           )
         }
-        contentContainerStyle={styles.walletContent}
+        contentContainerStyle={[
+          styles.walletContent,
+          { paddingTop: topInset + 16 + headerHeight + 12 },
+        ]}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListHeaderComponent={
           <View>{error ? <Text style={styles.errorText}>{error}</Text> : null}</View>
@@ -261,20 +303,16 @@ export function WalletsScreen({
             tintColor={colors.accent}
             colors={[colors.accent]}
             progressBackgroundColor={colors.white}
+            progressViewOffset={topInset + 8}
           />
         }
         onEndReached={() => void loadMore()}
         onEndReachedThreshold={0.35}
-        onScroll={({ nativeEvent }) => {
-          const distanceFromEnd =
-            nativeEvent.contentSize.height -
-            nativeEvent.layoutMeasurement.height -
-            nativeEvent.contentOffset.y;
-          if (distanceFromEnd < 240) void loadMore();
-        }}
-        scrollEventThrottle={200}
+        onScroll={animatedScrollHandler}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       />
+      <View pointerEvents="none" style={[styles.topStatusFade, { height: topInset + 36 }]} />
     </View>
   );
 }
