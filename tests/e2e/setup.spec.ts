@@ -18,7 +18,7 @@ test('requires and saves server connection details on first launch', async ({ pa
   await page.getByRole('button', { name: 'Hide API token' }).click();
   await page.getByRole('button', { name: 'Save connection' }).click();
 
-  await expect(page.getByRole('tab', { name: 'Transactions' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Transactions' })).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(() => window.localStorage.getItem('spending-tracker.server-config.v2')),

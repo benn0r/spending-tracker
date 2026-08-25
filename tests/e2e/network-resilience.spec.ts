@@ -27,10 +27,10 @@ test('keeps loading controls responsive on a slow connection and renders delayed
   await routeApi(page, 'GET', '/api/splits', (route) => fulfillJson(route, { splits: [] }));
 
   await page.goto('/');
-  await expect(page.getByRole('tab', { name: 'Settings' })).toBeVisible();
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await expect(page.getByRole('link', { name: 'Settings' })).toBeVisible();
+  await page.getByRole('link', { name: 'Settings' }).click();
   await expect(page.getByText('Server connection')).toBeVisible();
-  await page.getByRole('tab', { name: 'Transactions' }).click();
+  await page.getByRole('link', { name: 'Transactions' }).click();
   await expect(page.getByText('Delayed Dragon Bakery')).toBeVisible();
 });
 

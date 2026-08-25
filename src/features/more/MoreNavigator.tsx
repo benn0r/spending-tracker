@@ -4,6 +4,7 @@ import { Animated, Pressable, Text, useWindowDimensions, View } from 'react-nati
 
 import { styles } from '../../styles';
 import { colors } from '../../theme';
+import { GlassBackground } from '../../components/GlassBackground';
 
 export type MorePage = 'shared' | 'receipts';
 
@@ -82,6 +83,7 @@ export function MoreNavigator({
   return (
     <View style={styles.moreScreen}>
       <View style={styles.secondaryHeader}>
+        <GlassBackground />
         <Text style={styles.secondaryEyebrow}>EXPLORE</Text>
         <Text style={styles.secondaryTitle}>More</Text>
       </View>

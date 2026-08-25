@@ -220,7 +220,7 @@ describe('ReceiptsScreen', () => {
     expect(screen.getByText('Processing receipt…')).toBeVisible();
     expect(screen.getByText('Unreadable')).toBeVisible();
     expect(screen.getByLabelText('Receipt added')).toBeVisible();
-    fireEvent.press(screen.getAllByRole('button', { name: 'View details for Moon Market' })[1]);
+    fireEvent.press(screen.getAllByRole('button', { name: 'View details for Moon Market' })[1]!);
     fireEvent.press(screen.getByRole('button', { name: 'Add Moon Market' }));
     expect(onAdd).not.toHaveBeenCalled();
     await waitFor(() =>
@@ -274,7 +274,7 @@ describe('ReceiptsScreen', () => {
     expect(screen.getAllByText('CHF 7.50')).toHaveLength(2);
     expect(screen.getAllByText('CHF 12.50')).toHaveLength(2);
     jest.useFakeTimers();
-    fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt details' })[0]);
+    fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt details' })[0]!);
     act(() => jest.advanceTimersByTime(320));
     expect(screen.queryByText('Apples')).toBeNull();
     jest.useRealTimers();
@@ -297,8 +297,11 @@ describe('ReceiptsScreen', () => {
     expect(screen.UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
     fireEvent(photo, 'load');
     expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
+    jest.useFakeTimers();
     fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt photo' }).at(-1)!);
-    await waitFor(() => expect(screen.queryByTestId('receipt-preview')).toBeNull());
+    act(() => jest.advanceTimersByTime(250));
+    expect(screen.queryByTestId('receipt-preview')).toBeNull();
+    jest.useRealTimers();
 
     fireEvent.press(screen.getByRole('button', { name: 'View details for statement.pdf' }));
     fireEvent.press(screen.getByRole('button', { name: 'View statement.pdf' }));

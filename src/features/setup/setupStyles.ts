@@ -7,10 +7,10 @@ export const setupStyles = StyleSheet.create({
     maxHeight: '88%',
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    backgroundColor: colors.surface,
+    backgroundColor: 'rgba(250, 249, 252, 0.76)',
     overflow: 'hidden',
   },
-  setupSheetBody: { flexShrink: 1, backgroundColor: colors.surface },
+  setupSheetBody: { flexShrink: 1, backgroundColor: 'transparent' },
   setupSheetContent: {
     paddingHorizontal: 22,
     paddingBottom: Platform.OS === 'ios' ? 34 : 24,

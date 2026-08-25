@@ -29,6 +29,30 @@ jest.mock('@expo/vector-icons/Ionicons', () => {
   });
 });
 
+// SwiftUI hosts are opaque to the React Native test renderer, so exercise the
+// screen callbacks through an accessible test double here.
+jest.mock('../../src/components/LiquidGlassActionButton', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Pressable } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    LiquidGlassActionButton: ({
+      label,
+      disabled,
+      onPress,
+    }: {
+      label: string;
+      disabled?: boolean;
+      onPress: () => void;
+    }) =>
+      React.createElement(Pressable, {
+        accessibilityRole: 'button',
+        accessibilityLabel: label,
+        disabled,
+        onPress,
+      }),
+  };
+});
+
 jest.mock('../../src/components/SwipeToDelete', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Pressable, View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -139,10 +163,32 @@ describe('transaction presentation', () => {
     await waitFor(() => expect(onScanReceipt).toHaveBeenCalledTimes(1));
   });
 
-  it('shows a signed daily total in the full-width date header', () => {
-    render(<DateSectionHeader date="2026-08-12" total={-37.5} />);
+  it('shows a signed daily total and renders the sticky glass effect', () => {
+    render(<DateSectionHeader date="2026-08-12" total={-37.5} elevated />);
 
     expect(screen.getByText('− CHF 37.50')).toBeVisible();
+    expect(screen.getByTestId('sticky-date-effect')).toBeOnTheScreen();
+    expect(screen.getByTestId('glass-background')).toBeVisible();
+  });
+
+  it('rounds the outside edges of a daily transaction glass group', () => {
+    const item = transaction();
+    const { rerender } = render(
+      <TransactionRow item={item} categories={[]} groupPosition="first" onDelete={jest.fn()} />,
+    );
+
+    expect(screen.getByTestId(`transaction-group-${item.id}`)).toHaveStyle({
+      borderTopLeftRadius: 18,
+      borderTopRightRadius: 18,
+    });
+
+    rerender(
+      <TransactionRow item={item} categories={[]} groupPosition="last" onDelete={jest.fn()} />,
+    );
+    expect(screen.getByTestId(`transaction-group-${item.id}`)).toHaveStyle({
+      borderBottomLeftRadius: 18,
+      borderBottomRightRadius: 18,
+    });
   });
 
   it('summarizes income, spending, and available balance', () => {
@@ -159,6 +205,7 @@ describe('transaction presentation', () => {
     expect(screen.getByText(/74\.50/)).toBeVisible();
     expect(screen.getByText(/100\.00/)).toBeVisible();
     expect(screen.getByText(/25\.50/)).toBeVisible();
+    expect(screen.getAllByTestId('glass-background')).toHaveLength(5);
   });
 
   it('renders server category visuals, fallbacks, signed amounts, and deletion', () => {
@@ -293,7 +340,9 @@ describe('transaction presentation', () => {
     expect(screen.getByLabelText(/Split entry 1 of 2: Food & Drink/)).toHaveStyle({
       minHeight: 44,
       borderWidth: 0,
-      backgroundColor: '#FAF9FB',
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      paddingLeft: 21,
+      paddingRight: 12,
     });
     expect(screen.getByLabelText(/Split entry 2 of 2: Skyship Travel/)).toBeVisible();
     expect(screen.getByText('− CHF 12.00')).toBeVisible();

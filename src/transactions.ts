@@ -67,21 +67,18 @@ export function transactionDayTotals(transactions: ApiTransaction[]): Record<str
 }
 
 export type TransactionListItem =
-  | { kind: 'date'; date: string }
-  | { kind: 'spacing'; id: string }
-  | { kind: 'transaction'; transaction: ApiTransaction };
+  { kind: 'date'; date: string } | { kind: 'group'; date: string; transactions: ApiTransaction[] };
 
 export function transactionListItems(transactions: ApiTransaction[]): TransactionListItem[] {
   const items: TransactionListItem[] = [];
-  let previousDate = '';
   for (const transaction of transactions) {
-    if (transaction.date !== previousDate) {
-      if (previousDate) items.push({ kind: 'spacing', id: `before-${transaction.date}` });
+    const currentGroup = items.at(-1);
+    if (currentGroup?.kind === 'group' && currentGroup.date === transaction.date) {
+      currentGroup.transactions.push(transaction);
+    } else {
       items.push({ kind: 'date', date: transaction.date });
-      items.push({ kind: 'spacing', id: `after-${transaction.date}` });
-      previousDate = transaction.date;
+      items.push({ kind: 'group', date: transaction.date, transactions: [transaction] });
     }
-    items.push({ kind: 'transaction', transaction });
   }
   return items;
 }

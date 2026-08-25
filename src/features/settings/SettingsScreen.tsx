@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { AccountDropdown } from '../../components/AccountDropdown';
 import { styles } from '../../styles';
 import type { Reference } from '../../types';
+import { GlassBackground } from '../../components/GlassBackground';
 
 export function SettingsScreen({
   defaultAccount,
@@ -20,6 +21,7 @@ export function SettingsScreen({
   return (
     <View style={styles.secondaryFixedScreen}>
       <View style={styles.secondaryHeader}>
+        <GlassBackground />
         <Text style={styles.secondaryEyebrow}>PREFERENCES</Text>
         <Text style={styles.secondaryTitle}>Settings</Text>
       </View>

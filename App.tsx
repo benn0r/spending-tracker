@@ -1,11 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, View } from 'react-native';
 import { type ApiConfiguration, updateTransaction, uploadReceipt } from './src/api';
 import type { ConfirmedTransactionInput } from './src/app-model';
-import { BottomNavigation, type AppTab } from './src/components/BottomNavigation';
 import { AppErrorBoundary } from './src/components/AppErrorBoundary';
 import { SwipeProvider } from './src/components/SwipeToDelete';
 import { ReceiptsScreen } from './src/features/receipts/ReceiptsScreen';
@@ -24,6 +23,8 @@ import { useExpenseSplits } from './src/hooks/useExpenseSplits';
 import { useReceipts } from './src/hooks/useReceipts';
 import { useServerConfig } from './src/hooks/useServerConfig';
 import { useTransactionQueue } from './src/hooks/useTransactionQueue';
+import { AppScreenProvider } from './src/navigation/AppScreenContext';
+import { AppTabs } from './src/navigation/AppTabs';
 import { styles } from './src/styles';
 import { createPayload } from './src/transactions';
 import type {
@@ -90,7 +91,7 @@ function ConfiguredApp({
   configuration: ApiConfiguration;
   onChangeConfiguration: (configuration: ApiConfiguration) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<AppTab>('transactions');
+  const insets = useSafeAreaInsets();
   const [morePage, setMorePage] = useState<MorePage | null>(null);
   const [morePageLeaving, setMorePageLeaving] = useState(false);
   const finishClosingMorePage = useCallback(() => {
@@ -192,122 +193,129 @@ function ConfiguredApp({
   const preparedEditing = editingTransaction
     ? prepareTransactionEdit(editingTransaction, references)
     : null;
+  const screens = {
+    transactions: (
+      <TransactionsScreen
+        topInset={insets.top}
+        transactions={transactions}
+        cashFlow={cashFlow}
+        categories={references.categories}
+        queuedTransactions={queuedTransactions}
+        retryingTransaction={retryingTransaction}
+        loading={loading}
+        loadingMore={loadingMore}
+        error={error}
+        activationRequest={transactionsActivationRequest}
+        onRefresh={refresh}
+        onActivationRefresh={refreshSilently}
+        onLoadMore={loadMoreTransactions}
+        onDelete={removeTransaction}
+        onEdit={(transaction) => {
+          setReceiptEntry(null);
+          setEditingTransaction(transaction);
+          setSheetOpen(true);
+        }}
+        onRetryQueued={(item) => void retryQueuedTransaction(item)}
+        onDiscardQueued={discardQueuedTransaction}
+        onScanReceipt={async () => {
+          const account = defaultAccount || references.accounts[0]?.id;
+          if (!account) throw new Error('Enable an account before scanning a receipt.');
+          const permission = await ImagePicker.requestCameraPermissionsAsync();
+          if (!permission.granted) throw new Error('Camera access is required to scan a receipt.');
+          const capture = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: 0.85,
+            allowsEditing: false,
+          });
+          if (capture.canceled || !capture.assets[0]) return;
+          await uploadReceipt(capture.assets[0], account);
+          await refreshReceipts();
+        }}
+        onAdd={() => {
+          setReceiptEntry(null);
+          setEditingTransaction(null);
+          setSheetOpen(true);
+        }}
+      />
+    ),
+    accounts: (
+      <SafeAreaView edges={['top']} style={styles.tabContent}>
+        <WalletsScreen
+          accounts={references.accounts}
+          categories={references.categories}
+          defaultAccount={defaultAccount}
+        />
+      </SafeAreaView>
+    ),
+    more: (
+      <SafeAreaView edges={['top']} style={styles.tabContent}>
+        <MoreNavigator
+          key={morePage ?? 'menu'}
+          selected={morePage}
+          receiptCount={receiptCount}
+          onSelect={setMorePage}
+          leaving={morePageLeaving}
+          onExitComplete={finishClosingMorePage}
+        >
+          {morePage === 'shared' ? (
+            <SharedExpensesScreen
+              splits={expenseSplits}
+              loading={false}
+              onRefresh={refreshExpenseSplits}
+              onBack={() => setMorePageLeaving(true)}
+            />
+          ) : morePage === 'receipts' ? (
+            <ReceiptsScreen
+              receipts={receipts}
+              loading={receiptsLoading}
+              refresh={refreshReceipts}
+              accounts={references.accounts}
+              categories={references.categories}
+              tags={references.tags}
+              defaultAccount={defaultAccount}
+              onAdd={(receipt, draft, mode) => {
+                setEditingTransaction(null);
+                setReceiptEntry({ id: receipt.id, draft, mode });
+                setSheetOpen(true);
+              }}
+              onDelete={removeReceipt}
+              onBack={() => setMorePageLeaving(true)}
+            />
+          ) : null}
+        </MoreNavigator>
+      </SafeAreaView>
+    ),
+    settings: (
+      <SafeAreaView edges={['top']} style={styles.tabContent}>
+        <SettingsScreen
+          defaultAccount={defaultAccount}
+          accounts={references.accounts}
+          onChangeDefaultAccount={chooseDefaultAccount}
+          serverUrl={configuration.serverUrl}
+          onEditConnection={() => setSetupOpen(true)}
+        />
+      </SafeAreaView>
+    ),
+  };
+
   return (
     <SafeAreaProvider>
       <SwipeProvider>
-        <SafeAreaView
-          edges={['top', 'left', 'right']}
-          style={[styles.safeArea, styles.homeSafeArea]}
-        >
+        <SafeAreaView edges={['left', 'right']} style={[styles.safeArea, styles.homeSafeArea]}>
           <StatusBar style="dark" />
           <View style={styles.appShell}>
-            <View style={styles.tabContent}>
-              {activeTab === 'transactions' ? (
-                <TransactionsScreen
-                  transactions={transactions}
-                  cashFlow={cashFlow}
-                  categories={references.categories}
-                  queuedTransactions={queuedTransactions}
-                  retryingTransaction={retryingTransaction}
-                  loading={loading}
-                  loadingMore={loadingMore}
-                  error={error}
-                  activationRequest={transactionsActivationRequest}
-                  onRefresh={refresh}
-                  onActivationRefresh={refreshSilently}
-                  onLoadMore={loadMoreTransactions}
-                  onDelete={removeTransaction}
-                  onEdit={(transaction) => {
-                    setReceiptEntry(null);
-                    setEditingTransaction(transaction);
-                    setSheetOpen(true);
-                  }}
-                  onRetryQueued={(item) => void retryQueuedTransaction(item)}
-                  onDiscardQueued={discardQueuedTransaction}
-                  onScanReceipt={async () => {
-                    const account = defaultAccount || references.accounts[0]?.id;
-                    if (!account) throw new Error('Enable an account before scanning a receipt.');
-                    const permission = await ImagePicker.requestCameraPermissionsAsync();
-                    if (!permission.granted)
-                      throw new Error('Camera access is required to scan a receipt.');
-                    const capture = await ImagePicker.launchCameraAsync({
-                      mediaTypes: ['images'],
-                      quality: 0.85,
-                      allowsEditing: false,
-                    });
-                    if (capture.canceled || !capture.assets[0]) return;
-                    await uploadReceipt(capture.assets[0], account);
-                    await refreshReceipts();
-                  }}
-                  onAdd={() => {
-                    setReceiptEntry(null);
-                    setEditingTransaction(null);
-                    setSheetOpen(true);
-                  }}
-                />
-              ) : activeTab === 'wallets' ? (
-                <WalletsScreen
-                  accounts={references.accounts}
-                  categories={references.categories}
-                  defaultAccount={defaultAccount}
-                />
-              ) : activeTab === 'more' ? (
-                <MoreNavigator
-                  key={morePage ?? 'menu'}
-                  selected={morePage}
-                  receiptCount={receiptCount}
-                  onSelect={setMorePage}
-                  leaving={morePageLeaving}
-                  onExitComplete={finishClosingMorePage}
-                >
-                  {morePage === 'shared' ? (
-                    <SharedExpensesScreen
-                      splits={expenseSplits}
-                      loading={false}
-                      onRefresh={refreshExpenseSplits}
-                      onBack={() => setMorePageLeaving(true)}
-                    />
-                  ) : morePage === 'receipts' ? (
-                    <ReceiptsScreen
-                      receipts={receipts}
-                      loading={receiptsLoading}
-                      refresh={refreshReceipts}
-                      accounts={references.accounts}
-                      categories={references.categories}
-                      tags={references.tags}
-                      defaultAccount={defaultAccount}
-                      onAdd={(receipt, draft, mode) => {
-                        setEditingTransaction(null);
-                        setReceiptEntry({ id: receipt.id, draft, mode });
-                        setSheetOpen(true);
-                      }}
-                      onDelete={removeReceipt}
-                      onBack={() => setMorePageLeaving(true)}
-                    />
-                  ) : null}
-                </MoreNavigator>
-              ) : (
-                <SettingsScreen
-                  defaultAccount={defaultAccount}
-                  accounts={references.accounts}
-                  onChangeDefaultAccount={chooseDefaultAccount}
-                  serverUrl={configuration.serverUrl}
-                  onEditConnection={() => setSetupOpen(true)}
-                />
-              )}
+            <View pointerEvents="none" style={styles.ambientBackdrop}>
+              <View style={styles.ambientGlowTop} />
+              <View style={styles.ambientGlowBottom} />
             </View>
-            <BottomNavigation
-              active={activeTab}
-              receiptCount={receiptCount}
-              onChange={(tab) => {
-                setActiveTab(tab);
-                setMorePage(null);
-                setMorePageLeaving(false);
-                if (tab === 'transactions') {
-                  setTransactionsActivationRequest((current) => current + 1);
+            <AppScreenProvider value={screens}>
+              <AppTabs
+                receiptCount={receiptCount}
+                onTransactionsActivated={() =>
+                  setTransactionsActivationRequest((current) => current + 1)
                 }
-              }}
-            />
+              />
+            </AppScreenProvider>
           </View>
           <EntrySheet
             visible={sheetOpen}

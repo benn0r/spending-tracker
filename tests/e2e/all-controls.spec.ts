@@ -104,7 +104,7 @@ test('all app pages, drawers, buttons, and inputs are reachable and accessibly n
   await expectEveryVisibleControlNamed(page);
   await page.getByRole('radio', { name: 'Dragon Hoard' }).click();
 
-  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('link', { name: 'More' }).click();
   await expectEveryVisibleControlNamed(page);
   await page.getByRole('button', { name: 'Shared expenses' }).click();
   await page.getByRole('button', { name: 'View shared expense Household' }).click();

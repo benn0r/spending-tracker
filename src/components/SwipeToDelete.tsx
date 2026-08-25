@@ -37,6 +37,7 @@ export function SwipeToDelete({
   bordered = false,
   rounded = true,
   revealSpacing = 0,
+  contained = false,
   onDelete,
 }: {
   id: string;
@@ -45,6 +46,7 @@ export function SwipeToDelete({
   bordered?: boolean;
   rounded?: boolean;
   revealSpacing?: number;
+  contained?: boolean;
   onDelete: () => void;
 }) {
   const { closeVersion, openId, setOpenId } = useContext(SwipeContext);
@@ -117,6 +119,8 @@ export function SwipeToDelete({
         styles.swipeContainer,
         !rounded && styles.squareSwipeContainer,
         bordered && styles.borderedSwipeContainer,
+        contained && styles.containedSwipeContainer,
+        contained && isOpen && styles.openContainedSwipeContainer,
         isOpen && styles.openSwipeContainer,
       ]}
     >
@@ -134,6 +138,7 @@ export function SwipeToDelete({
         pointerEvents={isOpen ? 'none' : 'auto'}
         style={[
           styles.swipeForeground,
+          contained && styles.containedSwipeForeground,
           bordered && styles.borderedSwipeForeground,
           { transform: [{ translateX }] },
         ]}

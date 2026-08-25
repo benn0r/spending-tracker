@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { GlassBackground } from '../../components/GlassBackground';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { DrawerSheet } from '../../components/DrawerSheet';
 import { useDrawerTransition } from '../../components/useDrawerTransition';
@@ -10,6 +11,8 @@ import { colors } from '../../theme';
 import { formatCurrency, formatTransactionDate } from '../../transactions';
 import type { ApiTransaction, CategoryReference } from '../../types';
 import { categoryVisual, transactionIcon } from '../categories/categoryVisual';
+
+export type TransactionGroupPosition = 'first' | 'middle' | 'last' | 'only';
 
 const walletColors = ['#7B3FA1', '#2D83B7', '#2A9D78', '#C27A32', '#C34F70', '#5D6F91'];
 
@@ -23,11 +26,15 @@ export function TransactionRow({
   categories,
   onDelete,
   onEdit,
+  groupPosition = 'only',
+  contained = false,
 }: {
   item: ApiTransaction;
   categories: CategoryReference[];
   onDelete: (item: ApiTransaction) => void;
   onEdit?: (item: ApiTransaction) => void;
+  groupPosition?: TransactionGroupPosition;
+  contained?: boolean;
 }) {
   const isTransfer = item.type === 'Transfer';
   const categoryLabel = item.expenseSplitId
@@ -76,16 +83,36 @@ export function TransactionRow({
         label={title}
         rounded={false}
         revealSpacing={12}
+        contained={contained}
         onDelete={() => onDelete(item)}
       >
-        <View style={item.isSplit ? styles.splitTransactionGroup : undefined}>
+        <View
+          testID={`transaction-group-${item.id}`}
+          style={[
+            styles.transactionGlassGroup,
+            !contained &&
+              (groupPosition === 'first' || groupPosition === 'only') &&
+              styles.transactionGlassGroupFirst,
+            !contained &&
+              (groupPosition === 'last' || groupPosition === 'only') &&
+              styles.transactionGlassGroupLast,
+            item.isSplit && styles.splitTransactionGroup,
+          ]}
+        >
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`View details for ${title}`}
             onPress={() => setDetailsOpen(true)}
-            style={[styles.transactionRow, item.isSplit && styles.splitTransactionParent]}
+            style={[
+              styles.transactionRow,
+              contained && styles.containedTransactionRow,
+              item.isSplit && styles.splitTransactionParent,
+            ]}
             testID={`transaction-${item.id}`}
           >
+            {!contained ? (
+              <GlassBackground intensity={54} tintColor="rgba(255, 255, 255, 0.82)" />
+            ) : null}
             <View style={[styles.transactionIcon, { backgroundColor: iconBackground }]}>
               <Ionicons name={icon} size={19} color={iconColor} />
             </View>

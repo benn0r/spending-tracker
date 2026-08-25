@@ -129,11 +129,13 @@ test('shows the selected wallet empty state independently of dashboard transacti
     'Moonlight Wallet',
   );
   await expect(page.getByText('CURRENT BALANCE', { exact: true })).toBeVisible();
-  await expect(page.getByText('MONTHLY CASH FLOW', { exact: true })).toBeVisible();
-  await expect(page.getByText(/254\.00/, { exact: false })).toBeVisible();
-  await expect(page.getByText(/1,700\.00/, { exact: false })).toBeVisible();
+  await expect(page.getByText('MONTHLY CASH FLOW', { exact: true }).last()).toBeVisible();
+  await expect(page.getByText(/254\.00/, { exact: false }).last()).toBeVisible();
+  await expect(page.getByText(/1,700\.00/, { exact: false }).last()).toBeVisible();
   await expect(page.getByText('No transactions in this account.', { exact: true })).toBeVisible();
-  await expect(page.getByText('Cloud Castle Curios', { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByTestId('wallets-list').getByText('Cloud Castle Curios', { exact: true }),
+  ).toHaveCount(0);
 });
 
 test('clears a wallet error and recovers when another wallet is selected', async ({ page }) => {
@@ -189,7 +191,9 @@ test('clears a wallet error and recovers when another wallet is selected', async
     .filter({ hasText: 'Dragon Hoard' })
     .click();
 
-  await expect(page.getByText('Phoenix Feather Forge', { exact: true })).toBeVisible();
+  await expect(
+    page.getByTestId('wallets-list').getByText('Phoenix Feather Forge', { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText(/Moonlight ledger sealed/)).toHaveCount(0);
 });
 
@@ -217,7 +221,9 @@ test('loads additional wallet pages with the selected account filter', async ({ 
 
   await page.goto('/');
   await openTab(page, 'Accounts');
-  await expect(page.getByText('Astral Merchant 19', { exact: true })).toBeVisible();
+  await expect(
+    page.getByTestId('wallets-list').getByText('Astral Merchant 19', { exact: true }),
+  ).toBeVisible();
   expect(walletRequests[0]).toEqual({
     account: 'moonlight-wallet',
     page: '1',
@@ -333,7 +339,7 @@ test('restores a wallet transaction when its optimistic delete fails', async ({ 
 
   await page.goto('/');
   await openTab(page, 'Accounts');
-  const row = page.getByTestId(`transaction-${transaction.id}`);
+  const row = page.getByTestId('wallets-list').getByTestId(`transaction-${transaction.id}`);
   await expect(row).toBeVisible();
   await revealDeleteAction(page, row);
   await page.getByRole('button', { name: 'Delete Nebula Noodles', exact: true }).click();
@@ -344,5 +350,5 @@ test('restores a wallet transaction when its optimistic delete fails', async ({ 
   releaseDelete();
 
   await expect(row).toBeVisible();
-  await expect(page.getByText('Nebula Noodles', { exact: true })).toBeVisible();
+  await expect(row.getByText('Nebula Noodles', { exact: true })).toBeVisible();
 });

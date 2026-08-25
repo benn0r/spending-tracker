@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, Modal, Pressable, Text, View } from 'react
 
 import { loadExpenseSplit } from '../../api';
 import { DrawerSheet } from '../../components/DrawerSheet';
+import { GlassBackground } from '../../components/GlassBackground';
 import { useDrawerTransition } from '../../components/useDrawerTransition';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
@@ -37,6 +38,7 @@ export function SharedExpensesScreen({
   return (
     <View style={styles.sharedExpensesScreen}>
       <View style={styles.secondaryHeader}>
+        <GlassBackground />
         <View style={styles.nestedHeaderContent}>
           {onBack ? (
             <Pressable

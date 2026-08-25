@@ -51,6 +51,7 @@ test('persists a dismissed settings selection, prefills it, and prevents double 
   await expect(selector).toContainText('Dragon Hoard');
 
   await page.reload();
+  await page.goto('/');
   await expect(page.getByText('Moonbeam Market')).toBeVisible();
   await openTab(page, 'Settings');
   await expect(page.getByRole('button', { name: 'Select default account' })).toContainText(

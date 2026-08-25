@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { loadReceiptFile, uploadReceipt } from '../../api';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
+import { GlassBackground } from '../../components/GlassBackground';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import type {
@@ -174,6 +175,7 @@ export function ReceiptsScreen({
   return (
     <View style={styles.receiptsScreen}>
       <View style={styles.receiptsHeader}>
+        <GlassBackground />
         <View style={styles.nestedHeaderContent}>
           {onBack ? (
             <Pressable

@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, RefreshControl, Text, View } from 'react-n
 import { deleteTransaction, loadCashFlow, loadTransactionPage } from '../../api';
 import { accountCacheStorageKey, mergeTransactionPages } from '../../app-model';
 import { AccountDropdown } from '../../components/AccountDropdown';
+import { GlassBackground } from '../../components/GlassBackground';
 import { nativeDeviceLocale } from '../../device-locale';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
@@ -174,6 +175,7 @@ export function WalletsScreen({
   return (
     <View style={styles.secondaryFixedScreen}>
       <View style={styles.secondaryHeader}>
+        <GlassBackground />
         <Text style={styles.secondaryEyebrow}>ACCOUNTS</Text>
         <AccountDropdown
           value={selectedWallet}
@@ -203,13 +205,7 @@ export function WalletsScreen({
         testID="wallets-list"
         data={listItems}
         stickyHeaderIndices={stickyHeaderIndices}
-        keyExtractor={(item) =>
-          item.kind === 'date'
-            ? `date-${item.date}`
-            : item.kind === 'spacing'
-              ? item.id
-              : `transaction-${item.transaction.id}`
-        }
+        keyExtractor={(item) => (item.kind === 'date' ? `date-${item.date}` : `group-${item.date}`)}
         renderItem={({ item, index }) =>
           item.kind === 'date' ? (
             <DateSectionHeader
@@ -218,22 +214,27 @@ export function WalletsScreen({
               flushTop={index === 0}
               sticky
             />
-          ) : item.kind === 'spacing' ? (
-            <View style={styles.transactionSectionSpacing} />
           ) : (
-            <TransactionRow
-              item={item.transaction}
-              categories={categories}
-              onDelete={(transaction) => {
-                setItems((current) => {
-                  const next = current.filter(({ id }) => id !== transaction.id);
-                  persistAccountCache(next, cashFlow, Math.max(0, total - 1));
-                  return next;
-                });
-                setTotal((current) => Math.max(0, current - 1));
-                void deleteTransaction(transaction.id).catch(() => void refresh());
-              }}
-            />
+            <View style={styles.dailyTransactionGroup}>
+              <GlassBackground intensity={56} tintColor="rgba(255, 255, 255, 0.84)" />
+              {item.transactions.map((transaction) => (
+                <TransactionRow
+                  contained
+                  key={transaction.id}
+                  item={transaction}
+                  categories={categories}
+                  onDelete={(deleted) => {
+                    setItems((current) => {
+                      const next = current.filter(({ id }) => id !== deleted.id);
+                      persistAccountCache(next, cashFlow, Math.max(0, total - 1));
+                      return next;
+                    });
+                    setTotal((current) => Math.max(0, current - 1));
+                    void deleteTransaction(deleted.id).catch(() => void refresh());
+                  }}
+                />
+              ))}
+            </View>
           )
         }
         contentContainerStyle={styles.walletContent}

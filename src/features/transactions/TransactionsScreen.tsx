@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
 import type { QueuedTransaction } from '../../app-model';
+import { GlassBackground } from '../../components/GlassBackground';
+import { LiquidGlassActionButton } from '../../components/LiquidGlassActionButton';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import {
@@ -16,7 +18,10 @@ import { DateSectionHeader } from './DateSectionHeader';
 import { TransactionQueue } from './TransactionQueue';
 import { TransactionRow } from './TransactionRow';
 
+const TRANSACTION_LIST_TOP_INSET = 24;
+
 type TransactionsScreenProps = {
+  topInset?: number;
   transactions: ApiTransaction[];
   cashFlow: CashFlow | null;
   categories: CategoryReference[];
@@ -38,6 +43,7 @@ type TransactionsScreenProps = {
 };
 
 export function TransactionsScreen({
+  topInset = 0,
   transactions,
   cashFlow,
   categories,
@@ -60,14 +66,15 @@ export function TransactionsScreen({
   const listRef = useRef<FlatList<TransactionListItem>>(null);
   const dayTotals = useMemo(() => transactionDayTotals(transactions), [transactions]);
   const listItems = useMemo(() => transactionListItems(transactions), [transactions]);
-  const stickyHeaderIndices = useMemo(
-    () => listItems.flatMap((item, index) => (item.kind === 'date' ? [index + 1] : [])),
-    [listItems],
-  );
-  const [cashFlowHeight, setCashFlowHeight] = useState(0);
-  const [showScrolledDivider, setShowScrolledDivider] = useState(false);
   const [scanningReceipt, setScanningReceipt] = useState(false);
   const [receiptError, setReceiptError] = useState('');
+  const [fixedHeader, setFixedHeader] = useState<{ date: string; direction: 1 | -1 }>({
+    date: '',
+    direction: 1,
+  });
+  const lastScrollOffset = useRef(0);
+  const listHeaderEnd = useRef(0);
+  const listItemHeights = useRef<Record<string, number>>({});
 
   const scanReceipt = async () => {
     setScanningReceipt(true);
@@ -126,40 +133,46 @@ export function TransactionsScreen({
         ref={listRef}
         testID="transactions-list"
         data={listItems}
-        stickyHeaderIndices={stickyHeaderIndices}
         removeClippedSubviews={false}
-        keyExtractor={(item) =>
-          item.kind === 'date'
-            ? `date-${item.date}`
-            : item.kind === 'spacing'
-              ? item.id
-              : `transaction-${item.transaction.id}`
-        }
+        keyExtractor={(item) => (item.kind === 'date' ? `date-${item.date}` : `group-${item.date}`)}
         renderItem={({ item, index }) =>
           item.kind === 'date' ? (
             <DateSectionHeader
               date={item.date}
               total={dayTotals[item.date] ?? 0}
               flushTop={index === 0}
-              sticky
+              onLayout={({ nativeEvent }) => {
+                listItemHeights.current[`date-${item.date}`] = nativeEvent.layout.height;
+              }}
             />
-          ) : item.kind === 'spacing' ? (
-            <View style={styles.transactionSectionSpacing} />
           ) : (
-            <TransactionRow
-              item={item.transaction}
-              categories={categories}
-              onDelete={onDelete}
-              onEdit={onEdit}
-            />
+            <View
+              onLayout={({ nativeEvent }) => {
+                listItemHeights.current[`group-${item.date}`] = nativeEvent.layout.height;
+              }}
+              style={styles.dailyTransactionGroup}
+            >
+              <GlassBackground intensity={56} tintColor="rgba(255, 255, 255, 0.84)" />
+              {item.transactions.map((transaction) => (
+                <TransactionRow
+                  contained
+                  key={transaction.id}
+                  item={transaction}
+                  categories={categories}
+                  onDelete={onDelete}
+                  onEdit={onEdit}
+                />
+              ))}
+            </View>
           )
         }
         ListHeaderComponent={
-          <>
-            <SummaryCard
-              cashFlow={cashFlow}
-              onLayout={({ nativeEvent }) => setCashFlowHeight(nativeEvent.layout.height)}
-            />
+          <View
+            onLayout={({ nativeEvent }) => {
+              listHeaderEnd.current = nativeEvent.layout.y + nativeEvent.layout.height;
+            }}
+          >
+            <SummaryCard cashFlow={cashFlow} topInset={topInset} />
             {error ? (
               <Pressable
                 accessibilityRole="button"
@@ -176,7 +189,7 @@ export function TransactionsScreen({
               onRetry={onRetryQueued}
               onDiscard={onDiscardQueued}
             />
-          </>
+          </View>
         }
         ListEmptyComponent={<Text style={styles.emptyText}>No transactions yet.</Text>}
         ListFooterComponent={
@@ -188,20 +201,33 @@ export function TransactionsScreen({
             />
           ) : null
         }
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: 24 + topInset }]}
         showsVerticalScrollIndicator={false}
         onEndReached={() => void onLoadMore()}
         onEndReachedThreshold={0.35}
         onScroll={({ nativeEvent }) => {
-          const pastCashFlow = cashFlowHeight > 0 && nativeEvent.contentOffset.y >= cashFlowHeight;
-          setShowScrolledDivider((current) => (current === pastCashFlow ? current : pastCashFlow));
+          const scrollOffset = nativeEvent.contentOffset.y;
+          const direction: 1 | -1 = scrollOffset >= lastScrollOffset.current ? 1 : -1;
+          lastScrollOffset.current = scrollOffset;
+          let nextStuckDate = '';
+          let itemOffset = listHeaderEnd.current + TRANSACTION_LIST_TOP_INSET;
+          for (const item of listItems) {
+            const key = `${item.kind}-${item.date}`;
+            if (item.kind === 'date' && itemOffset <= scrollOffset) {
+              nextStuckDate = item.date;
+            }
+            itemOffset += listItemHeights.current[key] ?? 0;
+          }
+          setFixedHeader((current) =>
+            current.date === nextStuckDate ? current : { date: nextStuckDate, direction },
+          );
           const distanceFromEnd =
             nativeEvent.contentSize.height -
             nativeEvent.layoutMeasurement.height -
             nativeEvent.contentOffset.y;
           if (distanceFromEnd < 240) void onLoadMore();
         }}
-        scrollEventThrottle={200}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={loading}
@@ -213,34 +239,48 @@ export function TransactionsScreen({
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
-      {showScrolledDivider ? <View pointerEvents="none" style={styles.scrolledTopDivider} /> : null}
+      <View
+        pointerEvents="none"
+        style={[styles.topStatusFade, { height: topInset + 36 }]}
+        testID="top-status-fade"
+      />
+      {fixedHeader.date ? (
+        <View pointerEvents="none" style={styles.fixedDateSectionHeaderContainer}>
+          <DateSectionHeader
+            date={fixedHeader.date}
+            total={dayTotals[fixedHeader.date] ?? 0}
+            flushTop
+            sticky
+            elevated
+            animateContent
+            animationDirection={fixedHeader.direction}
+            topInset={topInset}
+          />
+        </View>
+      ) : null}
       {receiptError ? (
         <View style={styles.homeReceiptError}>
           <Text style={styles.homeReceiptErrorText}>{receiptError}</Text>
         </View>
       ) : null}
       <View style={styles.homeActionGroup}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Scan receipt"
+        <LiquidGlassActionButton
+          label="Scan receipt"
+          icon="camera-outline"
+          systemImage="camera"
+          size={50}
           disabled={scanningReceipt}
           onPress={() => void scanReceipt()}
-          style={({ pressed }) => [styles.homeCameraFab, pressed && styles.homeCameraFabPressed]}
-        >
-          {scanningReceipt ? (
-            <ActivityIndicator color={colors.accent} />
-          ) : (
-            <Ionicons name="camera-outline" size={25} color={colors.accent} />
-          )}
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add transaction"
+          loading={scanningReceipt}
+        />
+        <LiquidGlassActionButton
+          label="Add transaction"
+          icon="add"
+          systemImage="plus"
+          size={64}
+          prominent
           onPress={onAdd}
-          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        >
-          <Ionicons name="add" size={32} color={colors.white} />
-        </Pressable>
+        />
       </View>
     </>
   );

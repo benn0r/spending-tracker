@@ -192,7 +192,7 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('Good morning')).toHaveCount(0);
   await expect(page.getByLabel('Refresh transactions')).toHaveCount(0);
-  await expect(page.getByText('Green Grocer')).toBeVisible();
+  await expect(page.getByTestId('transactions-list').getByText('Green Grocer')).toBeVisible();
   await expect(page.getByLabel('Verified in Actual Budget')).toBeVisible();
   await page.getByRole('button', { name: 'View details for Green Grocer' }).click();
   const details = page.getByTestId('transaction-details-sheet');
@@ -381,7 +381,7 @@ test('refreshes transactions and scrolls to the top when its active tab is tappe
     )
     .toBeGreaterThan(0);
 
-  await page.getByRole('tab', { name: 'Transactions' }).click();
+  await page.getByRole('link', { name: 'Transactions' }).click();
 
   await expect.poll(() => refreshRequestStarted).toBe(true);
   await expect(page.getByRole('progressbar')).toHaveCount(0);
@@ -441,8 +441,8 @@ test('opens wallets without an initial loading indicator while its data is delay
   });
 
   await page.goto('/');
-  await expect(page.getByText('Green Grocer')).toBeVisible();
-  await page.getByRole('tab', { name: 'Accounts' }).click();
+  await expect(page.getByTestId('transactions-list').getByText('Green Grocer')).toBeVisible();
+  await page.getByRole('link', { name: 'Accounts' }).click();
   await expect.poll(() => walletRequestStarted).toBe(true);
 
   await expect(page.getByRole('button', { name: 'Select account' })).toBeVisible();
@@ -520,7 +520,7 @@ test('swipes transactions and receipts left to delete them', async ({ page }) =>
   await expect(transactionRow).toHaveCount(0);
   expect(transactionDeleted).toBe(true);
 
-  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('link', { name: 'More' }).click();
   await page.getByRole('button', { name: 'Receipts' }).click();
   await page.waitForTimeout(300);
   const receiptRow = page.getByTestId('receipt-8');
@@ -556,13 +556,13 @@ test('selects a wallet and shows only that wallet’s transactions', async ({ pa
   });
 
   await page.goto('/');
-  await page.getByRole('tab', { name: 'Accounts' }).click();
-  await expect(page.getByText('Green Grocer')).toBeVisible();
+  await page.getByRole('link', { name: 'Accounts' }).click();
+  await expect(page.getByTestId('wallets-list').getByText('Green Grocer')).toBeVisible();
   await page.getByRole('button', { name: 'Select account' }).click();
   await page.getByRole('radio', { name: 'Savings' }).click();
 
   await expect(page.getByText('Savings interest')).toBeVisible();
-  await expect(page.getByText('Green Grocer')).toHaveCount(0);
+  await expect(page.getByTestId('wallets-list').getByText('Green Grocer')).toHaveCount(0);
 });
 
 test('opens a processed receipt as a prefilled transaction', async ({ page }) => {
@@ -619,7 +619,7 @@ test('opens a processed receipt as a prefilled transaction', async ({ page }) =>
 
   await page.goto('/');
   await expect(page.getByTestId('receipt-tab-badge')).toHaveText('1');
-  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('link', { name: 'More' }).click();
   await page.getByRole('button', { name: 'Receipts' }).click();
   await expect(page.getByRole('button', { name: 'Scan receipt' })).toBeVisible();
   await page.getByRole('button', { name: 'View details for Corner Market' }).click();
@@ -712,7 +712,7 @@ test('corrects an unbalanced processed receipt before submitting it', async ({ p
   );
 
   await page.goto('/');
-  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('link', { name: 'More' }).click();
   await page.getByRole('button', { name: 'Receipts' }).click();
   await page.getByRole('button', { name: 'View details for Split Cafe' }).click();
   const addReceipt = page.getByRole('button', { name: 'Add Split Cafe' });
@@ -814,11 +814,11 @@ test('navigates tabs and persists the default account', async ({ page }) => {
   );
   await page.goto('/');
 
-  await page.getByRole('tab', { name: 'More' }).click();
+  await page.getByRole('link', { name: 'More' }).click();
   await page.getByRole('button', { name: 'Receipts' }).click();
   await expect(page.getByText('No receipts yet')).toBeVisible();
 
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('button', { name: 'Select default account' }).click();
   await page.getByRole('radio', { name: 'Everyday' }).click();
   await expect(page.getByRole('button', { name: 'Select default account' })).toContainText(
@@ -826,7 +826,7 @@ test('navigates tabs and persists the default account', async ({ page }) => {
   );
 
   await page.reload();
-  await page.getByRole('tab', { name: 'Settings' }).click();
+  await page.getByRole('link', { name: 'Settings' }).click();
   await expect(page.getByRole('button', { name: 'Select default account' })).toContainText(
     'Everyday',
   );

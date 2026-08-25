@@ -310,7 +310,7 @@ test('persists a failed receipt submission in the offline queue with its receipt
   await sheet.getByRole('button', { name: 'Save changes' }).click();
 
   await expect(sheet).toHaveCount(0);
-  await page.getByRole('tab', { name: 'Transactions' }).click();
+  await page.getByRole('link', { name: 'Transactions' }).click();
   await expect(page.getByTestId('transaction-queue')).toBeVisible();
   await expect(page.getByText(/moon ledger is temporarily unavailable/)).toBeVisible();
   expect(receiptSubmissions).toBe(1);

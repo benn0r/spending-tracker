@@ -9,7 +9,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run build && npx serve -s dist -l 4173',
+    command: 'npm run build && npx serve -s dist -l tcp://127.0.0.1:4173',
     env: {
       EXPO_PUBLIC_SPENDING_TRACKER_API_KEY: 'e2e-api-key',
       EXPO_PUBLIC_SPENDING_TRACKER_API_URL: 'http://127.0.0.1:4173',

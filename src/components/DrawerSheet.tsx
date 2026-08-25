@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, type StyleProp, type ViewStyle } from 'react-native';
+import { GlassBackground } from './GlassBackground';
 
 export function DrawerSheet({
   children,
@@ -40,6 +41,7 @@ export function DrawerSheet({
 
   return (
     <Animated.View style={[style, { transform: [{ translateY }] }]} testID={testID}>
+      <GlassBackground intensity={82} />
       {children}
     </Animated.View>
   );
