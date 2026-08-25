@@ -87,6 +87,7 @@ export function ReceiptDetailsDrawer({
         <DrawerSheet
           visible={drawer.sheetVisible}
           onHidden={drawer.onHidden}
+          onPullDown={drawer.dismiss}
           style={styles.receiptDetailsSheet}
           testID="receipt-details-sheet"
         >
@@ -100,14 +101,6 @@ export function ReceiptDetailsDrawer({
                 {receipt?.suggestion?.merchant || receipt?.filename}
               </Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close receipt details"
-              onPress={drawer.dismiss}
-              style={styles.closeButton}
-            >
-              <Ionicons name="close" size={22} color={colors.ink} />
-            </Pressable>
           </View>
           <View style={styles.receiptDetailsActions}>
             <Pressable

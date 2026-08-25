@@ -75,6 +75,7 @@ export function CategoryPickerField({
           <DrawerSheet
             visible={drawer.sheetVisible}
             onHidden={drawer.onHidden}
+            onPullDown={drawer.dismiss}
             style={styles.categorySheet}
             testID="category-sheet"
           >

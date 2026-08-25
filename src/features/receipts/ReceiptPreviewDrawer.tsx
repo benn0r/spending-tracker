@@ -43,6 +43,7 @@ export function ReceiptPreviewDrawer({
         <DrawerSheet
           visible={drawer.sheetVisible}
           onHidden={drawer.onHidden}
+          onPullDown={drawer.dismiss}
           style={styles.receiptPreviewCard}
         >
           <View style={styles.handle} />
@@ -50,14 +51,6 @@ export function ReceiptPreviewDrawer({
             <Text numberOfLines={1} style={styles.receiptPreviewTitle}>
               {receipt?.suggestion?.merchant || receipt?.filename}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Close receipt photo"
-              onPress={drawer.dismiss}
-              style={styles.receiptPreviewClose}
-            >
-              <Ionicons name="close" size={24} color={colors.ink} />
-            </Pressable>
           </View>
           {receipt?.mimeType.startsWith('image/') && (Platform.OS !== 'web' || webUri) ? (
             <Image

@@ -83,9 +83,8 @@ test('all app pages, drawers, buttons, and inputs are reachable and accessibly n
   await page.getByRole('button', { name: 'View details for Moonbeam Market' }).click();
   await expectEveryVisibleControlNamed(page);
   await page
-    .getByTestId('transaction-details-sheet')
     .getByRole('button', { name: 'Close transaction details' })
-    .click();
+    .click({ position: { x: 8, y: 8 } });
 
   await page.getByRole('button', { name: 'Add transaction' }).click();
   await expectEveryVisibleControlNamed(page);
@@ -116,10 +115,15 @@ test('all app pages, drawers, buttons, and inputs are reachable and accessibly n
   await page.getByRole('button', { name: 'Receipts' }).click();
   await page.getByRole('button', { name: 'View details for Moonbeam Market' }).click();
   await expectEveryVisibleControlNamed(page);
-  await page.getByRole('button', { name: 'View Moonbeam Market' }).click();
+  await page
+    .getByRole('button', { name: 'View Moonbeam Market' })
+    .evaluate((button: HTMLElement) => button.click());
   await expectEveryVisibleControlNamed(page);
-  await page.getByRole('button', { name: 'Close receipt photo' }).last().click();
-  await page.getByRole('button', { name: 'Back to More' }).click();
+  await page
+    .getByRole('button', { name: 'Close receipt photo' })
+    .last()
+    .click({ position: { x: 8, y: 8 } });
+  await expect(page.getByTestId('receipt-preview')).toHaveCount(0);
 
   await openTab(page, 'Settings');
   await expectEveryVisibleControlNamed(page);

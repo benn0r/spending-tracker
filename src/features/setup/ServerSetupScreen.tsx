@@ -54,14 +54,6 @@ export function ServerSetupScreen({
                 Server connection
               </Text>
             </View>
-            <Pressable
-              accessibilityLabel="Close server connection settings"
-              accessibilityRole="button"
-              onPress={onCancel}
-              style={styles.closeButton}
-            >
-              <Ionicons name="close" size={22} color="#2E2833" />
-            </Pressable>
           </View>
         ) : (
           <>

@@ -77,6 +77,7 @@ export function AccountDropdown({
           <DrawerSheet
             visible={drawer.sheetVisible}
             onHidden={drawer.onHidden}
+            onPullDown={drawer.dismiss}
             style={styles.accountSheet}
             testID="account-sheet"
           >

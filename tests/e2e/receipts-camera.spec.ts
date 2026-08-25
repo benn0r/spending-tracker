@@ -260,7 +260,10 @@ test('renders successful, failed, and non-image receipt previews', async ({ page
   expect(successfulImageRequests).toBeGreaterThan(0);
   expect(successfulImageAuthorization).toBe('Bearer e2e-api-key');
   await expect(page.getByText('Could not load this receipt photo.')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Close receipt photo' }).last().click();
+  await page
+    .getByRole('button', { name: 'Close receipt photo' })
+    .last()
+    .click({ position: { x: 8, y: 8 } });
 
   await page.getByRole('button', { name: 'View details for Broken Moon Map' }).click();
   await page.getByRole('button', { name: 'View Broken Moon Map' }).click();

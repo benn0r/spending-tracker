@@ -23,16 +23,6 @@ async function scrollListToEnd(list: Locator): Promise<void> {
   });
 }
 
-async function revealDeleteAction(page: Page, row: Locator): Promise<void> {
-  const bounds = await row.boundingBox();
-  if (!bounds) throw new Error('Transaction row has no bounds');
-  const y = bounds.y + bounds.height / 2;
-  await page.mouse.move(bounds.x + bounds.width * 0.9, y);
-  await page.mouse.down();
-  await page.mouse.move(bounds.x + bounds.width * 0.3, y, { steps: 12 });
-  await page.mouse.up();
-}
-
 async function waitForUiCommit(page: Page): Promise<void> {
   await page.evaluate(
     () =>
@@ -341,8 +331,8 @@ test('restores a wallet transaction when its optimistic delete fails', async ({ 
   await openTab(page, 'Accounts');
   const row = page.getByTestId('wallets-list').getByTestId(`transaction-${transaction.id}`);
   await expect(row).toBeVisible();
-  await revealDeleteAction(page, row);
-  await page.getByRole('button', { name: 'Delete Nebula Noodles', exact: true }).click();
+  await row.click();
+  await page.getByRole('button', { name: 'Delete transaction' }).click();
   await page.getByRole('button', { name: 'Confirm delete Nebula Noodles' }).click();
 
   await expect.poll(() => deleteStarted).toBe(true);

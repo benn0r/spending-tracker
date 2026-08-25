@@ -116,6 +116,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
             <DrawerSheet
               visible={tagDrawer.sheetVisible}
               onHidden={tagDrawer.onHidden}
+              onPullDown={tagDrawer.dismiss}
               style={styles.tagSearchSheet}
               testID="tag-search-sheet"
             >

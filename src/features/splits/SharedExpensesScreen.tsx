@@ -115,6 +115,7 @@ export function SharedExpensesScreen({
           <DrawerSheet
             visible={detailsDrawer.sheetVisible}
             onHidden={detailsDrawer.onHidden}
+            onPullDown={detailsDrawer.dismiss}
             style={styles.receiptDetailsSheet}
           >
             <View style={styles.handle} />
@@ -122,14 +123,6 @@ export function SharedExpensesScreen({
               <Text numberOfLines={1} style={styles.receiptDetailsTitle}>
                 {detail?.title ?? 'Shared expense'}
               </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close shared expense details"
-                onPress={detailsDrawer.dismiss}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={22} color={colors.ink} />
-              </Pressable>
             </View>
             {error ? (
               <Text style={styles.errorText}>{error}</Text>

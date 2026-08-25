@@ -177,16 +177,12 @@ export function EntrySheet({
         <DrawerSheet
           visible={drawer.sheetVisible}
           onHidden={drawer.onHidden}
+          onPullDown={close}
           style={styles.sheet}
           testID="entry-sheet"
         >
           <View style={styles.handle} />
-          <EntrySheetHeader
-            editing={Boolean(initialDraft)}
-            mode={mode}
-            onModeChange={setMode}
-            onClose={close}
-          />
+          <EntrySheetHeader editing={Boolean(initialDraft)} mode={mode} onModeChange={setMode} />
           <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={styles.form}>
             <ChoiceField
               label="Account"

@@ -38,7 +38,7 @@ describe('ServerSetupScreen', () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
-  it('uses a compact close action when editing in a sheet', () => {
+  it('relies on drawer gestures instead of a close action when editing in a sheet', () => {
     const onCancel = jest.fn();
     render(
       <ServerSetupScreen
@@ -51,7 +51,9 @@ describe('ServerSetupScreen', () => {
 
     expect(screen.getByRole('header', { name: 'Server connection' })).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeOnTheScreen();
-    fireEvent.press(screen.getByRole('button', { name: 'Close server connection settings' }));
-    expect(onCancel).toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: 'Close server connection settings' }),
+    ).not.toBeOnTheScreen();
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });

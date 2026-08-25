@@ -35,6 +35,7 @@ export function ServerSetupDrawer({
         <DrawerSheet
           visible={drawer.sheetVisible}
           onHidden={drawer.onHidden}
+          onPullDown={drawer.dismiss}
           style={styles.setupSheet}
         >
           <ServerSetupScreen

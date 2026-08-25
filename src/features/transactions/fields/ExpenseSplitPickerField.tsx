@@ -76,6 +76,7 @@ export function ExpenseSplitPickerField({
           <DrawerSheet
             visible={drawer.sheetVisible}
             onHidden={drawer.onHidden}
+            onPullDown={drawer.dismiss}
             style={styles.expenseSplitSheet}
             testID="expense-split-sheet"
           >

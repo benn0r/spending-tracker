@@ -291,10 +291,7 @@ describe('EntrySheet', () => {
     expect(onSave.mock.calls[0]?.[0].tags).toEqual(['starlight-id']);
   });
 
-  it.each([
-    ['Close', 'button'],
-    ['Close transaction form', 'none'],
-  ] as const)('resets a draft after dismissal through %s', async (label, role) => {
+  it('resets a draft after backdrop dismissal', async () => {
     const onClose = jest.fn();
     const { rerender } = render(
       <EntrySheet
@@ -306,11 +303,8 @@ describe('EntrySheet', () => {
       />,
     );
     fireEvent.changeText(screen.getByLabelText('Amount'), '33');
-    const close =
-      role === 'button'
-        ? screen.getByRole('button', { name: label })
-        : screen.getByLabelText(label);
-    fireEvent.press(close);
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    fireEvent.press(screen.getByLabelText('Close transaction form'));
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
 
     rerender(

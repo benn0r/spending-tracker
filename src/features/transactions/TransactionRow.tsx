@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { GlassBackground } from '../../components/GlassBackground';
-import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { DrawerSheet } from '../../components/DrawerSheet';
+import { LiquidGlassButton } from '../../components/LiquidGlassButton';
 import { useDrawerTransition } from '../../components/useDrawerTransition';
 import { nativeDeviceLocale } from '../../device-locale';
 import { styles } from '../../styles';
@@ -68,9 +68,11 @@ export function TransactionRow({
       : `${iconColor}1A`;
   const accountColor = walletColor(item.account);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const editAfterDismiss = useRef(false);
   const detailsDrawer = useDrawerTransition(detailsOpen, () => {
     setDetailsOpen(false);
+    setConfirmingDelete(false);
     if (editAfterDismiss.current) {
       editAfterDismiss.current = false;
       onEdit?.(item);
@@ -78,149 +80,140 @@ export function TransactionRow({
   });
   return (
     <>
-      <SwipeToDelete
-        id={`transaction-${item.id}`}
-        label={title}
-        rounded={false}
-        revealSpacing={12}
-        contained={contained}
-        onDelete={() => onDelete(item)}
+      <View
+        testID={`transaction-group-${item.id}`}
+        style={[
+          styles.transactionGlassGroup,
+          !contained &&
+            (groupPosition === 'first' || groupPosition === 'only') &&
+            styles.transactionGlassGroupFirst,
+          !contained &&
+            (groupPosition === 'last' || groupPosition === 'only') &&
+            styles.transactionGlassGroupLast,
+          item.isSplit && styles.splitTransactionGroup,
+        ]}
       >
-        <View
-          testID={`transaction-group-${item.id}`}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`View details for ${title}`}
+          onPress={() => setDetailsOpen(true)}
           style={[
-            styles.transactionGlassGroup,
-            !contained &&
-              (groupPosition === 'first' || groupPosition === 'only') &&
-              styles.transactionGlassGroupFirst,
-            !contained &&
-              (groupPosition === 'last' || groupPosition === 'only') &&
-              styles.transactionGlassGroupLast,
-            item.isSplit && styles.splitTransactionGroup,
+            styles.transactionRow,
+            contained && styles.containedTransactionRow,
+            item.isSplit && styles.splitTransactionParent,
           ]}
+          testID={`transaction-${item.id}`}
         >
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`View details for ${title}`}
-            onPress={() => setDetailsOpen(true)}
-            style={[
-              styles.transactionRow,
-              contained && styles.containedTransactionRow,
-              item.isSplit && styles.splitTransactionParent,
-            ]}
-            testID={`transaction-${item.id}`}
-          >
-            {!contained ? (
-              <GlassBackground intensity={54} tintColor="rgba(255, 255, 255, 0.82)" />
-            ) : null}
-            <View style={[styles.transactionIcon, { backgroundColor: iconBackground }]}>
-              <Ionicons name={icon} size={19} color={iconColor} />
-            </View>
-            <View style={styles.transactionCopy}>
-              <Text style={styles.merchant}>{title}</Text>
-              <View style={styles.transactionMetaRow}>
-                {item.isSplit ? (
-                  <View accessibilityLabel="Split transaction" style={styles.transactionSplitPill}>
-                    <Ionicons name="git-branch-outline" size={11} color={colors.accentDark} />
-                    <Text style={styles.transactionSplitPillText}>
-                      {(item.children?.length ?? 0) || 'Split'}
-                    </Text>
-                  </View>
-                ) : null}
-                <View
-                  accessible
-                  accessibilityLabel={`Account ${item.account}`}
-                  accessibilityRole="image"
-                  style={[styles.transactionWalletPill, { backgroundColor: `${accountColor}1A` }]}
-                >
-                  <Ionicons name="wallet-outline" size={11} color={accountColor} />
-                </View>
-                {item.cleared ? (
-                  <View
-                    accessible
-                    accessibilityLabel="Verified in Actual Budget"
-                    style={styles.transactionClearedPill}
-                  >
-                    <Ionicons name="checkmark" size={12} color={colors.green} />
-                  </View>
-                ) : null}
-                {(item.tags ?? []).map((tag) => (
-                  <View key={tag} style={styles.transactionTagPill}>
-                    <Text ellipsizeMode="tail" numberOfLines={1} style={styles.transactionTagText}>
-                      #{tag}
-                    </Text>
-                  </View>
-                ))}
-                {notes ? (
-                  <Text
-                    ellipsizeMode="tail"
-                    numberOfLines={1}
-                    style={[styles.transactionMeta, styles.transactionMetaDetails]}
-                  >
-                    {notes}
+          {!contained ? (
+            <GlassBackground intensity={54} tintColor="rgba(255, 255, 255, 0.82)" />
+          ) : null}
+          <View style={[styles.transactionIcon, { backgroundColor: iconBackground }]}>
+            <Ionicons name={icon} size={19} color={iconColor} />
+          </View>
+          <View style={styles.transactionCopy}>
+            <Text style={styles.merchant}>{title}</Text>
+            <View style={styles.transactionMetaRow}>
+              {item.isSplit ? (
+                <View accessibilityLabel="Split transaction" style={styles.transactionSplitPill}>
+                  <Ionicons name="git-branch-outline" size={11} color={colors.accentDark} />
+                  <Text style={styles.transactionSplitPillText}>
+                    {(item.children?.length ?? 0) || 'Split'}
                   </Text>
-                ) : null}
-              </View>
-            </View>
-            <Text style={[styles.amount, item.amount > 0 && styles.incomeAmount]}>
-              {formatCurrency(item.amount)}
-            </Text>
-          </Pressable>
-          {(item.children ?? []).map((child, index) => {
-            const childCategory = categories.find(
-              ({ name }) => name.toLowerCase() === child.category.toLowerCase(),
-            );
-            const childVisual = childCategory ? categoryVisual(childCategory, index) : null;
-            const childColor = childVisual?.color ?? colors.accentDark;
-            return (
+                </View>
+              ) : null}
               <View
                 accessible
-                accessibilityLabel={`Split entry ${index + 1} of ${item.children?.length}: ${child.category}`}
-                key={child.id}
-                style={styles.splitTransactionChild}
+                accessibilityLabel={`Account ${item.account}`}
+                accessibilityRole="image"
+                style={[styles.transactionWalletPill, { backgroundColor: `${accountColor}1A` }]}
               >
-                <View
-                  style={[styles.splitTransactionChildIcon, { backgroundColor: `${childColor}1A` }]}
-                >
-                  <Ionicons
-                    name={childVisual?.icon ?? 'git-branch-outline'}
-                    size={14}
-                    color={childColor}
-                  />
-                </View>
-                <View style={styles.transactionCopy}>
-                  <Text style={styles.splitTransactionChildTitle}>{child.category}</Text>
-                  <View style={[styles.transactionMetaRow, styles.splitTransactionChildMeta]}>
-                    {(child.tags ?? []).map((tag) => (
-                      <View key={tag} style={styles.transactionTagPill}>
-                        <Text style={styles.transactionTagText}>#{tag}</Text>
-                      </View>
-                    ))}
-                    {child.notes ? (
-                      <Text
-                        ellipsizeMode="tail"
-                        numberOfLines={1}
-                        style={[styles.transactionMeta, styles.transactionMetaDetails]}
-                      >
-                        {child.notes}
-                      </Text>
-                    ) : null}
-                  </View>
-                </View>
-                <Text
-                  style={[
-                    styles.amount,
-                    styles.splitTransactionChildAmount,
-                    child.amount > 0 && styles.incomeAmount,
-                  ]}
-                >
-                  {formatCurrency(child.amount)}
-                </Text>
+                <Ionicons name="wallet-outline" size={11} color={accountColor} />
               </View>
-            );
-          })}
-        </View>
-      </SwipeToDelete>
+              {item.cleared ? (
+                <View
+                  accessible
+                  accessibilityLabel="Verified in Actual Budget"
+                  style={styles.transactionClearedPill}
+                >
+                  <Ionicons name="checkmark" size={12} color={colors.green} />
+                </View>
+              ) : null}
+              {(item.tags ?? []).map((tag) => (
+                <View key={tag} style={styles.transactionTagPill}>
+                  <Text ellipsizeMode="tail" numberOfLines={1} style={styles.transactionTagText}>
+                    #{tag}
+                  </Text>
+                </View>
+              ))}
+              {notes ? (
+                <Text
+                  ellipsizeMode="tail"
+                  numberOfLines={1}
+                  style={[styles.transactionMeta, styles.transactionMetaDetails]}
+                >
+                  {notes}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+          <Text style={[styles.amount, item.amount > 0 && styles.incomeAmount]}>
+            {formatCurrency(item.amount)}
+          </Text>
+        </Pressable>
+        {(item.children ?? []).map((child, index) => {
+          const childCategory = categories.find(
+            ({ name }) => name.toLowerCase() === child.category.toLowerCase(),
+          );
+          const childVisual = childCategory ? categoryVisual(childCategory, index) : null;
+          const childColor = childVisual?.color ?? colors.accentDark;
+          return (
+            <View
+              accessible
+              accessibilityLabel={`Split entry ${index + 1} of ${item.children?.length}: ${child.category}`}
+              key={child.id}
+              style={styles.splitTransactionChild}
+            >
+              <View
+                style={[styles.splitTransactionChildIcon, { backgroundColor: `${childColor}1A` }]}
+              >
+                <Ionicons
+                  name={childVisual?.icon ?? 'git-branch-outline'}
+                  size={14}
+                  color={childColor}
+                />
+              </View>
+              <View style={styles.transactionCopy}>
+                <Text style={styles.splitTransactionChildTitle}>{child.category}</Text>
+                <View style={[styles.transactionMetaRow, styles.splitTransactionChildMeta]}>
+                  {(child.tags ?? []).map((tag) => (
+                    <View key={tag} style={styles.transactionTagPill}>
+                      <Text style={styles.transactionTagText}>#{tag}</Text>
+                    </View>
+                  ))}
+                  {child.notes ? (
+                    <Text
+                      ellipsizeMode="tail"
+                      numberOfLines={1}
+                      style={[styles.transactionMeta, styles.transactionMetaDetails]}
+                    >
+                      {child.notes}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+              <Text
+                style={[
+                  styles.amount,
+                  styles.splitTransactionChildAmount,
+                  child.amount > 0 && styles.incomeAmount,
+                ]}
+              >
+                {formatCurrency(child.amount)}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
       <Modal
         visible={detailsDrawer.mounted}
         transparent
@@ -238,12 +231,13 @@ export function TransactionRow({
           <DrawerSheet
             visible={detailsDrawer.sheetVisible}
             onHidden={detailsDrawer.onHidden}
+            onPullDown={detailsDrawer.dismiss}
             style={styles.receiptDetailsSheet}
             testID="transaction-details-sheet"
           >
             <View style={styles.handle} />
-            <View style={styles.receiptDetailsHeading}>
-              <View style={styles.sheetTitleGroup}>
+            <View style={[styles.receiptDetailsHeading, styles.transactionDetailsHeading]}>
+              <View style={[styles.sheetTitleGroup, styles.transactionDetailsTitleGroup]}>
                 <View style={[styles.sheetTitleIcon, { backgroundColor: iconBackground }]}>
                   <Ionicons name={icon} size={20} color={iconColor} />
                 </View>
@@ -251,113 +245,162 @@ export function TransactionRow({
                   {title}
                 </Text>
               </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Close transaction details"
-                onPress={detailsDrawer.dismiss}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={22} color={colors.ink} />
-              </Pressable>
             </View>
-            <Text style={[styles.transactionDetailsAmount, item.amount > 0 && styles.incomeAmount]}>
-              {formatCurrency(item.amount)}
-            </Text>
-            <ScrollView contentContainerStyle={styles.transactionDetailsContent}>
-              <View style={styles.transactionDetailsRow}>
-                <Text style={styles.transactionDetailsLabel}>Date</Text>
-                <Text style={styles.transactionDetailsValue}>
-                  {formatTransactionDate(item.date, nativeDeviceLocale())}
-                </Text>
-              </View>
-              {item.children?.length ? (
-                <View style={styles.transactionDetailsSection}>
-                  <Text style={styles.transactionDetailsLabel}>Split entries</Text>
-                  <View style={styles.transactionDetailsSplitList}>
-                    {item.children.map((child) => (
-                      <View key={child.id} style={styles.transactionDetailsSplitRow}>
-                        <View style={styles.transactionCopy}>
-                          <Text style={styles.transactionDetailsSplitTitle}>{child.category}</Text>
-                          {child.notes ? (
-                            <Text style={styles.transactionDetailsNotes}>{child.notes}</Text>
-                          ) : null}
-                        </View>
-                        <Text style={styles.transactionDetailsSplitAmount}>
-                          {formatCurrency(child.amount)}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-              <View style={styles.transactionDetailsRow}>
-                <Text style={styles.transactionDetailsLabel}>Account</Text>
-                <Text style={styles.transactionDetailsValue}>{item.account}</Text>
-              </View>
-              <View style={styles.transactionDetailsRow}>
-                <Text style={styles.transactionDetailsLabel}>Category</Text>
-                <Text style={styles.transactionDetailsValue}>
-                  {isTransfer ? 'Transfer' : categoryLabel}
-                </Text>
-              </View>
-              {item.transferAccount ? (
-                <View style={styles.transactionDetailsRow}>
-                  <Text style={styles.transactionDetailsLabel}>
-                    {item.amount < 0 ? 'To account' : 'From account'}
+            <View style={styles.transactionDetailsContent}>
+              <View style={styles.transactionDetailsCard}>
+                <View style={[styles.transactionDetailsRow, styles.transactionDetailsFirstRow]}>
+                  <Text style={styles.transactionDetailsLabel}>Amount</Text>
+                  <Text
+                    style={[
+                      styles.transactionDetailsValue,
+                      styles.transactionDetailsCardAmount,
+                      item.amount > 0 && styles.incomeAmount,
+                    ]}
+                  >
+                    {formatCurrency(item.amount)}
                   </Text>
-                  <Text style={styles.transactionDetailsValue}>{item.transferAccount}</Text>
+                </View>
+                <View style={styles.transactionDetailsRow}>
+                  <Text style={styles.transactionDetailsLabel}>Date</Text>
+                  <Text style={styles.transactionDetailsValue}>
+                    {formatTransactionDate(item.date, nativeDeviceLocale())}
+                  </Text>
+                </View>
+                {item.children?.length ? (
+                  <View style={styles.transactionDetailsSection}>
+                    <Text style={styles.transactionDetailsLabel}>Split entries</Text>
+                    <View style={styles.transactionDetailsSplitList}>
+                      {item.children.map((child) => (
+                        <View key={child.id} style={styles.transactionDetailsSplitRow}>
+                          <View style={styles.transactionCopy}>
+                            <Text style={styles.transactionDetailsSplitTitle}>
+                              {child.category}
+                            </Text>
+                            {child.notes ? (
+                              <Text style={styles.transactionDetailsNotes}>{child.notes}</Text>
+                            ) : null}
+                          </View>
+                          <Text style={styles.transactionDetailsSplitAmount}>
+                            {formatCurrency(child.amount)}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+                <View style={styles.transactionDetailsRow}>
+                  <Text style={styles.transactionDetailsLabel}>Account</Text>
+                  <Text style={styles.transactionDetailsValue}>{item.account}</Text>
+                </View>
+                <View style={styles.transactionDetailsRow}>
+                  <Text style={styles.transactionDetailsLabel}>Category</Text>
+                  <Text style={styles.transactionDetailsValue}>
+                    {isTransfer ? 'Transfer' : categoryLabel}
+                  </Text>
+                </View>
+                {item.transferAccount ? (
+                  <View style={styles.transactionDetailsRow}>
+                    <Text style={styles.transactionDetailsLabel}>
+                      {item.amount < 0 ? 'To account' : 'From account'}
+                    </Text>
+                    <Text style={styles.transactionDetailsValue}>{item.transferAccount}</Text>
+                  </View>
+                ) : null}
+                <View style={styles.transactionDetailsRow}>
+                  <Text style={styles.transactionDetailsLabel}>Type</Text>
+                  <Text style={styles.transactionDetailsValue}>
+                    {isTransfer
+                      ? 'Transfer'
+                      : item.expenseSplitId
+                        ? 'Shared expense'
+                        : item.isSplit
+                          ? 'Split transaction'
+                          : item.amount > 0
+                            ? 'Income'
+                            : 'Expense'}
+                  </Text>
+                </View>
+                {item.tags?.length ? (
+                  <View style={styles.transactionDetailsSection}>
+                    <Text style={styles.transactionDetailsLabel}>Tags</Text>
+                    <View style={styles.transactionDetailsTags}>
+                      {item.tags.map((tag) => (
+                        <View key={tag} style={styles.transactionTagPill}>
+                          <Text style={styles.transactionTagText}>#{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+                {item.notes ? (
+                  <View style={styles.transactionDetailsSection}>
+                    <Text style={styles.transactionDetailsLabel}>Notes</Text>
+                    <Text style={styles.transactionDetailsNotes}>{item.notes}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+            <View style={[styles.sheetActions, styles.transactionDetailsActions]}>
+              <LiquidGlassButton
+                label="Delete transaction"
+                icon="trash-outline"
+                systemImage="trash"
+                compact
+                destructive
+                onPress={() => setConfirmingDelete(true)}
+              />
+              {!isTransfer && onEdit ? (
+                <View style={styles.transactionEditAction}>
+                  <LiquidGlassButton
+                    label="Edit transaction"
+                    icon="create-outline"
+                    systemImage="pencil"
+                    prominent
+                    onPress={() => {
+                      editAfterDismiss.current = true;
+                      detailsDrawer.dismiss();
+                    }}
+                  />
                 </View>
               ) : null}
-              <View style={styles.transactionDetailsRow}>
-                <Text style={styles.transactionDetailsLabel}>Type</Text>
-                <Text style={styles.transactionDetailsValue}>
-                  {isTransfer
-                    ? 'Transfer'
-                    : item.expenseSplitId
-                      ? 'Shared expense'
-                      : item.isSplit
-                        ? 'Split transaction'
-                        : item.amount > 0
-                          ? 'Income'
-                          : 'Expense'}
-                </Text>
-              </View>
-              {item.tags?.length ? (
-                <View style={styles.transactionDetailsSection}>
-                  <Text style={styles.transactionDetailsLabel}>Tags</Text>
-                  <View style={styles.transactionDetailsTags}>
-                    {item.tags.map((tag) => (
-                      <View key={tag} style={styles.transactionTagPill}>
-                        <Text style={styles.transactionTagText}>#{tag}</Text>
-                      </View>
-                    ))}
+            </View>
+          </DrawerSheet>
+          {confirmingDelete ? (
+            <View style={styles.transactionDeleteConfirmOverlay}>
+              <View style={[styles.deleteConfirmCard, styles.liquidDeleteConfirmCard]}>
+                <GlassBackground intensity={74} tintColor="rgba(255, 255, 255, 0.58)" />
+                <View style={styles.deleteConfirmIcon}>
+                  <Ionicons name="trash-outline" size={24} color="#D84A4A" />
+                </View>
+                <Text style={styles.deleteConfirmTitle}>Delete {title}?</Text>
+                <Text style={styles.deleteConfirmText}>This action cannot be undone.</Text>
+                <View style={styles.deleteConfirmActions}>
+                  <View style={styles.transactionConfirmAction}>
+                    <LiquidGlassButton
+                      label="Cancel"
+                      accessibilityLabel="Cancel delete"
+                      icon="close"
+                      systemImage="xmark"
+                      onPress={() => setConfirmingDelete(false)}
+                    />
+                  </View>
+                  <View style={styles.transactionConfirmAction}>
+                    <LiquidGlassButton
+                      label="Delete"
+                      accessibilityLabel={`Confirm delete ${title}`}
+                      icon="trash-outline"
+                      systemImage="trash"
+                      destructive
+                      onPress={() => {
+                        setConfirmingDelete(false);
+                        onDelete(item);
+                      }}
+                    />
                   </View>
                 </View>
-              ) : null}
-              {item.notes ? (
-                <View style={styles.transactionDetailsSection}>
-                  <Text style={styles.transactionDetailsLabel}>Notes</Text>
-                  <Text style={styles.transactionDetailsNotes}>{item.notes}</Text>
-                </View>
-              ) : null}
-            </ScrollView>
-            {!isTransfer && onEdit ? (
-              <View style={styles.sheetActions}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Edit transaction"
-                  onPress={() => {
-                    editAfterDismiss.current = true;
-                    detailsDrawer.dismiss();
-                  }}
-                  style={styles.saveButton}
-                >
-                  <Ionicons name="create-outline" size={18} color={colors.white} />
-                  <Text style={styles.saveText}>Edit transaction</Text>
-                </Pressable>
               </View>
-            ) : null}
-          </DrawerSheet>
+            </View>
+          ) : null}
         </View>
       </Modal>
     </>

@@ -256,6 +256,7 @@ describe('ReceiptsScreen', () => {
   });
 
   it('refreshes on pull and shows grouped line items in a bottom drawer', async () => {
+    jest.useFakeTimers();
     renderReceipts({
       receipts: [
         receipt({
@@ -296,7 +297,6 @@ describe('ReceiptsScreen', () => {
     expect(screen.getAllByText('CHF 5.00')).toHaveLength(2);
     expect(screen.getAllByText('CHF 7.50')).toHaveLength(2);
     expect(screen.getAllByText('CHF 12.50')).toHaveLength(2);
-    jest.useFakeTimers();
     fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt details' })[0]!);
     act(() => jest.advanceTimersByTime(320));
     expect(screen.queryByText('Apples')).toBeNull();
@@ -304,6 +304,7 @@ describe('ReceiptsScreen', () => {
   });
 
   it('renders image and non-image preview states and closes them', async () => {
+    jest.useFakeTimers();
     const image = receipt();
     const document = receipt({
       id: 8,
@@ -320,7 +321,6 @@ describe('ReceiptsScreen', () => {
     expect(screen.UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
     fireEvent(photo, 'load');
     expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
-    jest.useFakeTimers();
     fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt photo' }).at(-1)!);
     act(() => jest.advanceTimersByTime(250));
     expect(screen.queryByTestId('receipt-preview')).toBeNull();

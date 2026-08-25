@@ -8,12 +8,10 @@ export function EntrySheetHeader({
   editing,
   mode,
   onModeChange,
-  onClose,
 }: {
   editing: boolean;
   mode: EntryMode;
   onModeChange: (mode: EntryMode) => void;
-  onClose: () => void;
 }) {
   return (
     <View style={styles.sheetHeading}>
@@ -52,14 +50,6 @@ export function EntrySheetHeader({
             />
           </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          onPress={onClose}
-          style={styles.closeButton}
-        >
-          <Ionicons name="close" size={21} color={colors.ink} />
-        </Pressable>
       </View>
     </View>
   );

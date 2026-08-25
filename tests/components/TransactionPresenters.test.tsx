@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 
 import type { QueuedTransaction } from '../../src/app-model';
 import { SummaryCard } from '../../src/features/transactions/SummaryCard';
@@ -52,31 +53,23 @@ jest.mock('../../src/components/LiquidGlassActionButton', () => {
       }),
   };
 });
-
-jest.mock('../../src/components/SwipeToDelete', () => {
+jest.mock('../../src/components/LiquidGlassButton', () => {
   const React = jest.requireActual<typeof import('react')>('react');
-  const { Pressable, View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    SwipeToDelete: ({
-      children,
-      id,
+    LiquidGlassButton: ({
       label,
-      onDelete,
+      accessibilityLabel,
+      onPress,
     }: {
-      children: React.ReactNode;
-      id: string;
       label: string;
-      onDelete: () => void;
+      accessibilityLabel?: string;
+      onPress: () => void;
     }) =>
       React.createElement(
-        View,
-        { testID: `mock-swipe-${id}` },
-        React.createElement(Pressable, {
-          accessibilityRole: 'button',
-          accessibilityLabel: `Delete ${label}`,
-          onPress: onDelete,
-        }),
-        children,
+        Pressable,
+        { accessibilityRole: 'button', accessibilityLabel: accessibilityLabel ?? label, onPress },
+        React.createElement(Text, null, label),
       ),
   };
 });
@@ -130,6 +123,62 @@ describe('transaction presentation', () => {
 
     act(() => jest.advanceTimersByTime(320));
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: 'skyship-ticket' }));
+    jest.useRealTimers();
+  });
+
+  it('only deletes from transaction details after confirmation', () => {
+    const onDelete = jest.fn();
+    render(
+      <TransactionRow
+        item={transaction()}
+        categories={[]}
+        onDelete={onDelete}
+        onEdit={jest.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId('mock-swipe-transaction-skyship-ticket')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete transaction' })).toBeNull();
+
+    fireEvent.press(screen.getByRole('button', { name: 'View details for Comet Rail' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Delete transaction' }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.getByText('Delete Comet Rail?')).toBeVisible();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Cancel delete' }));
+    expect(onDelete).not.toHaveBeenCalled();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Delete transaction' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Confirm delete Comet Rail' }));
+    expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: 'skyship-ticket' }));
+  });
+
+  it('removes the visible close control and can reopen after pull-down dismissal', () => {
+    jest.useFakeTimers();
+    render(
+      <TransactionRow
+        item={transaction()}
+        categories={[]}
+        onDelete={jest.fn()}
+        onEdit={jest.fn()}
+      />,
+    );
+
+    const detailsButton = screen.getByRole('button', { name: 'View details for Comet Rail' });
+    fireEvent.press(detailsButton);
+    expect(screen.getByTestId('transaction-details-sheet')).toBeVisible();
+    expect(screen.getAllByRole('button', { name: 'Close transaction details' })).toHaveLength(1);
+    act(() => {
+      fireGestureHandler(getByGestureTestId('transaction-details-sheet-pull-down'), [
+        { translationY: 0, velocityY: 0 },
+        { translationY: 90, velocityY: 1000 },
+      ]);
+    });
+    act(() => jest.advanceTimersByTime(320));
+    expect(screen.queryByTestId('transaction-details-sheet')).toBeNull();
+
+    fireEvent.press(detailsButton);
+    expect(screen.getByTestId('transaction-details-sheet')).toBeVisible();
     jest.useRealTimers();
   });
 
@@ -208,7 +257,7 @@ describe('transaction presentation', () => {
     expect(screen.getAllByTestId('glass-background')).toHaveLength(5);
   });
 
-  it('renders server category visuals, fallbacks, signed amounts, and deletion', () => {
+  it('renders server category visuals, fallbacks, and signed amounts', () => {
     const expense = transaction({ cleared: true });
     const onDelete = jest.fn();
     const { rerender } = render(
@@ -231,9 +280,6 @@ describe('transaction presentation', () => {
     expect(screen.getByLabelText('Verified in Actual Budget')).toBeVisible();
     expect(screen.getByText('− CHF 25.50')).toBeVisible();
     expect(screen.getByTestId('icon-airplane-outline')).toBeVisible();
-    fireEvent.press(screen.getByRole('button', { name: 'Delete Comet Rail' }));
-    expect(onDelete).toHaveBeenCalledWith(expense);
-
     rerender(
       <TransactionRow
         item={transaction({ notes: 'Night train', tags: ['holiday', 'shared'] })}

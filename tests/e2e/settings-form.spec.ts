@@ -134,7 +134,9 @@ test('resets the form after both close and cancel', async ({ page }) => {
     comment: 'Airship passage',
     tags: ['Guild Shared'],
   });
-  await sheet.getByRole('button', { name: 'Close', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Close transaction form' })
+    .click({ position: { x: 8, y: 8 } });
   await expect(sheet).toBeHidden();
 
   await page.getByRole('button', { name: 'Add transaction' }).click();

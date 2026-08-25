@@ -77,6 +77,7 @@ export function DatePickerField({
           <DrawerSheet
             visible={drawer.sheetVisible}
             onHidden={drawer.onHidden}
+            onPullDown={drawer.dismiss}
             style={styles.datePickerSheet}
           >
             <View style={styles.handle} />

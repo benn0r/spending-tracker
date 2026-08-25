@@ -201,7 +201,9 @@ test('loads API transactions and submits a new expense', async ({ page }) => {
   await expect(details.getByText('Groceries', { exact: true })).toBeVisible();
   await expect(details.getByText('Expense', { exact: true })).toBeVisible();
   await expect(details.getByText('− CHF 64.20', { exact: true })).toBeVisible();
-  await details.getByRole('button', { name: 'Close transaction details' }).click();
+  await page
+    .getByRole('button', { name: 'Close transaction details' })
+    .click({ position: { x: 8, y: 8 } });
   await expect(details).toHaveCount(0);
   await page.getByRole('button', { name: 'Add transaction' }).click();
   await expect(page.getByTestId('category-sheet')).toBeVisible();
@@ -452,7 +454,9 @@ test('opens wallets without an initial loading indicator while its data is delay
   await expect(page.getByText('Delayed wallet merchant')).toBeVisible();
 });
 
-test('swipes transactions and receipts left to delete them', async ({ page }) => {
+test('deletes transactions from details and swipes receipts left to delete them', async ({
+  page,
+}) => {
   let transactionDeleted = false;
   let receiptDeleted = false;
   await page.unroute('**/api/receipts**');
@@ -494,28 +498,12 @@ test('swipes transactions and receipts left to delete them', async ({ page }) =>
 
   await page.goto('/');
   const transactionRow = page.getByTestId('transaction-transaction-1');
-  const transactionBox = await transactionRow.boundingBox();
-  if (!transactionBox) throw new Error('Transaction row has no bounds');
-  await page.mouse.move(transactionBox.x + transactionBox.width - 15, transactionBox.y + 25);
-  await page.mouse.down();
-  await page.mouse.move(transactionBox.x + transactionBox.width - 110, transactionBox.y + 25, {
-    steps: 10,
-  });
-  await page.mouse.up();
-  await expect(page.getByTestId('transaction-details-sheet')).toHaveCount(0);
-  await page.touchscreen.tap(10, 10);
-  await page.waitForTimeout(300);
-  await page.mouse.move(transactionBox.x + transactionBox.width - 15, transactionBox.y + 25);
-  await page.mouse.down();
-  await page.mouse.move(transactionBox.x + transactionBox.width - 110, transactionBox.y + 25, {
-    steps: 10,
-  });
-  await page.mouse.up();
-  await page.getByRole('button', { name: 'Delete Green Grocer', exact: true }).click();
+  await page.getByRole('button', { name: 'View details for Green Grocer' }).click();
+  await page.getByRole('button', { name: 'Delete transaction' }).click();
   await expect(page.getByText('Delete Green Grocer?')).toBeVisible();
   await page.getByRole('button', { name: 'Cancel delete' }).click();
   await expect(transactionRow).toBeVisible();
-  await page.getByRole('button', { name: 'Delete Green Grocer', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete transaction' }).click();
   await page.getByRole('button', { name: 'Confirm delete Green Grocer' }).click();
   await expect(transactionRow).toHaveCount(0);
   expect(transactionDeleted).toBe(true);
@@ -1111,7 +1099,9 @@ test('uses cached dashboard data while offline and replaces it after retry', asy
     page.getByTestId('category-sheet').getByRole('radio', { name: 'Cached Food' }),
   ).toBeVisible();
   await page.getByTestId('category-sheet').getByRole('radio', { name: 'Cached Food' }).click();
-  await page.getByTestId('entry-sheet').getByRole('button', { name: 'Close', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Close transaction form' })
+    .click({ position: { x: 8, y: 8 } });
   await expect(page.getByTestId('entry-sheet')).toBeHidden();
 
   online = true;
