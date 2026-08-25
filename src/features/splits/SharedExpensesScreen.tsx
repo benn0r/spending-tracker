@@ -38,7 +38,6 @@ export function SharedExpensesScreen({
   return (
     <View style={styles.sharedExpensesScreen}>
       <View style={styles.secondaryHeader}>
-        <GlassBackground />
         <View style={styles.nestedHeaderContent}>
           {onBack ? (
             <Pressable
@@ -51,7 +50,6 @@ export function SharedExpensesScreen({
             </Pressable>
           ) : null}
           <View>
-            <Text style={styles.secondaryEyebrow}>MORE</Text>
             <Text style={styles.secondaryTitle}>Shared expenses</Text>
           </View>
         </View>
@@ -80,6 +78,7 @@ export function SharedExpensesScreen({
             }}
             style={styles.sharedExpenseRow}
           >
+            <GlassBackground intensity={60} tintColor="rgba(255, 255, 255, 0.48)" />
             <View style={styles.sharedExpenseIcon}>
               <Ionicons name="people-outline" size={20} color={colors.accent} />
             </View>

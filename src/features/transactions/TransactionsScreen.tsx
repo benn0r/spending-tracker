@@ -270,7 +270,7 @@ export function TransactionsScreen({
           label="Scan receipt"
           icon="camera-outline"
           systemImage="camera"
-          size={50}
+          size={42}
           disabled={scanningReceipt}
           onPress={() => void scanReceipt()}
           loading={scanningReceipt}
@@ -279,7 +279,7 @@ export function TransactionsScreen({
           label="Add transaction"
           icon="add"
           systemImage="plus"
-          size={64}
+          size={54}
           prominent
           onPress={onAdd}
         />

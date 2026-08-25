@@ -28,7 +28,9 @@ describe('navigation and settings presentation', () => {
       />,
     );
 
-    expect(screen.getByText('PREFERENCES')).toBeVisible();
+    expect(screen.getByText('Settings')).toBeVisible();
+    expect(screen.queryByText('PREFERENCES')).toBeNull();
+    expect(screen.getAllByTestId('glass-background')).toHaveLength(2);
     expect(
       screen.getByText('Personalize how new transactions are prepared on this device.'),
     ).toBeVisible();
@@ -81,7 +83,7 @@ describe('navigation and settings presentation', () => {
     );
 
     expect(screen.getByText('More')).toBeVisible();
-    expect(screen.getByTestId('glass-background')).toBeVisible();
+    expect(screen.getAllByTestId('glass-background')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Shared expenses' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Receipts' })).toBeVisible();
     fireEvent.press(screen.getByRole('button', { name: 'Receipts' }));

@@ -21,22 +21,22 @@ export function SettingsScreen({
   return (
     <View style={styles.secondaryFixedScreen}>
       <View style={styles.secondaryHeader}>
-        <GlassBackground />
-        <Text style={styles.secondaryEyebrow}>PREFERENCES</Text>
         <Text style={styles.secondaryTitle}>Settings</Text>
       </View>
       <ScrollView contentContainerStyle={styles.settingsContent}>
         <Text style={styles.settingsIntro}>
           Personalize how new transactions are prepared on this device.
         </Text>
-        <View style={styles.settingsSection}>
+        <View style={[styles.settingsSection, styles.glassContentCard]}>
+          <GlassBackground intensity={62} tintColor="rgba(255, 255, 255, 0.5)" />
           <AccountDropdown
             value={defaultAccount}
             options={accounts}
             onChange={onChangeDefaultAccount}
           />
         </View>
-        <View style={styles.settingsSection}>
+        <View style={[styles.settingsSection, styles.glassContentCard]}>
+          <GlassBackground intensity={62} tintColor="rgba(255, 255, 255, 0.5)" />
           <Text style={styles.settingsLabel}>Server connection</Text>
           <Pressable
             accessibilityLabel="Edit server connection"

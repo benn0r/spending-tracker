@@ -13,6 +13,7 @@ import {
 import { loadReceiptFile, uploadReceipt } from '../../api';
 import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { GlassBackground } from '../../components/GlassBackground';
+import { LiquidGlassActionButton } from '../../components/LiquidGlassActionButton';
 import { styles } from '../../styles';
 import { colors } from '../../theme';
 import type {
@@ -175,7 +176,6 @@ export function ReceiptsScreen({
   return (
     <View style={styles.receiptsScreen}>
       <View style={styles.receiptsHeader}>
-        <GlassBackground />
         <View style={styles.nestedHeaderContent}>
           {onBack ? (
             <Pressable
@@ -188,33 +188,8 @@ export function ReceiptsScreen({
             </Pressable>
           ) : null}
           <View>
-            <Text style={styles.secondaryEyebrow}>MORE</Text>
             <Text style={styles.secondaryTitle}>Receipts</Text>
           </View>
-        </View>
-        <View style={styles.receiptHeaderActions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Choose receipt photo"
-            disabled={uploading}
-            onPress={() => void chooseReceipt()}
-            style={({ pressed }) => [styles.receiptLibraryButton, pressed && styles.fabPressed]}
-          >
-            <Ionicons name="images-outline" size={24} color={colors.accentDark} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Scan receipt"
-            disabled={uploading}
-            onPress={() => void scanReceipt()}
-            style={({ pressed }) => [styles.receiptFab, pressed && styles.fabPressed]}
-          >
-            {uploading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <Ionicons name="camera-outline" size={26} color={colors.white} />
-            )}
-          </Pressable>
         </View>
       </View>
       {error ? <Text style={[styles.errorText, styles.receiptsError]}>{error}</Text> : null}
@@ -260,6 +235,7 @@ export function ReceiptsScreen({
                     onDelete={() => onDelete(receipt)}
                   >
                     <View style={styles.receiptCard} testID={`receipt-${receipt.id}`}>
+                      <GlassBackground intensity={58} tintColor="rgba(255, 255, 255, 0.48)" />
                       <View style={styles.receiptCardHeader}>
                         <Pressable
                           accessibilityRole="button"
@@ -311,12 +287,34 @@ export function ReceiptsScreen({
                   <Ionicons name="receipt-outline" size={34} color={colors.accent} />
                 </View>
                 <Text style={styles.emptyScreenTitle}>No receipts yet</Text>
-                <Text style={styles.emptyScreenText}>Tap + to scan your first receipt.</Text>
+                <Text style={styles.emptyScreenText}>
+                  Tap the camera to scan your first receipt.
+                </Text>
               </View>
             ) : null}
           </>
         )}
       </ScrollView>
+      <View style={styles.homeActionGroup}>
+        <LiquidGlassActionButton
+          label="Choose receipt photo"
+          icon="images-outline"
+          systemImage="photo.on.rectangle"
+          size={42}
+          disabled={uploading}
+          onPress={() => void chooseReceipt()}
+        />
+        <LiquidGlassActionButton
+          label="Scan receipt"
+          icon="camera-outline"
+          systemImage="camera"
+          size={54}
+          prominent
+          disabled={uploading}
+          loading={uploading}
+          onPress={() => void scanReceipt()}
+        />
+      </View>
       <ReceiptDetailsDrawer
         receipt={detailsReceipt}
         categories={categories}

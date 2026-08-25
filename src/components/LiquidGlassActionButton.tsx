@@ -9,7 +9,7 @@ export type LiquidGlassActionButtonProps = {
   label: string;
   icon: ComponentProps<typeof Ionicons>['name'];
   systemImage: string;
-  size: 50 | 64;
+  size: 42 | 54;
   prominent?: boolean;
   disabled?: boolean;
   loading?: boolean;

@@ -7,6 +7,29 @@ import { ReceiptsScreen } from '../../src/features/receipts/ReceiptsScreen';
 import type { ApiReceipt } from '../../src/types';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+// SwiftUI hosts are opaque to the React Native test renderer, so exercise the
+// screen callbacks through an accessible test double here.
+jest.mock('../../src/components/LiquidGlassActionButton', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Pressable } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    LiquidGlassActionButton: ({
+      label,
+      disabled,
+      onPress,
+    }: {
+      label: string;
+      disabled?: boolean;
+      onPress: () => void;
+    }) =>
+      React.createElement(Pressable, {
+        accessibilityRole: 'button',
+        accessibilityLabel: label,
+        disabled,
+        onPress,
+      }),
+  };
+});
 jest.mock('../../src/components/SwipeToDelete', () => {
   const { View } = jest.requireActual('react-native');
   return {

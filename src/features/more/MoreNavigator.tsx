@@ -50,41 +50,9 @@ export function MoreNavigator({
     });
   }, [leaving, onExitComplete, slide]);
 
-  if (selected) {
-    if (!entering && !leaving) {
-      return (
-        <View testID="more-detail-page" style={styles.moreDetailPage}>
-          {children}
-        </View>
-      );
-    }
-    return (
-      <Animated.View
-        testID="more-detail-page"
-        style={[
-          styles.moreDetailPage,
-          {
-            transform: [
-              {
-                translateX: slide.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, width],
-                }),
-              },
-            ],
-          },
-        ]}
-      >
-        {children}
-      </Animated.View>
-    );
-  }
-
-  return (
+  const menuPage = (
     <View style={styles.moreScreen}>
       <View style={styles.secondaryHeader}>
-        <GlassBackground />
-        <Text style={styles.secondaryEyebrow}>EXPLORE</Text>
         <Text style={styles.secondaryTitle}>More</Text>
       </View>
       <View style={styles.moreMenu}>
@@ -94,6 +62,7 @@ export function MoreNavigator({
           onPress={() => onSelect('shared')}
           style={styles.moreMenuItem}
         >
+          <GlassBackground intensity={62} tintColor="rgba(255, 255, 255, 0.5)" />
           <View style={styles.moreMenuIcon}>
             <Ionicons name="people-outline" size={21} color={colors.accent} />
           </View>
@@ -109,6 +78,7 @@ export function MoreNavigator({
           onPress={() => onSelect('receipts')}
           style={styles.moreMenuItem}
         >
+          <GlassBackground intensity={62} tintColor="rgba(255, 255, 255, 0.5)" />
           <View style={styles.moreMenuIcon}>
             <Ionicons name="receipt-outline" size={21} color={colors.accent} />
             {receiptCount > 0 ? (
@@ -128,4 +98,40 @@ export function MoreNavigator({
       </View>
     </View>
   );
+
+  if (selected) {
+    if (!entering && !leaving) {
+      return (
+        <View testID="more-detail-page" style={styles.moreDetailPage}>
+          {children}
+        </View>
+      );
+    }
+    return (
+      <View style={styles.moreTransitionStack}>
+        {menuPage}
+        <Animated.View
+          testID="more-detail-page"
+          style={[
+            styles.moreDetailPage,
+            styles.moreSlidingPage,
+            {
+              transform: [
+                {
+                  translateX: slide.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, width],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      </View>
+    );
+  }
+
+  return menuPage;
 }
