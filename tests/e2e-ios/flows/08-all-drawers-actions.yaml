@@ -1,0 +1,102 @@
+appId: app.spendingtracker.mobile
+name: Native iOS every drawer gesture and destructive action
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: server-url-input
+- inputText: ${MOCK_URL}
+- tapOn:
+    id: api-token-input
+- inputText: ${API_TOKEN}
+- tapOn:
+    id: save-connection-button
+- tapOn:
+    text: Not Now
+    optional: true
+- assertVisible: View details for Moonbeam Market
+
+# Category drawer: pull down, reopen, and select.
+- tapOn: Add transaction
+- assertVisible: Transaction category
+- swipe:
+    start: 50%, 28%
+    end: 50%, 90%
+    duration: 450
+- assertNotVisible: Transaction category
+- tapOn: Select category
+- tapOn: Enchanted Groceries
+
+# Date drawer: pull down and confirm through both exit paths.
+- tapOn: Open date calendar
+- assertVisible: Transaction date
+- swipe:
+    start: 50%, 45%
+    end: 50%, 90%
+    duration: 450
+- assertNotVisible: Transaction date
+- tapOn: Open date calendar
+- tapOn: Confirm date
+
+# Tag drawer: pull down, reopen, select and commit.
+- tapOn: Search tags
+- assertVisible: Choose tags
+- swipe:
+    start: 50%, 45%
+    end: 50%, 90%
+    duration: 450
+- assertNotVisible: Choose tags
+- tapOn: Search tags
+- tapOn: Weekly Quest
+- tapOn: Done selecting tags
+
+# Shared-expense drawer: pull down, reopen, and choose new.
+- tapOn: Add to shared expenses
+- assertVisible: Shared expenses
+- swipe:
+    start: 50%, 45%
+    end: 50%, 90%
+    duration: 450
+- assertNotVisible: Add this transaction to an existing shared expense or create a new one.
+- tapOn: Shared expense
+- tapOn: Create shared expense
+- assertVisible: Split name
+- tapOn:
+    id: split-name-input
+- inputText: Native expedition
+- pressKey: Enter
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+    duration: 350
+- tapOn:
+    id: number-of-people-input
+- eraseText: 10
+- inputText: '3'
+
+# Cancel closes a completed form; the next clean entry closes by pull-down.
+- tapOn: Cancel transaction
+- assertNotVisible: Native expedition
+- tapOn: Add transaction
+- assertVisible: Transaction category
+- swipe:
+    start: 50%, 28%
+    end: 50%, 90%
+    duration: 450
+- swipe:
+    start: 50%, 15%
+    end: 50%, 92%
+    duration: 500
+- assertVisible: View details for Moonbeam Market
+
+# Account drawer closes by pull-down and can select another account.
+- tapOn: Accounts
+- tapOn: Select account
+- assertVisible: Choose from accounts enabled on the server.
+- swipe:
+    start: 50%, 31%
+    end: 50%, 90%
+    duration: 450
+- tapOn: Select account
+- tapOn: Dragon Hoard
+- assertVisible: CURRENT BALANCE

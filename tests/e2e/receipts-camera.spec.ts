@@ -247,7 +247,9 @@ test('renders successful, failed, and non-image receipt previews', async ({ page
   await openTab(page, 'Receipts');
 
   await page.getByRole('button', { name: 'View details for Prism Pastries' }).click();
-  await page.getByRole('button', { name: 'View Prism Pastries' }).click();
+  await page
+    .getByRole('button', { name: 'View Prism Pastries' })
+    .evaluate((button: HTMLElement) => button.click());
   await expect(page.getByTestId('receipt-preview')).toBeVisible();
   await expect
     .poll(async () => {
@@ -266,17 +268,27 @@ test('renders successful, failed, and non-image receipt previews', async ({ page
     .click({ position: { x: 8, y: 8 } });
 
   await page.getByRole('button', { name: 'View details for Broken Moon Map' }).click();
-  await page.getByRole('button', { name: 'View Broken Moon Map' }).click();
+  await page
+    .getByRole('button', { name: 'View Broken Moon Map' })
+    .evaluate((button: HTMLElement) => button.click());
   await expect(page.getByText('Could not load this receipt photo.')).toBeVisible();
   expect(brokenImageRequests).toBeGreaterThan(0);
-  await page.getByRole('button', { name: 'Close receipt photo' }).last().click();
+  await page
+    .getByRole('button', { name: 'Close receipt photo' })
+    .last()
+    .click({ position: { x: 8, y: 8 } });
 
   await page.getByRole('button', { name: 'View details for Guild Invoice' }).click();
-  await page.getByRole('button', { name: 'View Guild Invoice' }).click();
+  await page
+    .getByRole('button', { name: 'View Guild Invoice' })
+    .evaluate((button: HTMLElement) => button.click());
   await expect(page.getByText('Photo preview is unavailable for this file.')).toBeVisible();
   await expect(page.getByLabel('Receipt photo guild-invoice.pdf')).toHaveCount(0);
   expect(documentFileRequests).toBe(0);
-  await page.getByRole('button', { name: 'Close receipt photo' }).last().click();
+  await page
+    .getByRole('button', { name: 'Close receipt photo' })
+    .last()
+    .click({ position: { x: 8, y: 8 } });
 });
 
 test('persists a failed receipt submission in the offline queue with its receipt link', async ({

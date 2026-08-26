@@ -316,6 +316,7 @@ describe('ReceiptsScreen', () => {
     renderReceipts({ receipts: [image, document] });
     fireEvent.press(screen.getByRole('button', { name: 'View details for Moon Market' }));
     fireEvent.press(screen.getByRole('button', { name: 'View Moon Market' }));
+    act(() => jest.advanceTimersByTime(320));
     const photo = screen.getByLabelText('Receipt photo market.jpg');
     expect(photo).toBeVisible();
     expect(screen.UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
@@ -324,20 +325,24 @@ describe('ReceiptsScreen', () => {
     fireEvent.press(screen.getAllByRole('button', { name: 'Close receipt photo' }).at(-1)!);
     act(() => jest.advanceTimersByTime(250));
     expect(screen.queryByTestId('receipt-preview')).toBeNull();
-    jest.useRealTimers();
 
     fireEvent.press(screen.getByRole('button', { name: 'View details for statement.pdf' }));
     fireEvent.press(screen.getByRole('button', { name: 'View statement.pdf' }));
+    act(() => jest.advanceTimersByTime(320));
     expect(screen.getByText('Photo preview is unavailable for this file.')).toBeVisible();
     expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
+    jest.useRealTimers();
   });
 
   it('replaces the preview spinner with an image error message', () => {
+    jest.useFakeTimers();
     renderReceipts({ receipts: [receipt()] });
     fireEvent.press(screen.getByRole('button', { name: 'View details for Moon Market' }));
     fireEvent.press(screen.getByRole('button', { name: 'View Moon Market' }));
+    act(() => jest.advanceTimersByTime(320));
     fireEvent(screen.getByLabelText('Receipt photo market.jpg'), 'error');
     expect(screen.getByText('Could not load this receipt photo.')).toBeVisible();
     expect(screen.UNSAFE_queryByType(ActivityIndicator)).toBeNull();
+    jest.useRealTimers();
   });
 });

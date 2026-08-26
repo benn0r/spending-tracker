@@ -58,14 +58,20 @@ export function ReceiptDetailsDrawer({
     draft: DraftTransaction;
     mode: EntryMode;
   } | null>(null);
+  const pendingView = useRef<ApiReceipt | null>(null);
   const drawer = useDrawerTransition(receipt !== null, () => {
-    onClose();
     const next = pendingAdd.current;
+    const nextView = pendingView.current;
     pendingAdd.current = null;
+    pendingView.current = null;
+    onClose();
     if (next) {
       // Let React remove this native Modal before mounting the transaction Modal.
       // Overlapping modal transitions can leave iOS input handling unresponsive.
-      setTimeout(() => onAdd(next.receipt, next.draft, next.mode), 0);
+      setTimeout(() => onAdd(next.receipt, next.draft, next.mode), 80);
+    } else if (nextView) {
+      // iOS cannot reliably replace one native Modal with another during dismissal.
+      setTimeout(() => onView(nextView), 80);
     }
   });
   const groups = receipt ? itemGroups(receipt, categories) : [];
@@ -107,7 +113,7 @@ export function ReceiptDetailsDrawer({
               accessibilityRole="button"
               accessibilityLabel={`View ${receipt?.suggestion?.merchant || receipt?.filename}`}
               onPress={() => {
-                if (receipt) onView(receipt);
+                pendingView.current = receipt;
                 drawer.dismiss();
               }}
               style={styles.receiptDetailsSecondaryAction}

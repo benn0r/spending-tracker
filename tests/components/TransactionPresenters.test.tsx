@@ -212,6 +212,83 @@ describe('transaction presentation', () => {
     await waitFor(() => expect(onScanReceipt).toHaveBeenCalledTimes(1));
   });
 
+  it('renders loading, empty, and fatal error states with their actions', async () => {
+    const onAdd = jest.fn();
+    const onRefresh = jest.fn().mockResolvedValue(undefined);
+    const props = {
+      cashFlow: null,
+      categories: [],
+      queuedTransactions: [],
+      retryingTransaction: null,
+      loadingMore: false,
+      activationRequest: 0,
+      onRefresh,
+      onActivationRefresh: jest.fn().mockResolvedValue(undefined),
+      onLoadMore: jest.fn().mockResolvedValue(undefined),
+      onDelete: jest.fn(),
+      onEdit: jest.fn(),
+      onRetryQueued: jest.fn(),
+      onDiscardQueued: jest.fn(),
+      onScanReceipt: jest.fn().mockResolvedValue(undefined),
+      onAdd,
+    };
+    const { rerender } = render(
+      <TransactionsScreen {...props} transactions={[]} loading error="" />,
+    );
+    expect(screen.getByText('Loading your budget…')).toBeVisible();
+
+    rerender(
+      <TransactionsScreen
+        {...props}
+        transactions={[]}
+        loading={false}
+        error="Budget server unavailable"
+      />,
+    );
+    expect(screen.getByText('Couldn’t load your budget')).toBeVisible();
+    fireEvent.press(screen.getByRole('button', { name: 'Retry loading transactions' }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+
+    rerender(<TransactionsScreen {...props} transactions={[]} loading={false} error="" />);
+    expect(screen.getByText('No transactions yet.')).toBeVisible();
+    fireEvent.press(screen.getByRole('button', { name: 'Add transaction' }));
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes on activation, retries a nonfatal error, and loads the next page', async () => {
+    const onRefresh = jest.fn().mockResolvedValue(undefined);
+    const onActivationRefresh = jest.fn().mockResolvedValue(undefined);
+    const onLoadMore = jest.fn().mockResolvedValue(undefined);
+    const props = {
+      transactions: [transaction()],
+      cashFlow: null,
+      categories: [],
+      queuedTransactions: [],
+      retryingTransaction: null,
+      loading: false,
+      loadingMore: false,
+      error: 'Last refresh failed',
+      onRefresh,
+      onActivationRefresh,
+      onLoadMore,
+      onDelete: jest.fn(),
+      onEdit: jest.fn(),
+      onRetryQueued: jest.fn(),
+      onDiscardQueued: jest.fn(),
+      onScanReceipt: jest.fn().mockResolvedValue(undefined),
+      onAdd: jest.fn(),
+    };
+    const { rerender } = render(<TransactionsScreen {...props} activationRequest={0} />);
+    expect(screen.getByText(/Last refresh failed/)).toBeVisible();
+    fireEvent.press(screen.getByRole('button', { name: 'Retry loading transactions' }));
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+
+    fireEvent(screen.getByTestId('transactions-list'), 'endReached');
+    await waitFor(() => expect(onLoadMore).toHaveBeenCalledTimes(1));
+    rerender(<TransactionsScreen {...props} activationRequest={1} />);
+    await waitFor(() => expect(onActivationRefresh).toHaveBeenCalledTimes(1));
+  });
+
   it('shows a signed daily total and renders the sticky glass effect', () => {
     render(<DateSectionHeader date="2026-08-12" total={-37.5} elevated />);
 

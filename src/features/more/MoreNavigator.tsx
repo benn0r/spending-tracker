@@ -30,24 +30,28 @@ export function MoreNavigator({
   useEffect(() => {
     if (!selected) return;
     slide.setValue(1);
-    Animated.timing(slide, {
+    const animation = Animated.timing(slide, {
       toValue: 0,
       duration: 240,
       useNativeDriver: true,
-    }).start(({ finished }) => {
+    });
+    animation.start(({ finished }) => {
       if (finished) setEntering(false);
     });
+    return () => animation.stop();
   }, [selected, slide]);
 
   useEffect(() => {
     if (!leaving) return;
-    Animated.timing(slide, {
+    const animation = Animated.timing(slide, {
       toValue: 1,
       duration: 220,
       useNativeDriver: true,
-    }).start(({ finished }) => {
+    });
+    animation.start(({ finished }) => {
       if (finished) onExitComplete?.();
     });
+    return () => animation.stop();
   }, [leaving, onExitComplete, slide]);
 
   const menuPage = (

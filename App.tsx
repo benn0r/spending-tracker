@@ -252,7 +252,10 @@ function ConfiguredApp({
           key={morePage ?? 'menu'}
           selected={morePage}
           receiptCount={receiptCount}
-          onSelect={setMorePage}
+          onSelect={(page) => {
+            setMorePageLeaving(false);
+            setMorePage(page);
+          }}
           leaving={morePageLeaving}
           onExitComplete={finishClosingMorePage}
         >

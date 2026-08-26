@@ -1,0 +1,58 @@
+appId: app.spendingtracker.mobile
+name: Native iOS offline queue retry and discard actions
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: server-url-input
+- inputText: ${MOCK_URL}
+- tapOn:
+    id: api-token-input
+- inputText: ${API_TOKEN}
+- tapOn:
+    id: save-connection-button
+- tapOn:
+    text: Not Now
+    optional: true
+- assertVisible: View details for Moonbeam Market
+
+# Keep loaded references, then make subsequent synchronization unavailable.
+- tapOn: Settings
+- tapOn: Edit server connection
+- tapOn:
+    id: server-url-input
+    point: 95%, 50%
+- eraseText: 100
+- inputText: ${MOCK_URL}/offline
+- pressKey: Enter
+- tapOn:
+    id: save-connection-button
+- tapOn: Transactions
+- tapOn: Add transaction
+- tapOn: Enchanted Groceries
+- tapOn:
+    id: amount-input
+- inputText: '17.25'
+- tapOn: Done entering number
+- tapOn:
+    id: comment-input
+- inputText: Offline dragon supplies
+- pressKey: Enter
+- tapOn:
+    id: choice-moonlight-wallet
+- waitForAnimationToEnd
+- tapOn:
+    id: choice-moonlight-wallet
+- tapOn:
+    id: save-transaction-button
+
+# Saving never waits for the network and exposes both queue actions.
+- extendedWaitUntil:
+    visible: Waiting to sync
+    timeout: 10000
+- tapOn: Retry Enchanted Groceries
+- extendedWaitUntil:
+    visible: Retry Enchanted Groceries
+    timeout: 10000
+- tapOn: Remove Enchanted Groceries from queue
+- assertNotVisible: Waiting to sync

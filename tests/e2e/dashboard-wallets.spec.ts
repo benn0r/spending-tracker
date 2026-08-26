@@ -97,7 +97,9 @@ test('explains that no wallets are available when references contain no accounts
   await expect(
     page.getByText('No accounts are enabled on the server.', { exact: true }),
   ).toBeVisible();
-  await page.getByRole('button', { name: 'Close account selector' }).click();
+  await page
+    .getByRole('button', { name: 'Close account selector' })
+    .click({ position: { x: 8, y: 8 } });
   await expect(page.getByTestId('account-sheet')).toHaveCount(0);
 });
 

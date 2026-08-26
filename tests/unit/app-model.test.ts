@@ -234,6 +234,35 @@ describe('queued transaction cache and reducers', () => {
     );
   });
 
+  it('restores existing and newly-created shared-expense metadata', () => {
+    const existing = {
+      ...queuedTransaction,
+      id: 'shared-existing',
+      payload: {
+        ...transactionPayload,
+        expenseSplit: { mode: 'existing' as const, splitId: 7 },
+      },
+    };
+    const created = {
+      ...queuedTransaction,
+      id: 'shared-new',
+      payload: {
+        ...transactionPayload,
+        expenseSplit: { mode: 'new' as const, title: '  Dragon expedition  ', splitCount: 3 },
+      },
+    };
+    assert.deepEqual(parseTransactionQueue(JSON.stringify([existing, created])), [
+      existing,
+      {
+        ...created,
+        payload: {
+          ...created.payload,
+          expenseSplit: { mode: 'new', title: 'Dragon expedition', splitCount: 3 },
+        },
+      },
+    ]);
+  });
+
   it('returns an empty queue for missing, malformed, or non-array storage', () => {
     assert.deepEqual(parseTransactionQueue(null), []);
     assert.deepEqual(parseTransactionQueue('{broken'), []);
@@ -310,6 +339,40 @@ describe('queued transaction cache and reducers', () => {
         { ...queuedTransaction, payload: { ...transactionPayload, tags: 'weekly-id' } },
       ],
       ['blank tag', { ...queuedTransaction, payload: { ...transactionPayload, tags: [''] } }],
+      [
+        'non-object shared expense',
+        { ...queuedTransaction, payload: { ...transactionPayload, expenseSplit: 'shared' } },
+      ],
+      [
+        'invalid existing shared expense id',
+        {
+          ...queuedTransaction,
+          payload: {
+            ...transactionPayload,
+            expenseSplit: { mode: 'existing', splitId: 0 },
+          },
+        },
+      ],
+      [
+        'invalid new shared expense title',
+        {
+          ...queuedTransaction,
+          payload: {
+            ...transactionPayload,
+            expenseSplit: { mode: 'new', title: 42, splitCount: 2 },
+          },
+        },
+      ],
+      [
+        'invalid new shared expense count',
+        {
+          ...queuedTransaction,
+          payload: {
+            ...transactionPayload,
+            expenseSplit: { mode: 'new', splitCount: 0 },
+          },
+        },
+      ],
       [
         'missing transaction category',
         { ...queuedTransaction, payload: { ...transactionPayload, category: undefined } },

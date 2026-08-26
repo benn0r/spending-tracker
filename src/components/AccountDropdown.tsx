@@ -96,6 +96,7 @@ export function AccountDropdown({
                   <Pressable
                     key={option.id}
                     accessibilityRole="radio"
+                    accessibilityLabel={option.name}
                     accessibilityState={{ checked: active }}
                     aria-checked={active}
                     onPress={() => {

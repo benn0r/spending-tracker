@@ -134,6 +134,7 @@ export function SwipeToDelete({
         <Text style={styles.swipeDeleteText}>Delete</Text>
       </Pressable>
       <Animated.View
+        testID={`swipe-${id}`}
         {...responder.panHandlers}
         pointerEvents={isOpen ? 'none' : 'auto'}
         style={[

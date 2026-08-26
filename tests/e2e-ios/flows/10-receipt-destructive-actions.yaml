@@ -1,0 +1,57 @@
+appId: app.spendingtracker.mobile
+name: Native iOS receipt preview add and confirmed deletion
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: server-url-input
+- inputText: ${MOCK_URL}
+- tapOn:
+    id: api-token-input
+- inputText: ${API_TOKEN}
+- tapOn:
+    id: save-connection-button
+- tapOn:
+    text: Not Now
+    optional: true
+- assertVisible: View details for Moonbeam Market
+
+# Receipt details and preview both close by pull-down; Add opens the form.
+- tapOn: More
+- tapOn: Receipts
+- tapOn: View details for Starlight Apothecary
+- tapOn: View Starlight Apothecary
+- assertVisible: Receipt photo moonbeam-market.png
+- swipe:
+    start: 50%, 45%
+    end: 50%, 90%
+    duration: 450
+- assertNotVisible: Receipt photo moonbeam-market.png
+# Reopen details and prove that the details drawer itself also closes by pull-down.
+- tapOn: View details for Starlight Apothecary
+- swipe:
+    start: 50%, 45%
+    end: 50%, 90%
+    duration: 450
+- tapOn: View details for Starlight Apothecary
+- tapOn: Add Starlight Apothecary
+- assertVisible: Transaction category
+- tapOn: Enchanted Groceries
+- swipe:
+    start: 50%, 75%
+    end: 50%, 28%
+    duration: 400
+- assertVisible: Save changes
+- tapOn: Cancel transaction
+
+# Confirm the destructive transaction action, not only its cancel branch.
+- tapOn: Transactions
+- scrollUntilVisible:
+    element:
+      text: View details for Royal stipend
+    direction: DOWN
+- tapOn: View details for Royal stipend
+- tapOn: Delete transaction
+- assertVisible: Delete Royal stipend?
+- tapOn: Confirm delete Royal stipend
+- assertNotVisible: View details for Royal stipend
