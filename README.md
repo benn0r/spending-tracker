@@ -49,6 +49,32 @@ The Gitea pipeline builds a signed release APK and Android App Bundle with Gradl
 
 Configure `EXPO_PUBLIC_SPENDING_TRACKER_API_URL` and, when bearer authentication is required, `EXPO_PUBLIC_SPENDING_TRACKER_API_KEY` as Gitea Actions variables. Expo embeds both public values in the APK and App Bundle, so use a dedicated client key and rotate it when needed.
 
+## Native iOS end-to-end tests
+
+The opt-in native suite builds and launches the real app in an iOS Simulator, starts an isolated mock API, and drives the native UI with Maestro. It is intentionally separate from the browser suite and CI because it requires macOS, Xcode, an installed simulator runtime, and [Maestro](https://docs.maestro.dev/getting-started/installing-maestro).
+
+Run it manually with:
+
+```bash
+npm run test:e2e:ios
+```
+
+It uses `iPhone 17 Pro` by default. Select another installed simulator without changing repository files:
+
+```bash
+IOS_E2E_SIMULATOR="iPhone 16 Pro" npm run test:e2e:ios
+```
+
+The runner boots the simulator, starts the mock API, creates a self-contained Release simulator build, installs it, executes every native flow, and stops its background processes afterward. It does not depend on Metro, so the installed test app behaves like a release build. The mock server can also be run by itself with `npm run test:e2e:ios:mock`.
+
+For a quick rerun while developing a flow, reuse the installed build and select one flow:
+
+```bash
+IOS_E2E_SKIP_BUILD=1 IOS_E2E_FLOW=tests/e2e-ios/flows/06-form-controls.yaml npm run test:e2e:ios
+```
+
+The suite covers connection validation and authentication, normal and slow responses, HTTP failures, unavailable networking, offline-first transaction creation, transaction inputs and nested drawers, tag creation, split/shared expenses, account navigation, receipts, settings, details, editing, and delete confirmation.
+
 Use an existing Android release keystore or create an app-specific one with `keytool -genkeypair`. Back it up securely, then add these Gitea Actions secrets without committing the keystore or credentials:
 
 - `ANDROID_KEYSTORE_BASE64`

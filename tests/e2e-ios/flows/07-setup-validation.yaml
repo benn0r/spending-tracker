@@ -1,0 +1,48 @@
+appId: app.spendingtracker.mobile
+name: Native iOS connection validation controls
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: server-url-input
+- inputText: invalid-url
+- pressKey: Enter
+- tapOn:
+    id: save-connection-button
+- assertVisible: Enter a complete server URL beginning with http:// or https://.
+- tapOn:
+    id: server-url-input
+    point: 95%, 50%
+- eraseText: 100
+- inputText: ${MOCK_URL}
+- pressKey: Enter
+- tapOn:
+    id: save-connection-button
+- assertVisible: Enter the API token configured on the server.
+- tapOn:
+    id: api-token-input
+- inputText: wrong-token
+- pressKey: Enter
+- tapOn:
+    id: save-connection-button
+- tapOn:
+    text: Not Now
+    optional: true
+- extendedWaitUntil:
+    visible: Couldn’t load your budget
+    timeout: 10000
+- assertVisible: '.*HTTP 401 unauthorized.*'
+- tapOn: Settings
+- tapOn: Edit server connection
+- tapOn:
+    id: api-token-input
+    point: 95%, 50%
+- eraseText: 100
+- inputText: ${API_TOKEN}
+- pressKey: Enter
+- tapOn:
+    id: save-connection-button
+- tapOn: Transactions
+- extendedWaitUntil:
+    visible: View details for Moonbeam Market
+    timeout: 10000

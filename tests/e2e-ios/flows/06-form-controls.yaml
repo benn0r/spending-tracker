@@ -1,0 +1,62 @@
+appId: app.spendingtracker.mobile
+name: Native iOS transaction form controls and nested drawers
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: server-url-input
+- inputText: ${MOCK_URL}
+- tapOn:
+    id: api-token-input
+- inputText: ${API_TOKEN}
+- tapOn: Show API token
+- assertVisible: native-e2e-token
+- tapOn: Hide API token
+- tapOn:
+    id: save-connection-button
+- tapOn:
+    text: Not Now
+    optional: true
+- assertVisible: View details for Moonbeam Market
+- tapOn: Add transaction
+- assertVisible: Transaction category
+- tapOn: Enchanted Groceries
+- waitForAnimationToEnd
+- tapOn:
+    id: choice-dragon-hoard
+- waitForAnimationToEnd
+- tapOn:
+    id: choice-dragon-hoard
+- tapOn: Income
+- tapOn: Expense
+- tapOn: Open date calendar
+- assertVisible: Transaction date
+- tapOn: Confirm date
+- tapOn: Search tags
+- assertVisible: Choose tags
+- tapOn: Search tags
+- inputText: New Adventure
+- assertVisible: Create tag New Adventure
+- tapOn: Create tag New Adventure
+- tapOn: Done selecting tags
+- tapOn: Add to shared expenses
+- assertVisible: Add this transaction to an existing shared expense or create a new one.
+- tapOn: Dragon expedition · 3 people
+- tapOn:
+    id: amount-input
+- inputText: '36.00'
+- tapOn: Done entering number
+- tapOn:
+    id: comment-input
+- inputText: Complete native form coverage
+- pressKey: Enter
+- tapOn:
+    id: save-transaction-button
+- assertVisible: View details for Complete native form coverage
+- tapOn: Add transaction
+- assertVisible: Transaction category
+- tapOn: Skyship Travel
+- tapOn: Split transaction
+- assertVisible: Split 1
+- assertVisible: Split 2
+- tapOn: Cancel transaction

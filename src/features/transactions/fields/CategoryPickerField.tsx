@@ -103,6 +103,7 @@ export function CategoryPickerField({
                 return (
                   <Pressable
                     accessibilityRole="radio"
+                    accessibilityLabel={item.name}
                     accessibilityState={{ checked: active }}
                     aria-checked={active}
                     onPress={() => {

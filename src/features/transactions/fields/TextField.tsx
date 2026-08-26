@@ -13,6 +13,7 @@ export function TextField({
   multiline,
   keyboardType,
   inputRef,
+  inputAccessoryViewID,
 }: {
   label: string;
   value: string;
@@ -22,6 +23,7 @@ export function TextField({
   multiline?: boolean;
   keyboardType?: 'decimal-pad' | 'number-pad';
   inputRef?: RefObject<TextInput | null>;
+  inputAccessoryViewID?: string;
 }) {
   return (
     <View style={styles.fieldGroup}>
@@ -30,13 +32,17 @@ export function TextField({
         <TextInput
           ref={inputRef}
           accessibilityLabel={label}
+          testID={`${label.toLowerCase().replaceAll(' ', '-')}-input`}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor="#A7A99F"
           style={[styles.input, multiline && styles.multilineInput]}
           multiline={multiline}
+          blurOnSubmit={multiline}
+          returnKeyType={multiline ? 'done' : undefined}
           keyboardType={keyboardType}
+          inputAccessoryViewID={inputAccessoryViewID}
         />
       </View>
     </View>

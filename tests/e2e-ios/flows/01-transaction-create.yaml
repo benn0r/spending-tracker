@@ -1,0 +1,38 @@
+appId: app.spendingtracker.mobile
+name: Native iOS transaction smoke test
+---
+- launchApp:
+    clearState: true
+- assertVisible: Connect your server
+- tapOn:
+    id: server-url-input
+- inputText: ${MOCK_URL}
+- tapOn:
+    id: api-token-input
+- inputText: ${API_TOKEN}
+- tapOn:
+    id: save-connection-button
+- tapOn:
+    text: Not Now
+    optional: true
+- assertVisible: View details for Moonbeam Market
+- tapOn: Add transaction
+- assertVisible: Transaction category
+- tapOn: Enchanted Groceries
+- waitForAnimationToEnd
+- tapOn:
+    id: amount-input
+- inputText: '19.95'
+- tapOn: Done entering number
+- tapOn:
+    id: comment-input
+- inputText: Native simulator purchase
+- pressKey: Enter
+- tapOn:
+    id: choice-moonlight-wallet
+- waitForAnimationToEnd
+- tapOn:
+    id: choice-moonlight-wallet
+- tapOn:
+    id: save-transaction-button
+- assertVisible: View details for Native simulator purchase

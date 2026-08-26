@@ -604,6 +604,17 @@ export const styles = StyleSheet.create({
   activeExpenseDirectionButton: { backgroundColor: '#C94B4B' },
   activeIncomeDirectionButton: { backgroundColor: colors.green },
   form: { paddingBottom: 12 },
+  numberKeyboardAccessory: {
+    minHeight: 45,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(250, 248, 251, 0.96)',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.line,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  numberKeyboardDoneButton: { paddingHorizontal: 8, paddingVertical: 6 },
+  numberKeyboardDoneText: { color: colors.accentDark, fontSize: 16, fontWeight: '700' },
   fieldGroup: {
     marginBottom: 14,
   },

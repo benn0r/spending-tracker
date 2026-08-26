@@ -1,0 +1,61 @@
+appId: app.spendingtracker.mobile
+name: Native iOS navigation and drawer actions
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: server-url-input
+- inputText: ${MOCK_URL}
+- tapOn:
+    id: api-token-input
+- inputText: ${API_TOKEN}
+- tapOn:
+    id: save-connection-button
+- tapOn:
+    text: Not Now
+    optional: true
+- assertVisible: View details for Moonbeam Market
+- tapOn: Accounts
+- assertVisible: Select account
+- assertVisible: CURRENT BALANCE
+- tapOn: More
+- assertVisible: Shared expenses
+- tapOn: Shared expenses
+- assertVisible: View shared expense Dragon expedition
+- tapOn: View shared expense Dragon expedition
+- assertVisible: Your balance
+- assertVisible: Moonbeam Market
+- swipe:
+    start: 50%, 45%
+    end: 50%, 90%
+    duration: 450
+- tapOn: Back to More
+- tapOn: Receipts
+- assertVisible: View details for Starlight Apothecary
+- tapOn: View details for Starlight Apothecary
+- assertVisible: View Starlight Apothecary
+- assertVisible: Add Starlight Apothecary
+- swipe:
+    start: 50%, 45%
+    end: 50%, 90%
+    duration: 450
+- tapOn: Back to More
+- tapOn: Settings
+- assertVisible: Personalize how new transactions are prepared on this device.
+- tapOn: Edit server connection
+- assertVisible: Server connection
+- swipe:
+    start: 50%, 45%
+    end: 50%, 90%
+    duration: 450
+- tapOn: Transactions
+- tapOn: View details for Moonbeam Market
+- assertVisible: Amount
+- assertVisible: Supplies for the observatory
+- tapOn: Delete transaction
+- assertVisible: Delete Moonbeam Market?
+- tapOn: Cancel delete
+- assertVisible: Edit transaction
+- tapOn: Edit transaction
+- assertVisible: Save changes
+- tapOn: Cancel transaction

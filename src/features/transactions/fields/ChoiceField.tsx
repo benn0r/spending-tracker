@@ -69,6 +69,8 @@ export function ChoiceField(props: ChoiceFieldProps) {
             return (
               <Pressable
                 key={option.id}
+                accessibilityLabel={option.name}
+                testID={`choice-${option.id}`}
                 accessibilityRole={props.multiple ? 'checkbox' : 'radio'}
                 accessibilityState={{ checked: active }}
                 aria-checked={active}
@@ -164,6 +166,7 @@ export function ChoiceField(props: ChoiceFieldProps) {
                   return (
                     <Pressable
                       key={item.id}
+                      accessibilityLabel={item.name}
                       accessibilityRole="checkbox"
                       accessibilityState={{ checked: active }}
                       aria-checked={active}

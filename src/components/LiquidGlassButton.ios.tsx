@@ -8,6 +8,7 @@ import {
   tint,
 } from '@expo/ui/swift-ui/modifiers';
 import type { SFSymbol } from 'sf-symbols-typescript';
+import { Pressable } from 'react-native';
 
 import type { LiquidGlassButtonProps } from './LiquidGlassButton';
 
@@ -29,34 +30,41 @@ export function LiquidGlassButton({
     accessibilityLabel(accessibleLabel),
   ];
   return (
-    <Host style={{ width: compact ? 42 : '100%', height: compact ? 42 : 48 }}>
-      {compact ? (
-        <Button onPress={handlePress} modifiers={modifiers}>
-          <Image
-            systemName={systemImage as SFSymbol}
-            size={19}
-            color={destructive ? '#D84A4A' : '#2D2631'}
-          />
-        </Button>
-      ) : prominent ? (
-        <Button
-          label={label}
-          systemImage={systemImage as SFSymbol}
-          onPress={handlePress}
-          modifiers={modifiers}
-        />
-      ) : (
-        <Button onPress={handlePress} modifiers={modifiers}>
-          <HStack spacing={7} alignment="center">
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibleLabel}
+      onPress={handlePress}
+      style={{ width: compact ? 42 : '100%', height: compact ? 42 : 48 }}
+    >
+      <Host
+        pointerEvents="none"
+        style={{ width: compact ? 42 : '100%', height: compact ? 42 : 48 }}
+      >
+        {compact ? (
+          <Button modifiers={modifiers}>
             <Image
               systemName={systemImage as SFSymbol}
-              size={17}
+              size={19}
               color={destructive ? '#D84A4A' : '#2D2631'}
             />
-            <Text modifiers={[foregroundStyle(destructive ? '#D84A4A' : '#2D2631')]}>{label}</Text>
-          </HStack>
-        </Button>
-      )}
-    </Host>
+          </Button>
+        ) : prominent ? (
+          <Button label={label} systemImage={systemImage as SFSymbol} modifiers={modifiers} />
+        ) : (
+          <Button modifiers={modifiers}>
+            <HStack spacing={7} alignment="center">
+              <Image
+                systemName={systemImage as SFSymbol}
+                size={17}
+                color={destructive ? '#D84A4A' : '#2D2631'}
+              />
+              <Text modifiers={[foregroundStyle(destructive ? '#D84A4A' : '#2D2631')]}>
+                {label}
+              </Text>
+            </HStack>
+          </Button>
+        )}
+      </Host>
+    </Pressable>
   );
 }

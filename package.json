@@ -22,6 +22,8 @@
     "test:components": "jest --runInBand",
     "test:components:coverage": "jest --runInBand --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:ios": "node scripts/run-ios-e2e.mjs",
+    "test:e2e:ios:mock": "node tests/e2e-ios/mock-server.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

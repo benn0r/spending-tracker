@@ -81,6 +81,7 @@ export function ServerSetupScreen({
         <Text style={styles.setupLabel}>Server URL</Text>
         <TextInput
           accessibilityLabel="Server URL"
+          testID="server-url-input"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
@@ -93,6 +94,7 @@ export function ServerSetupScreen({
         <View style={styles.setupTokenField}>
           <TextInput
             accessibilityLabel="API token"
+            testID="api-token-input"
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="Paste your server API token"
@@ -121,7 +123,13 @@ export function ServerSetupScreen({
               <Text style={styles.setupCancelText}>Cancel</Text>
             </Pressable>
           ) : null}
-          <Pressable accessibilityRole="button" onPress={save} style={styles.setupSave}>
+          <Pressable
+            accessibilityLabel="Save connection"
+            accessibilityRole="button"
+            testID="save-connection-button"
+            onPress={save}
+            style={styles.setupSave}
+          >
             <Text style={styles.setupSaveText}>Save connection</Text>
             <Ionicons name="arrow-forward" size={19} color="#FFFFFF" />
           </Pressable>

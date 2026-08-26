@@ -2,6 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  InputAccessoryView,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -63,6 +65,7 @@ export function EntrySheet({
     direction?: TransactionDirection,
   ) => Promise<void>;
 }) {
+  const numberKeyboardAccessoryId = 'transaction-number-keyboard';
   const [mode, setMode] = useState<EntryMode>('transaction');
   const [direction, setDirection] = useState<TransactionDirection>('expense');
   const [draft, setDraft] = useState<DraftTransaction>(emptyDraft);
@@ -183,7 +186,11 @@ export function EntrySheet({
         >
           <View style={styles.handle} />
           <EntrySheetHeader editing={Boolean(initialDraft)} mode={mode} onModeChange={setMode} />
-          <ScrollView keyboardShouldPersistTaps="always" contentContainerStyle={styles.form}>
+          <ScrollView
+            keyboardDismissMode="interactive"
+            keyboardShouldPersistTaps="always"
+            contentContainerStyle={styles.form}
+          >
             <ChoiceField
               label="Account"
               value={draft.account}
@@ -199,6 +206,7 @@ export function EntrySheet({
                   placeholder="0.00"
                   icon="cash-outline"
                   keyboardType="decimal-pad"
+                  inputAccessoryViewID={numberKeyboardAccessoryId}
                   inputRef={amountInputRef}
                 />
               </View>
@@ -281,6 +289,7 @@ export function EntrySheet({
                       placeholder="0.00"
                       icon="pie-chart-outline"
                       keyboardType="decimal-pad"
+                      inputAccessoryViewID={numberKeyboardAccessoryId}
                     />
                     <ChoiceField
                       label="Tags"
@@ -361,6 +370,7 @@ export function EntrySheet({
                       placeholder="2"
                       icon="person-add-outline"
                       keyboardType="number-pad"
+                      inputAccessoryViewID={numberKeyboardAccessoryId}
                     />
                   </View>
                 ) : null}
@@ -368,6 +378,20 @@ export function EntrySheet({
             ) : null}
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
           </ScrollView>
+          {Platform.OS === 'ios' ? (
+            <InputAccessoryView nativeID={numberKeyboardAccessoryId}>
+              <View style={styles.numberKeyboardAccessory}>
+                <Pressable
+                  accessibilityLabel="Done entering number"
+                  accessibilityRole="button"
+                  onPress={Keyboard.dismiss}
+                  style={styles.numberKeyboardDoneButton}
+                >
+                  <Text style={styles.numberKeyboardDoneText}>Done</Text>
+                </Pressable>
+              </View>
+            </InputAccessoryView>
+          ) : null}
           <View style={styles.sheetActions}>
             <Pressable
               accessibilityRole="button"
@@ -380,6 +404,7 @@ export function EntrySheet({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={initialDraft ? 'Save changes' : 'Save transaction'}
+              testID="save-transaction-button"
               accessibilityState={{ disabled: !formValid || saving }}
               disabled={!formValid || saving}
               onPress={save}

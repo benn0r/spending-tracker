@@ -1,0 +1,37 @@
+appId: app.spendingtracker.mobile
+name: Native iOS server error diagnostics and retry
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: server-url-input
+    point: 95%, 50%
+- inputText: ${MOCK_URL}/server-error
+- tapOn:
+    id: api-token-input
+- inputText: ${API_TOKEN}
+- tapOn:
+    id: save-connection-button
+- tapOn:
+    text: Not Now
+    optional: true
+- extendedWaitUntil:
+    visible: Couldn’t load your budget
+    timeout: 10000
+- assertVisible: '.*HTTP 503 service unavailable.*'
+- tapOn: Retry loading transactions
+- assertVisible: Couldn’t load your budget
+- tapOn: Settings
+- tapOn: Edit server connection
+- tapOn:
+    id: server-url-input
+    point: 95%, 50%
+- eraseText: 100
+- inputText: ${MOCK_URL}
+- pressKey: Enter
+- tapOn:
+    id: save-connection-button
+- tapOn: Transactions
+- extendedWaitUntil:
+    visible: View details for Moonbeam Market
+    timeout: 10000
