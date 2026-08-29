@@ -70,6 +70,8 @@ jobs:
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_RELEASE_ARCHITECTURES: arm64-v8a
+      CMAKE_BUILD_PARALLEL_LEVEL: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -167,10 +169,10 @@ jobs:
           until ./gradlew :app:assembleRelease \
             --no-daemon --stacktrace \
             --max-workers=1 \
-            -Dorg.gradle.jvmargs="-Xmx1024m -XX:MaxMetaspaceSize=512m -XX:+UseSerialGC" \
+            -Dorg.gradle.jvmargs="-Xmx768m -XX:MaxMetaspaceSize=384m -XX:+UseSerialGC" \
             -Dorg.gradle.parallel=false \
             -Pkotlin.compiler.execution.strategy=in-process \
-            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a; do
+            -PreactNativeArchitectures="$ANDROID_RELEASE_ARCHITECTURES"; do
             if [ "$attempt" -ge 3 ]; then
               exit 1
             fi
@@ -185,10 +187,10 @@ jobs:
           until ./gradlew :app:bundleRelease \
             --no-daemon --stacktrace \
             --max-workers=1 \
-            -Dorg.gradle.jvmargs="-Xmx1024m -XX:MaxMetaspaceSize=512m -XX:+UseSerialGC" \
+            -Dorg.gradle.jvmargs="-Xmx768m -XX:MaxMetaspaceSize=384m -XX:+UseSerialGC" \
             -Dorg.gradle.parallel=false \
             -Pkotlin.compiler.execution.strategy=in-process \
-            -PreactNativeArchitectures=arm64-v8a,armeabi-v7a; do
+            -PreactNativeArchitectures="$ANDROID_RELEASE_ARCHITECTURES"; do
             if [ "$attempt" -ge 3 ]; then
               exit 1
             fi
