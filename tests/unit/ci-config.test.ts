@@ -4,15 +4,22 @@ import { test } from 'node:test';
 
 test('Android release packaging stays within the runner memory budget', () => {
   const workflow = readFileSync('.gitea/workflows/ci.yml', 'utf8');
-  const releaseMemory =
-    '-Dorg.gradle.jvmargs="-Xmx768m -XX:MaxMetaspaceSize=384m -XX:+UseSerialGC"';
+  const packageMemory =
+    'GRADLE_PACKAGE_JVM_ARGS: -Xmx640m -XX:MaxMetaspaceSize=320m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC';
+  const nativeMemory =
+    'GRADLE_NATIVE_JVM_ARGS: -Xmx384m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC';
 
-  assert.equal(workflow.split(releaseMemory).length - 1, 2);
+  assert.equal(workflow.split(packageMemory).length - 1, 1);
+  assert.equal(workflow.split(nativeMemory).length - 1, 1);
+  assert.equal(workflow.split('-Dorg.gradle.jvmargs="$GRADLE_PACKAGE_JVM_ARGS"').length - 1, 2);
+  assert.equal(workflow.split('-Dorg.gradle.jvmargs="$GRADLE_NATIVE_JVM_ARGS"').length - 1, 1);
   assert.match(workflow, /ANDROID_RELEASE_ARCHITECTURES: arm64-v8a/);
   assert.match(workflow, /CMAKE_BUILD_PARALLEL_LEVEL: '1'/);
+  assert.match(workflow, /Build Android native libraries/);
+  assert.match(workflow, /':app:buildCMakeRelWithDebInfo\[arm64-v8a\]'/);
   assert.equal(
     workflow.split('-PreactNativeArchitectures="$ANDROID_RELEASE_ARCHITECTURES"').length - 1,
-    2,
+    3,
   );
   assert.doesNotMatch(
     workflow,

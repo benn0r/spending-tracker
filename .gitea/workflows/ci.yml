@@ -72,6 +72,8 @@ jobs:
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
       ANDROID_RELEASE_ARCHITECTURES: arm64-v8a
       CMAKE_BUILD_PARALLEL_LEVEL: '1'
+      GRADLE_NATIVE_JVM_ARGS: -Xmx384m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC
+      GRADLE_PACKAGE_JVM_ARGS: -Xmx640m -XX:MaxMetaspaceSize=320m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -162,6 +164,24 @@ jobs:
             echo "Android bundle failed; retrying (attempt $attempt of 3)."
             sleep 10
           done
+      - name: Build Android native libraries
+        working-directory: android
+        run: |
+          attempt=1
+          until ./gradlew ':app:buildCMakeRelWithDebInfo[arm64-v8a]' \
+            --no-daemon --stacktrace \
+            --max-workers=1 \
+            -Dorg.gradle.jvmargs="$GRADLE_NATIVE_JVM_ARGS" \
+            -Dorg.gradle.parallel=false \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            -PreactNativeArchitectures="$ANDROID_RELEASE_ARCHITECTURES"; do
+            if [ "$attempt" -ge 3 ]; then
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "Android native build failed; retrying (attempt $attempt of 3)."
+            sleep 10
+          done
       - name: Build signed release APK locally
         working-directory: android
         run: |
@@ -169,7 +189,7 @@ jobs:
           until ./gradlew :app:assembleRelease \
             --no-daemon --stacktrace \
             --max-workers=1 \
-            -Dorg.gradle.jvmargs="-Xmx768m -XX:MaxMetaspaceSize=384m -XX:+UseSerialGC" \
+            -Dorg.gradle.jvmargs="$GRADLE_PACKAGE_JVM_ARGS" \
             -Dorg.gradle.parallel=false \
             -Pkotlin.compiler.execution.strategy=in-process \
             -PreactNativeArchitectures="$ANDROID_RELEASE_ARCHITECTURES"; do
@@ -187,7 +207,7 @@ jobs:
           until ./gradlew :app:bundleRelease \
             --no-daemon --stacktrace \
             --max-workers=1 \
-            -Dorg.gradle.jvmargs="-Xmx768m -XX:MaxMetaspaceSize=384m -XX:+UseSerialGC" \
+            -Dorg.gradle.jvmargs="$GRADLE_PACKAGE_JVM_ARGS" \
             -Dorg.gradle.parallel=false \
             -Pkotlin.compiler.execution.strategy=in-process \
             -PreactNativeArchitectures="$ANDROID_RELEASE_ARCHITECTURES"; do
