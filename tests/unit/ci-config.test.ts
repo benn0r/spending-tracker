@@ -4,6 +4,7 @@ import { test } from 'node:test';
 
 test('Android release packaging stays within the runner memory budget', () => {
   const workflow = readFileSync('.gitea/workflows/ci.yml', 'utf8');
+  const androidBuild = readFileSync('android/app/build.gradle', 'utf8');
   const packageMemory =
     'GRADLE_PACKAGE_JVM_ARGS: -Xmx640m -XX:MaxMetaspaceSize=320m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC';
   const nativeMemory =
@@ -22,7 +23,7 @@ test('Android release packaging stays within the runner memory budget', () => {
   assert.match(workflow, /Build Android native libraries/);
   assert.match(workflow, /':app:buildCMakeRelWithDebInfo\[arm64-v8a\]'/);
   assert.match(workflow, /Merge Android release DEX/);
-  assert.match(workflow, /:app:mergeExtDexRelease/);
+  assert.match(workflow, /:app:mergeExtDexRelease :app:mergeDexRelease/);
   assert.equal(
     workflow.split('-PreactNativeArchitectures="$ANDROID_RELEASE_ARCHITECTURES"').length - 1,
     4,
@@ -32,4 +33,7 @@ test('Android release packaging stays within the runner memory budget', () => {
     /-Xmx512m -XX:MaxMetaspaceSize=768m/,
     'release packaging must not regress to the heap size that exhausted D8',
   );
+  assert.match(androidBuild, /CMAKE_C_FLAGS_RELWITHDEBINFO=-O2 -DNDEBUG -g0/);
+  assert.match(androidBuild, /CMAKE_CXX_FLAGS_RELWITHDEBINFO=-O2 -DNDEBUG -g0/);
+  assert.match(androidBuild, /CMAKE_SHARED_LINKER_FLAGS=-Wl,--threads=1/);
 });
