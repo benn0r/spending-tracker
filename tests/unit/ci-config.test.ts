@@ -6,7 +6,7 @@ test('Android release packaging stays within the runner memory budget', () => {
   const workflow = readFileSync('.gitea/workflows/ci.yml', 'utf8');
   const androidBuild = readFileSync('android/app/build.gradle', 'utf8');
   const packageMemory =
-    'GRADLE_PACKAGE_JVM_ARGS: -Xmx512m -XX:MaxMetaspaceSize=384m -XX:MaxDirectMemorySize=64m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC';
+    'GRADLE_PACKAGE_JVM_ARGS: -Xmx512m -XX:MaxMetaspaceSize=384m -XX:MaxDirectMemorySize=128m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC';
   const nativeMemory =
     'GRADLE_NATIVE_JVM_ARGS: -Xmx256m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=64m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC';
   const dexMemory =
