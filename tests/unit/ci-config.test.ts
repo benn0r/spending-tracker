@@ -2,6 +2,21 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
+test('CI reuses npm downloads and Android build dependencies', () => {
+  const workflow = readFileSync('.gitea/workflows/ci.yml', 'utf8');
+
+  assert.equal(workflow.split('cache: npm').length - 1, 5);
+  assert.equal(workflow.split('cache-dependency-path: package-lock.json').length - 1, 5);
+  assert.equal(workflow.split('uses: actions/cache@v4').length - 1, 1);
+  assert.match(workflow, /~\/\.gradle\/caches/);
+  assert.match(workflow, /~\/\.gradle\/wrapper/);
+  assert.match(
+    workflow,
+    /key: gradle-\$\{\{ runner\.os \}\}-\$\{\{ hashFiles\('package-lock\.json', 'android\/\*\*\/\*\.gradle\*', 'android\/gradle\/wrapper\/gradle-wrapper\.properties'\) \}\}/,
+  );
+  assert.match(workflow, /restore-keys: \|\n\s+gradle-\$\{\{ runner\.os \}\}-/);
+});
+
 test('Android release packaging stays within the runner memory budget', () => {
   const workflow = readFileSync('.gitea/workflows/ci.yml', 'utf8');
   const androidBuild = readFileSync('android/app/build.gradle', 'utf8');
