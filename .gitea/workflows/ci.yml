@@ -74,7 +74,8 @@ jobs:
       CMAKE_BUILD_PARALLEL_LEVEL: '1'
       GRADLE_NATIVE_JVM_ARGS: -Xmx256m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=64m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC
       GRADLE_DEX_JVM_ARGS: -Xmx1024m -XX:MaxMetaspaceSize=320m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC
-      GRADLE_PACKAGE_JVM_ARGS: -Xmx640m -XX:MaxMetaspaceSize=320m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC
+      GRADLE_LINT_JVM_ARGS: -Xmx384m -XX:MaxMetaspaceSize=512m -XX:MaxDirectMemorySize=64m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC
+      GRADLE_PACKAGE_JVM_ARGS: -Xmx512m -XX:MaxMetaspaceSize=384m -XX:MaxDirectMemorySize=64m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -199,6 +200,24 @@ jobs:
             fi
             attempt=$((attempt + 1))
             echo "Android DEX merge failed; retrying (attempt $attempt of 3)."
+            sleep 10
+          done
+      - name: Run Android release lint
+        working-directory: android
+        run: |
+          attempt=1
+          until ./gradlew :app:lintVitalAnalyzeRelease \
+            --no-daemon --stacktrace \
+            --max-workers=1 \
+            -Dorg.gradle.jvmargs="$GRADLE_LINT_JVM_ARGS" \
+            -Dorg.gradle.parallel=false \
+            -Pkotlin.compiler.execution.strategy=in-process \
+            -PreactNativeArchitectures="$ANDROID_RELEASE_ARCHITECTURES"; do
+            if [ "$attempt" -ge 3 ]; then
+              exit 1
+            fi
+            attempt=$((attempt + 1))
+            echo "Android release lint failed; retrying (attempt $attempt of 3)."
             sleep 10
           done
       - name: Build signed release APK locally
