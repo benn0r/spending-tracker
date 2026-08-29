@@ -7,7 +7,7 @@ test('Android release packaging stays within the runner memory budget', () => {
   const packageMemory =
     'GRADLE_PACKAGE_JVM_ARGS: -Xmx640m -XX:MaxMetaspaceSize=320m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC';
   const nativeMemory =
-    'GRADLE_NATIVE_JVM_ARGS: -Xmx384m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC';
+    'GRADLE_NATIVE_JVM_ARGS: -Xmx256m -XX:MaxMetaspaceSize=256m -XX:MaxDirectMemorySize=64m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC';
   const dexMemory =
     'GRADLE_DEX_JVM_ARGS: -Xmx1024m -XX:MaxMetaspaceSize=320m -XX:MaxDirectMemorySize=128m -XX:+UseSerialGC';
 
